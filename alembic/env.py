@@ -1,9 +1,14 @@
+import sys
+import os
+
+sys.path.append(os.getcwd())
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
 from src.core.database import Base
 from src import models
 

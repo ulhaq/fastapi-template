@@ -8,7 +8,7 @@ app = FastAPI()
 
 
 @app.exception_handler(HTTPException)
-async def handle_http_exception(request: Request, exc: HTTPException):
+def handle_http_exception(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content=jsonable_encoder(ErrorResponse(request, exc)),
@@ -17,7 +17,7 @@ async def handle_http_exception(request: Request, exc: HTTPException):
 
 
 @app.get("/")
-async def root():
+def root():
     return RedirectResponse(url="/docs")
 
 
