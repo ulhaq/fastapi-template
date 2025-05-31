@@ -11,7 +11,6 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(), nullable=False)
     email: Mapped[str] = mapped_column(String(), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(), nullable=False)
-    # company_id: Mapped[int] = mapped_column(Integer, ForeignKey("companies.id"))
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc), nullable=False
     )
@@ -20,4 +19,3 @@ class User(Base):
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
     )
-    # company = relationship("Company", back_populates="users")
