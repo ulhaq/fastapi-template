@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware import Middleware
 from fastapi.responses import JSONResponse
 
 from src.core.exceptions import ErrorResponse
+from src.core.middlewares import ErrorHandlingMiddleware
 from src.routers import auth, user
 
-app = FastAPI()
+app = FastAPI(middleware=[Middleware(ErrorHandlingMiddleware)])
 
 
 @app.exception_handler(HTTPException)

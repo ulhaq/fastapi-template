@@ -40,3 +40,16 @@ class NotAuthenticatedException(ClientException):
 class NotFoundException(ClientException):
     def __init__(self, detail: Any = None, headers: dict | None = None):
         super().__init__(status.HTTP_404_NOT_FOUND, detail, headers)
+
+
+class ServerException(HTTPException):
+    pass
+
+
+class InternalServerError(ServerException):
+    def __init__(self, headers: dict | None = None):
+        super().__init__(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "Something went wrong on our end.",
+            headers,
+        )
