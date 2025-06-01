@@ -5,7 +5,6 @@ from sqlalchemy import select
 from src.core.database import Base
 from src.repositories.base import BaseRepository
 
-
 ModelType = TypeVar("ModelType", bound=Base)
 
 

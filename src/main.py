@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
+
 from src.core.exceptions import ErrorResponse
-from src.routers import user, auth
+from src.routers import auth, user
 
 app = FastAPI()
 
@@ -16,10 +17,5 @@ def handle_http_exception(request: Request, exc: HTTPException):
     )
 
 
-@app.get("/")
-def root():
-    return RedirectResponse(url="/docs")
-
-
-app.include_router(auth.router)
-app.include_router(user.router)
+app.include_router(auth.router, tags=["Authentication"])
+app.include_router(user.router, tags=["Users"])

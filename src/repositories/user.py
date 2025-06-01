@@ -1,4 +1,5 @@
 from sqlalchemy import select
+
 from src.models.user import User
 from src.repositories.resource import ResourceRepository
 

@@ -1,6 +1,12 @@
 from fastapi.security import OAuth2PasswordRequestForm
+
 from src.core.exceptions import AlreadyExistsException, NotAuthenticatedException
-from src.core.security import Token, authenticate_user, create_access_token, hash_password
+from src.core.security import (
+    Token,
+    authenticate_user,
+    create_access_token,
+    hash_password,
+)
 from src.models.user import User
 from src.repositories.user import UserRepository
 from src.schemas.user import UserIn

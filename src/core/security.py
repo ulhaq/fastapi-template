@@ -1,14 +1,13 @@
 from time import time
+
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt import encode
 from passlib.context import CryptContext
+from pydantic import BaseModel, EmailStr
 
 from src.core.config import settings
 from src.core.exceptions import NotAuthenticatedException
 from src.models.user import User
-
-from pydantic import BaseModel, EmailStr
-
 from src.repositories.user import UserRepository
 
 user_repository: UserRepository = UserRepository()
