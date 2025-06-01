@@ -7,7 +7,6 @@ from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-
 from src.core.config import settings
 from src.core.exceptions import ErrorResponse
 from src.core.middlewares import ErrorHandlingMiddleware
