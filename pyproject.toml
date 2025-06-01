@@ -17,9 +17,17 @@ dependencies = [
 [dependency-groups]
 dev = [
     "mypy>=1.15.0",
+    "pylint>=3.3.7",
     "pytest>=8.3.5",
     "ruff>=0.11.11",
 ]
 
 [tool.mypy]
 disable_error_code = ["import-untyped"]
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.pylint.'MESSAGES CONTROL']
+disable = 'missing-function-docstring,missing-class-docstring,missing-module-docstring,too-few-public-methods'
+

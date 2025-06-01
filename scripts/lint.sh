@@ -6,3 +6,4 @@ set -x
 mypy src
 ruff check src
 ruff format src --check
+pylint src
