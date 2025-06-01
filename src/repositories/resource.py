@@ -5,7 +5,7 @@ from sqlalchemy import select
 from src.core.database import Base
 from src.repositories.base import BaseRepository
 
-ModelType = TypeVar("ModelType", bound=Base)
+ModelType = TypeVar("ModelType", bound=Base)  # pylint: disable=invalid-name
 
 
 class ResourceRepository(Generic[ModelType], BaseRepository):
@@ -13,17 +13,17 @@ class ResourceRepository(Generic[ModelType], BaseRepository):
         super().__init__()
         self.model = model
 
-    def get(self, id: int) -> ModelType | None:
+    def get(self, identifier: int) -> ModelType | None:
         """
         Get a record by primary key
         """
-        return self.db.get(self.model, id)
+        return self.db.get(self.model, identifier)
 
-    def get_or_fail(self, id: int) -> ModelType:
+    def get_or_fail(self, identifier: int) -> ModelType:
         """
         Get a record by primary key or fail if not found
         """
-        return self.db.get_one(self.model, id)
+        return self.db.get_one(self.model, identifier)
 
     def get_all(self) -> Sequence[ModelType]:
         """

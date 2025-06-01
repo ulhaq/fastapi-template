@@ -27,8 +27,8 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         if email is None:
             raise credentials_exception
         token_data = TokenData(email=email)
-    except InvalidTokenError:
-        raise credentials_exception
+    except InvalidTokenError as exc:
+        raise credentials_exception from exc
     user = user_repository.get_by_email(token_data.email)
     if user is None:
         raise credentials_exception

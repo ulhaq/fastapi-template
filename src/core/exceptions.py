@@ -12,10 +12,10 @@ class ErrorResponse(BaseModel):
     path: Annotated[str, Field()]
     method: Annotated[str, Field()]
 
-    def __init__(self, request: Request, exception: Exception, **data) -> None:
+    def __init__(self, request: Request, exc: Exception, **data) -> None:
         super().__init__(
-            type=type(exception).__name__,
-            message=str(getattr(exception, "detail", None) or exception),
+            type=type(exc).__name__,
+            message=str(getattr(exc, "detail", None) or exc),
             time=datetime.now(timezone.utc),
             path=str(request.url),
             method=request.method,
