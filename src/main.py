@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.core.config import settings
+from src.core.database import init_db
 from src.core.exceptions import ErrorResponse
 from src.core.middlewares import ErrorHandlingMiddleware
 from src.routers import auth, user
@@ -19,6 +20,8 @@ log = logging.getLogger(__name__)
 async def lifespan(_: FastAPI):
     if not settings.app_secret:
         raise RuntimeError("Application secret is missing.")
+
+    await init_db()
 
     logging.basicConfig(
         level=logging.INFO,

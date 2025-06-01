@@ -6,7 +6,11 @@ Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 class Base(DeclarativeBase):
-    __abstract__ = True
+    pass
+
+
+async def init_db():
+    Base.metadata.create_all(bind=engine)
 
 
 def get_db():
