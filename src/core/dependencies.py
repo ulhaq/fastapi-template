@@ -1,21 +1,25 @@
 from typing import Annotated
 
 from fastapi import Depends
-from jwt import InvalidTokenError, decode
+from jwt import ExpiredSignatureError, InvalidTokenError, decode
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
+from src.core.database import get_db
 from src.core.exceptions import NotAuthenticatedException
-from src.core.security import TokenData, oauth2_scheme
-from src.repositories.user import UserRepository
+from src.core.security import Auth, current_user, oauth2_scheme
+from src.models.user import User
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    user_repository: UserRepository = UserRepository()
-
+async def authenticate(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    token: Annotated[str, Depends(oauth2_scheme)],
+) -> None:
     credentials_exception = NotAuthenticatedException(
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        detail="Authentication failed", headers={"WWW-Authenticate": "Bearer"}
     )
+
     try:
         payload = decode(
             token,
@@ -24,12 +28,16 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
             audience=settings.app_name,
         )
         email = payload.get("email")
-        if email is None:
-            raise credentials_exception
-        token_data = TokenData(email=email)
+    except ExpiredSignatureError as exc:
+        raise NotAuthenticatedException(
+            detail="Token is expired.", headers={"WWW-Authenticate": "Bearer"}
+        ) from exc
     except InvalidTokenError as exc:
         raise credentials_exception from exc
-    user = user_repository.get_by_email(token_data.email)
-    if user is None:
+
+    user = await db.scalar(select(User).where(User.email == email))
+
+    if not user:
         raise credentials_exception
-    return user
+
+    current_user.set(Auth.from_user_model(user))

@@ -27,19 +27,29 @@ class ClientException(HTTPException):
     pass
 
 
-class AlreadyExistsException(ClientException):
-    def __init__(self, detail: Any = None, headers: dict | None = None):
-        super().__init__(status.HTTP_409_CONFLICT, detail, headers)
+class BusinessLogicException(ClientException):
+    def __init__(self, detail: Any = None, headers: dict | None = None) -> None:
+        super().__init__(status.HTTP_400_BAD_REQUEST, detail, headers)
+
+
+class ValidationException(ClientException):
+    def __init__(self, detail: Any = None, headers: dict | None = None) -> None:
+        super().__init__(status.HTTP_400_BAD_REQUEST, detail, headers)
 
 
 class NotAuthenticatedException(ClientException):
-    def __init__(self, detail: Any = None, headers: dict | None = None):
+    def __init__(self, detail: Any = None, headers: dict | None = None) -> None:
         super().__init__(status.HTTP_401_UNAUTHORIZED, detail, headers)
 
 
 class NotFoundException(ClientException):
-    def __init__(self, detail: Any = None, headers: dict | None = None):
+    def __init__(self, detail: Any = None, headers: dict | None = None) -> None:
         super().__init__(status.HTTP_404_NOT_FOUND, detail, headers)
+
+
+class AlreadyExistsException(ClientException):
+    def __init__(self, detail: Any = None, headers: dict | None = None) -> None:
+        super().__init__(status.HTTP_409_CONFLICT, detail, headers)
 
 
 class ServerException(HTTPException):
@@ -47,9 +57,9 @@ class ServerException(HTTPException):
 
 
 class InternalServerError(ServerException):
-    def __init__(self, headers: dict | None = None):
+    def __init__(self, detail: Any = None, headers: dict | None = None) -> None:
         super().__init__(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "Something went wrong on our end.",
+            detail or "Something went wrong on our end",
             headers,
         )

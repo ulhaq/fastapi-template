@@ -12,4 +12,5 @@ class TimestampMixin:
         DateTime,
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
+        nullable=False,
     )

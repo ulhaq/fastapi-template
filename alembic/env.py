@@ -33,6 +33,10 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+section = config.config_ini_section
+config.set_section_option(section, "DB_CONNECTION", os.environ.get("DB_CONNECTION", ""))
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 

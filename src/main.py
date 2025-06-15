@@ -1,38 +1,29 @@
 import logging
+import logging.config
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.concurrency import asynccontextmanager
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.core.config import settings
-from src.core.database import init_db
 from src.core.exceptions import ErrorResponse
+from src.core.logging import LOGGING_CONFIG
 from src.core.middlewares import ErrorHandlingMiddleware
 from src.routers import auth, user
 
+logging.config.dictConfig(LOGGING_CONFIG)
+
 log = logging.getLogger(__name__)
 
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    if not settings.app_secret:
-        raise RuntimeError("Application secret is missing.")
-
-    await init_db()
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
-    )
-    yield
+if not settings.app_secret:
+    raise RuntimeError("Application secret is not set.")
 
 
 app = FastAPI(
     title=settings.app_name,
-    lifespan=lifespan,
+    debug=settings.app_debug,
     middleware=[
         Middleware(ErrorHandlingMiddleware),
         Middleware(
@@ -47,8 +38,8 @@ app = FastAPI(
 
 
 @app.exception_handler(HTTPException)
-def handle_http_exception(request: Request, exc: HTTPException):
-    log.info("%s: %s", exc, request.url)
+async def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
+    log.info("%s: %s", exc, request.url, exc_info=settings.log_exc_info)
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -57,5 +48,7 @@ def handle_http_exception(request: Request, exc: HTTPException):
     )
 
 
-app.include_router(auth.router, tags=["Authentication"])
+app.include_router(auth.auth_router, tags=["Authentication"])
+app.include_router(auth.role_router, tags=["Roles"])
+app.include_router(auth.permission_router, tags=["Permissions"])
 app.include_router(user.router, tags=["Users"])
