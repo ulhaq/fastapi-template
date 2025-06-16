@@ -25,7 +25,7 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
 
         schema_in.password = hash_password(schema_in.password)
 
-        return super().create(schema_in, validate)
+        return await super().create(schema_in, validate)
 
     async def add_roles(self, identifier: int, schema_in: UserRoleIn):
         user = await self.get(identifier)
