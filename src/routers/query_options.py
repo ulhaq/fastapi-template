@@ -66,7 +66,7 @@ def filters_query() -> Callable[..., dict[str, dict]]:
 
             if not isinstance(filters, dict):
                 raise ValueError
-        except (ValueError, json.JSONDecodeError) as exc:
+        except ValueError as exc:
             raise ValidationException(
                 "The 'filters' parameter must be a JSON string with key-value pairs."
             ) from exc
