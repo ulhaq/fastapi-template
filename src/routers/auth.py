@@ -137,10 +137,7 @@ permission_router = APIRouter()
 
 
 @permission_router.get(
-    "/permissions",
-    dependencies=[Depends(authenticate)],
-    status_code=200,
-    response_model=list[PermissionOut],
+    "/permissions", dependencies=[Depends(authenticate)], status_code=200
 )
 async def get_all_permissions(
     service: Annotated[PermissionService, Depends()],
