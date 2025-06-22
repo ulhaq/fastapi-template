@@ -98,3 +98,8 @@ class ResourceService(
                 await validation_callback()
 
             await self.repo.delete(model)
+            return
+
+        raise NotFoundException(
+            f"{self.repo.model.__name__} not found. [{identifier=}]"
+        )

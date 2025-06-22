@@ -7,14 +7,14 @@ from src.core.database import Base
 from src.models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
-    from src.models.auth import Role
+    from src.models.role import Role
 
 
 class User(Base, TimestampMixin):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
 

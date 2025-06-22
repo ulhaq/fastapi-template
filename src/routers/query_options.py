@@ -68,7 +68,7 @@ def filters_query() -> Callable[..., dict[str, dict]]:
                 raise ValueError
         except ValueError as exc:
             raise ValidationException(
-                "The 'filters' parameter must be a JSON string with key-value pairs."
+                "The 'filters' parameter must be a JSON string with key-value pairs"
             ) from exc
 
         path = request.url.path

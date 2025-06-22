@@ -4,7 +4,8 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
-from src.repositories.auth import PermissionRepository, RoleRepository
+from src.repositories.permission import PermissionRepository
+from src.repositories.role import RoleRepository
 from src.repositories.user import UserRepository
 
 

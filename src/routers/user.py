@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/users/me/",
+    "/users/me",
     dependencies=[Depends(authenticate)],
     status_code=200,
     response_model=UserOut,
@@ -32,29 +32,24 @@ async def create_a_user(
     return await service.create_user(user_in)
 
 
+@router.delete(
+    "/users/{identifier}", dependencies=[Depends(authenticate)], status_code=204
+)
+async def delete_a_user(
+    service: Annotated[UserService, Depends()], identifier: Annotated[int, Path()]
+) -> None:
+    await service.delete_user(identifier)
+
+
 @router.post(
     "/users/{identifier}/roles",
     dependencies=[Depends(authenticate)],
     status_code=200,
     response_model=UserOut,
 )
-async def add_roles_to_a_user(
+async def manage_roles_of_a_user(
     service: Annotated[UserService, Depends()],
     identifier: Annotated[int, Path()],
-    role_permission_in: UserRoleIn,
+    role_in: UserRoleIn,
 ):
-    return await service.add_roles(identifier, role_permission_in)
-
-
-@router.delete(
-    "/users/{identifier}/roles",
-    dependencies=[Depends(authenticate)],
-    status_code=200,
-    response_model=UserOut,
-)
-async def remove_roles_from_a_user(
-    service: Annotated[UserService, Depends()],
-    identifier: Annotated[int, Path()],
-    role_permission_in: UserRoleIn,
-):
-    return await service.remove_roles(identifier, role_permission_in)
+    return await service.manage_roles(identifier, role_in)

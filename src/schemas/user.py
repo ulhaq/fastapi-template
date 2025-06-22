@@ -1,8 +1,8 @@
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
-
-from src.schemas.auth import RoleOut
+from src.schemas.common import Timestamp
+from src.schemas.role import RoleOut
+from src.schemas.utils import sort_by_id
 
 
 class UserBase(BaseModel):
@@ -12,11 +12,11 @@ class UserBase(BaseModel):
     email: EmailStr
 
 
-class UserOut(UserBase):
+class UserOut(UserBase, Timestamp):
     id: int
     roles: list[RoleOut] = Field(default_factory=list)
-    created_at: datetime
-    updated_at: datetime | None
+
+    _sort = field_validator("roles")(sort_by_id)
 
 
 class UserIn(UserBase):

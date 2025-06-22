@@ -1,9 +1,24 @@
+from datetime import datetime
 from typing import Annotated, Generic, Sequence, TypeVar
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.core.exceptions import ValidationException
 from src.repositories.utils import ComparisonOperator
+
+
+class Timestamp(BaseModel):
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class NameDescriptionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None = None
+
 
 SchemaOutType = TypeVar("SchemaOutType", bound=BaseModel)  # pylint: disable=invalid-name
 

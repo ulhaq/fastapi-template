@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.auth import Role
+from src.models.role import Role
 from src.models.user import User
 from src.repositories.base import ResourceRepository
 

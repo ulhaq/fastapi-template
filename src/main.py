@@ -11,14 +11,14 @@ from src.core.config import settings
 from src.core.exceptions import ErrorResponse
 from src.core.logging import LOGGING_CONFIG
 from src.core.middlewares import ErrorHandlingMiddleware
-from src.routers import auth, user
+from src.routers import auth, permission, role, user
 
 logging.config.dictConfig(LOGGING_CONFIG)
 
 log = logging.getLogger(__name__)
 
 if not settings.app_secret:
-    raise RuntimeError("Application secret is not set.")
+    raise RuntimeError("Application secret is not set")
 
 
 app = FastAPI(
@@ -48,7 +48,7 @@ async def handle_http_exception(request: Request, exc: HTTPException) -> JSONRes
     )
 
 
-app.include_router(auth.auth_router, tags=["Authentication"])
-app.include_router(auth.role_router, tags=["Roles"])
-app.include_router(auth.permission_router, tags=["Permissions"])
+app.include_router(auth.router, tags=["Authentication"])
+app.include_router(role.router, tags=["Roles"])
+app.include_router(permission.router, tags=["Permissions"])
 app.include_router(user.router, tags=["Users"])

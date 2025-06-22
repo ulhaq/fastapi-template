@@ -118,7 +118,7 @@ def get_filter_expression(
     if operator in COMPARISON_OPERATORS_BY_FILTER_VALUE_TYPE[FilterValueType.RANGE]:
         if len(values) != 2:
             raise ValueError(
-                "Between operator expects exactly two values: [start, end]."
+                "Between operator expects exactly two values: [start, end]"
             )
         return SQLA_OPERATORS[operator](field, values[0], values[1])
 
@@ -137,5 +137,5 @@ def cast_values_to_type(values: list, field_type: type, field_name: str):
     except (ValueError, TypeError) as exc:
         raise ValueError(
             f"Values for the '{field_name}' field must be provided "
-            f"as a list of '{field_type.__name__}' types."
+            f"as a list of '{field_type.__name__}' types"
         ) from exc

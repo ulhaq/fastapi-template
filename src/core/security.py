@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from src.core.config import settings
-from src.core.exceptions import NotAuthenticatedException
+from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
 from src.models.user import User
 
 
@@ -35,6 +35,11 @@ class Auth(BaseModel):
 
     def has_permission(self, permission_name: str) -> bool:
         return permission_name in self.permissions
+
+    def authorize(self, permission: str) -> None:
+        if self.has_permission(permission):
+            return
+        raise PermissionDeniedException
 
 
 class Token(BaseModel):
@@ -96,6 +101,4 @@ def get_current_user() -> Auth:
     if user := current_user.get():
         return user
 
-    raise NotAuthenticatedException(
-        detail="Authentication failed.", headers={"WWW-Authenticate": "Bearer"}
-    )
+    raise NotAuthenticatedException(headers={"WWW-Authenticate": "Bearer"})

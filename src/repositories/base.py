@@ -192,7 +192,7 @@ class ResourceRepository(BaseRepository, Generic[ModelType]):
             if operator not in utils.FILTER_OPERATORS_BY_FIELD_TYPE.get(field_type, []):
                 raise ValueError(
                     f"Operator '{operator.value}' not supported "
-                    f"for '{field_type.__name__}' type."
+                    f"for '{field_type.__name__}' type"
                 )
 
             values = utils.cast_values_to_type(values, field_type, field_name)
