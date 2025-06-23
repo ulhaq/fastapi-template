@@ -16,8 +16,11 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
         self.repo = repos.user
         super().__init__(repos)
 
-    async def create_user(self, schema_in: UserIn):
-        async def validate():
+    async def get_authenticated_user(self) -> UserOut:
+        return UserOut.model_validate(await self.get(get_current_user().id))
+
+    async def create_user(self, schema_in: UserIn) -> UserOut:
+        async def validate() -> None:
             if await self.repo.get_by_email(schema_in.email):
                 raise AlreadyExistsException(
                     detail=f"User already exists. [email={schema_in.email}]"
@@ -27,14 +30,14 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
 
         schema_in.password = hash_password(schema_in.password)
 
-        return await super().create(schema_in, validate)
+        return UserOut.model_validate(await super().create(schema_in, validate))
 
-    async def delete_user(self, identifier: int):
+    async def delete_user(self, identifier: int) -> None:
         get_current_user().authorize("delete_user")
 
-        return await super().delete(identifier)
+        await super().delete(identifier)
 
-    async def manage_roles(self, identifier: int, schema_in: UserRoleIn):
+    async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
         get_current_user().authorize("manage_user_role")
 
         user = await self.get(identifier)
@@ -48,4 +51,4 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
         if roles_to_remove := current_roles - schema_in_role_ids:
             await self.repo.remove_roles(user, *roles_to_remove)
 
-        return user
+        return UserOut.model_validate(user)

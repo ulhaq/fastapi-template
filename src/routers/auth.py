@@ -10,10 +10,10 @@ from src.services.auth import AuthService
 router = APIRouter()
 
 
-@router.post("/auth/register", status_code=201, response_model=UserOut)
+@router.post("/auth/register", status_code=201)
 async def create_an_account(
     service: Annotated[AuthService, Depends()], user_in: UserIn
-):
+) -> UserOut:
     return await service.register_user(user_in)
 
 

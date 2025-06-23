@@ -8,11 +8,9 @@ from sqlalchemy.sql.elements import UnaryExpression
 
 from src.core.database import Base
 from src.repositories import utils
-from src.schemas.common import Filter
 
 
-class BaseRepository:
-    pass
+class BaseRepository: ...  # pylint: disable=too-few-public-methods
 
 
 ModelType = TypeVar("ModelType", bound=Base)  # pylint: disable=invalid-name
@@ -37,7 +35,7 @@ class ResourceRepository(BaseRepository, Generic[ModelType]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
-    async def get_total(self, *filter_expressions: BinaryExpression):
+    async def get_total(self, *filter_expressions: BinaryExpression) -> int:
         stmt = (
             select(
                 func.count()  # pylint: disable=not-callable
@@ -52,7 +50,7 @@ class ResourceRepository(BaseRepository, Generic[ModelType]):
     async def paginate(
         self,
         sort: list[str],
-        filters: dict[str, Filter],
+        filters: dict[str, dict],
         page_size: int,
         page_number: int,
     ) -> tuple[Sequence[ModelType], int]:
@@ -82,7 +80,7 @@ class ResourceRepository(BaseRepository, Generic[ModelType]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
-    async def filter_by(self, **kwargs) -> Sequence[ModelType]:
+    async def filter_by(self, **kwargs: Any) -> Sequence[ModelType]:
         stmt = select(self.model).filter_by(**kwargs)
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
@@ -92,7 +90,7 @@ class ResourceRepository(BaseRepository, Generic[ModelType]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
-    async def create(self, **kwargs) -> ModelType:
+    async def create(self, **kwargs: Any) -> ModelType:
         instance = self.model(**kwargs)
 
         self.db.add(instance)
@@ -100,7 +98,7 @@ class ResourceRepository(BaseRepository, Generic[ModelType]):
         await self.db.refresh(instance)
         return instance
 
-    async def update(self, model: ModelType, **kwargs) -> ModelType:
+    async def update(self, model: ModelType, **kwargs: Any) -> ModelType:
         for attr, value in kwargs.items():
             setattr(model, attr, value)
         setattr(model, "updated_at", datetime.now(UTC))
@@ -174,15 +172,15 @@ class ResourceRepository(BaseRepository, Generic[ModelType]):
         return ordering
 
     def _get_filter_expressions(
-        self, filter_dict: dict[str, Filter]
+        self, filter_dict: dict[str, dict]
     ) -> list[BinaryExpression]:
         filters = []
         for field_name, filter_data in filter_dict.items():
-            values = filter_data.v
+            values = filter_data["v"]
             if not values:
                 continue
 
-            operator = filter_data.op
+            operator = filter_data["op"]
 
             field = getattr(self.model, field_name, None)
             if not field or not hasattr(field, "type"):

@@ -2,8 +2,11 @@ import json
 from typing import Annotated, Callable
 
 from fastapi import Depends, Query, Request
+from pydantic import ValidationError
 
+from src import enums
 from src.core.exceptions import ValidationException
+from src.schemas.common import Filters
 
 COMMON_SORTING_FIELDS = [
     "id",
@@ -33,7 +36,9 @@ def sort_query() -> Callable[..., list[str]]:
     def dependency(
         request: Request,
         sort: str = Query(
-            default="id", description="Comma-separated list of sort fields."
+            default="id",
+            description="Comma-separated list of fields to sort by.\n\n"
+            "Use a leading `-` before a field name to indicate descending sort order.",
         ),
     ) -> list[str]:
         path = request.url.path
@@ -57,7 +62,23 @@ def sort_query() -> Callable[..., list[str]]:
 
 
 def filters_query() -> Callable[..., dict[str, dict]]:
-    def dependency(request: Request, filters: str = Query(default="{}")):
+    def dependency(
+        request: Request,
+        filters: str = Query(
+            default="{}",
+            description=(
+                "Filter expression as a JSON string.\n\n"
+                "Format:\n"
+                '`{"field": {"v": [...], "op": "eq"}}`\n\n'
+                "where:\n"
+                "- `field` is the field name\n"
+                "- `v` is a list of values\n"
+                "- `op` is the operator\n\n"
+                "Available operators are: "
+                + ", ".join(f"`{member.value}`" for member in enums.ComparisonOperator)
+            ),
+        ),
+    ) -> dict[str, dict]:
         if not filters:
             return {}
 
@@ -81,7 +102,12 @@ def filters_query() -> Callable[..., dict[str, dict]]:
                 f"Allowed: {', '.join(valid_fields)}",
             )
 
-        return filters
+        try:
+            return Filters(filters=filters).model_dump().get("filters")
+        except ValidationError as exc:
+            raise ValidationException(
+                exc.errors(include_context=False, include_url=False)
+            ) from exc
 
     return dependency
 

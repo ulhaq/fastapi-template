@@ -1,8 +1,8 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from httpx import Headers
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, AsyncSession
 from sqlalchemy import StaticPool
 
 from src.core.database import Base, get_db
@@ -21,7 +21,7 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
-async def db():
+async def db() -> AsyncGenerator[AsyncSession]:
     async with TestSessionLocal() as session:
         yield session
 
@@ -30,7 +30,7 @@ app.dependency_overrides[get_db] = db
 
 
 @pytest.fixture(scope="function", autouse=True)
-async def prepare_database():
+async def prepare_database() -> AsyncGenerator[None]:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -83,7 +83,7 @@ def _client() -> Generator[TestClient, None, None]:
 
 
 @pytest.fixture
-def admin_authenticated(client: TestClient):
+def admin_authenticated(client: TestClient) -> TestClient:
     rs = client.post(
         "auth/token",
         data={"username": "admin@example.org", "password": "password"},
@@ -96,7 +96,7 @@ def admin_authenticated(client: TestClient):
 
 
 @pytest.fixture
-def standard_authenticated(client: TestClient):
+def standard_authenticated(client: TestClient) -> TestClient:
     rs = client.post(
         "auth/token",
         data={"username": "standard@example.org", "password": "password"},

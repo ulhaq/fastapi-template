@@ -7,7 +7,7 @@ from src.core.security import get_current_user
 from src.models.permission import Permission
 from src.repositories.permission import PermissionRepository
 from src.repositories.repository_manager import RepositoryManager
-from src.schemas.common import Filters, PaginatedResponse
+from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.permission import PermissionIn, PermissionOut
 from src.services.base import ResourceService
 
@@ -20,25 +20,16 @@ class PermissionService(
         super().__init__(repos)
 
     async def paginate(
-        self,
-        schema_out: type[PermissionOut],
-        sort: list[str],
-        filters: Filters,
-        page_size: int,
-        page_number: int,
+        self, schema_out: type[PermissionOut], page_query_params: PageQueryParams
     ) -> PaginatedResponse[PermissionOut]:
         get_current_user().authorize("read_permission")
 
         return await super().paginate(
-            schema_out=schema_out,
-            sort=sort,
-            filters=filters,
-            page_size=page_size,
-            page_number=page_number,
+            schema_out=schema_out, page_query_params=page_query_params
         )
 
-    async def create_permission(self, schema_in: PermissionIn):
-        async def validate():
+    async def create_permission(self, schema_in: PermissionIn) -> PermissionOut:
+        async def validate() -> None:
             if await self.repo.get_one_by_name(schema_in.name):
                 raise AlreadyExistsException(
                     detail=f"Permission already exists. [name={schema_in.name}]"
@@ -46,12 +37,12 @@ class PermissionService(
 
         get_current_user().authorize("create_permission")
 
-        return await super().create(schema_in, validate)
+        return PermissionOut.model_validate(await super().create(schema_in, validate))
 
     async def update_permission(
         self, identifier: int, schema_in: PermissionIn
-    ) -> Permission:
-        async def validate():
+    ) -> PermissionOut:
+        async def validate() -> None:
             existing_permission = await self.repo.get_one_by_name(schema_in.name)
 
             if existing_permission and existing_permission.id != identifier:
@@ -61,14 +52,16 @@ class PermissionService(
 
         get_current_user().authorize("update_permission")
 
-        return await super().update(identifier, schema_in, validate)
+        return PermissionOut.model_validate(
+            await super().update(identifier, schema_in, validate)
+        )
 
-    async def get_permission(self, identifier: int) -> Permission:
+    async def get_permission(self, identifier: int) -> PermissionOut:
         get_current_user().authorize("read_permission")
 
-        return await super().get(identifier)
+        return PermissionOut.model_validate(await super().get(identifier))
 
-    async def delete_permission(self, identifier: int):
+    async def delete_permission(self, identifier: int) -> None:
         get_current_user().authorize("delete_permission")
 
         await super().delete(identifier)

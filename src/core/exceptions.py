@@ -12,19 +12,17 @@ class ErrorResponse(BaseModel):
     path: Annotated[str, Field()]
     method: Annotated[str, Field()]
 
-    def __init__(self, request: Request, exc: Exception, **data) -> None:
+    def __init__(self, request: Request, exc: Exception) -> None:
         super().__init__(
             type=type(exc).__name__,
             msg=str(getattr(exc, "detail", None) or exc),
             time=datetime.now(timezone.utc),
             path=str(request.url),
             method=request.method,
-            **data,
         )
 
 
-class ClientException(HTTPException):
-    pass
+class ClientException(HTTPException): ...
 
 
 class BusinessLogicException(ClientException):
@@ -69,14 +67,17 @@ class AlreadyExistsException(ClientException):
         super().__init__(status.HTTP_409_CONFLICT, detail, headers)
 
 
-class ServerException(HTTPException):
-    pass
+class ServerException(HTTPException): ...
 
 
 class InternalServerError(ServerException):
     def __init__(
         self,
-        detail: Any = "Something went wrong on our end",
+        detail: Any,
         headers: dict | None = None,
     ) -> None:
-        super().__init__(status.HTTP_500_INTERNAL_SERVER_ERROR, detail, headers)
+        super().__init__(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail or "Something went wrong on our end",
+            headers,
+        )

@@ -31,12 +31,14 @@ class PaginatedResponse(BaseModel, Generic[SchemaOutType]):
 
 
 class Filter(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     v: Annotated[list, Field()]
     op: ComparisonOperator = Field(default=ComparisonOperator.EQUALS)
 
     @field_validator("op", mode="before")
     @classmethod
-    def str_to_enum(cls, val: str):
+    def str_to_enum(cls, val: str) -> ComparisonOperator:
         try:
             return ComparisonOperator(val)
         except ValueError as exc:
@@ -45,3 +47,10 @@ class Filter(BaseModel):
 
 class Filters(BaseModel):
     filters: Annotated[dict[str, Filter], Field()]
+
+
+class PageQueryParams(BaseModel):
+    sort: Annotated[list[str], Field()]
+    filters: Annotated[dict[str, dict], Field()]
+    page_size: Annotated[int, Field()]
+    page_number: Annotated[int, Field()]

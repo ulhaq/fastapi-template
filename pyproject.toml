@@ -29,13 +29,11 @@ dev = [
 
 [tool.mypy]
 disable_error_code = ["import-untyped"]
+check_untyped_defs = true
+disallow_untyped_defs = true
 
 [tool.pylint.format]
 max-line-length = 88
 
-[tool.pylint.'MESSAGES CONTROL']
-disable = 'missing-function-docstring,missing-class-docstring,missing-module-docstring,too-few-public-methods'
-
-[tool.pylint."DESIGN"]
-max-args = 7
-max-positional-arguments = 7
+[tool.pylint."MESSAGES CONTROL"]
+disable = 'missing-function-docstring,missing-class-docstring,missing-module-docstring'

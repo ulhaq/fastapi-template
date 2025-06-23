@@ -6,9 +6,10 @@ from src.core.database import Base
 from src.core.exceptions import NotFoundException, ValidationException
 from src.repositories.base import ResourceRepository
 from src.repositories.repository_manager import RepositoryManager
-from src.schemas.common import Filters, PaginatedResponse
+from src.schemas.common import PageQueryParams, PaginatedResponse
 
 
+# pylint: disable=too-few-public-methods
 class BaseService:
     repos: RepositoryManager
 
@@ -39,24 +40,19 @@ class ResourceService(
         return await self.repo.get_all()
 
     async def paginate(
-        self,
-        schema_out: type[SchemaOutType],
-        sort: list[str],
-        filters: Filters,
-        page_size: int,
-        page_number: int,
+        self, schema_out: type[SchemaOutType], page_query_params: PageQueryParams
     ) -> PaginatedResponse[SchemaOutType]:
         try:
             items, total = await self.repo.paginate(
-                sort=sort,
-                filters=filters.filters,
-                page_size=page_size,
-                page_number=page_number,
+                sort=page_query_params.sort,
+                filters=page_query_params.filters,
+                page_size=page_query_params.page_size,
+                page_number=page_query_params.page_number,
             )
             return PaginatedResponse(
                 items=[schema_out.model_validate(item) for item in items],
-                page_number=page_number,
-                page_size=page_size,
+                page_number=page_query_params.page_number,
+                page_size=page_query_params.page_size,
                 total=total,
             )
         except ValueError as exc:

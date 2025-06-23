@@ -9,7 +9,7 @@ from src.routers.query_options import (
     PageSizeQuery,
     SortQuery,
 )
-from src.schemas.common import Filters, PaginatedResponse
+from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.role import RoleIn, RoleOut, RolePermissionIn
 from src.services.role import RoleService
 
@@ -26,46 +26,39 @@ async def get_all_roles(
 ) -> PaginatedResponse[RoleOut]:
     return await service.paginate(
         RoleOut,
-        sort=sort,
-        filters=Filters.model_validate({"filters": filters}),
-        page_size=page_size,
-        page_number=page_number,
+        PageQueryParams(
+            sort=sort,
+            filters=filters,
+            page_size=page_size,
+            page_number=page_number,
+        ),
     )
 
 
-@router.post(
-    "/roles",
-    dependencies=[Depends(authenticate)],
-    status_code=201,
-    response_model=RoleOut,
-)
-async def create_a_role(service: Annotated[RoleService, Depends()], role_in: RoleIn):
+@router.post("/roles", dependencies=[Depends(authenticate)], status_code=201)
+async def create_a_role(
+    service: Annotated[RoleService, Depends()], role_in: RoleIn
+) -> RoleOut:
     return await service.create_role(role_in)
 
 
 @router.put(
-    "/roles/{identifier}",
-    dependencies=[Depends(authenticate)],
-    status_code=200,
-    response_model=RoleOut,
+    "/roles/{identifier}", dependencies=[Depends(authenticate)], status_code=200
 )
 async def update_a_role(
     service: Annotated[RoleService, Depends()],
     identifier: Annotated[int, Path()],
     role_in: RoleIn,
-):
+) -> RoleOut:
     return await service.update_role(identifier, role_in)
 
 
 @router.get(
-    "/roles/{identifier}",
-    dependencies=[Depends(authenticate)],
-    status_code=200,
-    response_model=RoleOut,
+    "/roles/{identifier}", dependencies=[Depends(authenticate)], status_code=200
 )
 async def retrieve_a_role(
     service: Annotated[RoleService, Depends()], identifier: Annotated[int, Path()]
-):
+) -> RoleOut:
     return await service.get_role(identifier)
 
 
@@ -82,11 +75,10 @@ async def delete_a_role(
     "/roles/{identifier}/permissions",
     dependencies=[Depends(authenticate)],
     status_code=200,
-    response_model=RoleOut,
 )
 async def manage_permissions_of_a_role(
     service: Annotated[RoleService, Depends()],
     identifier: Annotated[int, Path()],
     role_permission_in: RolePermissionIn,
-):
+) -> RoleOut:
     return await service.manage_permissions(identifier, role_permission_in)

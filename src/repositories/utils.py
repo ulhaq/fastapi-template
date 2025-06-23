@@ -125,7 +125,7 @@ def get_filter_expression(
     return None
 
 
-def cast_values_to_type(values: list, field_type: type, field_name: str):
+def cast_values_to_type(values: list, field_type: type, field_name: str) -> list:
     try:
         rs = []
         for value in values:

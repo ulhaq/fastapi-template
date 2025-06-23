@@ -9,7 +9,7 @@ from src.routers.query_options import (
     PageSizeQuery,
     SortQuery,
 )
-from src.schemas.common import Filters, PaginatedResponse
+from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.permission import PermissionIn, PermissionOut
 from src.services.permission import PermissionService
 
@@ -26,19 +26,16 @@ async def get_all_permissions(
 ) -> PaginatedResponse[PermissionOut]:
     return await service.paginate(
         PermissionOut,
-        sort=sort,
-        filters=Filters.model_validate({"filters": filters}),
-        page_size=page_size,
-        page_number=page_number,
+        PageQueryParams(
+            sort=sort,
+            filters=filters,
+            page_size=page_size,
+            page_number=page_number,
+        ),
     )
 
 
-@router.post(
-    "/permissions",
-    dependencies=[Depends(authenticate)],
-    status_code=201,
-    response_model=PermissionOut,
-)
+@router.post("/permissions", dependencies=[Depends(authenticate)], status_code=201)
 async def create_a_permission(
     service: Annotated[PermissionService, Depends()], permission_in: PermissionIn
 ) -> PermissionOut:
@@ -46,35 +43,27 @@ async def create_a_permission(
 
 
 @router.put(
-    "/permissions/{identifier}",
-    dependencies=[Depends(authenticate)],
-    status_code=200,
-    response_model=PermissionOut,
+    "/permissions/{identifier}", dependencies=[Depends(authenticate)], status_code=200
 )
 async def update_a_permission(
     service: Annotated[PermissionService, Depends()],
     identifier: Annotated[int, Path()],
     permission_in: PermissionIn,
-):
+) -> PermissionOut:
     return await service.update_permission(identifier, permission_in)
 
 
 @router.get(
-    "/permissions/{identifier}",
-    dependencies=[Depends(authenticate)],
-    status_code=200,
-    response_model=PermissionOut,
+    "/permissions/{identifier}", dependencies=[Depends(authenticate)], status_code=200
 )
 async def retrieve_a_permission(
     service: Annotated[PermissionService, Depends()], identifier: Annotated[int, Path()]
-):
+) -> PermissionOut:
     return await service.get_permission(identifier)
 
 
 @router.delete(
-    "/permissions/{identifier}",
-    dependencies=[Depends(authenticate)],
-    status_code=204,
+    "/permissions/{identifier}", dependencies=[Depends(authenticate)], status_code=204
 )
 async def delete_a_permission(
     service: Annotated[PermissionService, Depends()], identifier: Annotated[int, Path()]

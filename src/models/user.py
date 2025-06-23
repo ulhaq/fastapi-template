@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from src.models.role import Role
 
 
+# pylint: disable=too-few-public-methods
 class User(Base, TimestampMixin):
     __tablename__ = "user"
 

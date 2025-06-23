@@ -10,7 +10,7 @@ class CustomFormatter(logging.Formatter):
     bold_red = "\x1b[1m\x1b[38;5;196m"
     reset = "\x1b[0m"
 
-    def __init__(self, fmt, datefmt):
+    def __init__(self, fmt: str, datefmt: str) -> None:
         super().__init__()
         self.datefmt = datefmt
         self.formats = {
@@ -21,7 +21,7 @@ class CustomFormatter(logging.Formatter):
             logging.CRITICAL: self.bold_red + fmt + self.reset,
         }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         log_fmt = self.formats.get(record.levelno)
         formatter = logging.Formatter(log_fmt, datefmt=self.datefmt)
         return formatter.format(record)

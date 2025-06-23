@@ -129,11 +129,11 @@
             "required": false,
             "schema": {
               "type": "string",
-              "description": "Comma-separated list of sort fields.",
+              "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order.",
               "default": "id",
               "title": "Sort"
             },
-            "description": "Comma-separated list of sort fields."
+            "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order."
           },
           {
             "name": "filters",
@@ -141,9 +141,11 @@
             "required": false,
             "schema": {
               "type": "string",
+              "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
               "default": "{}",
               "title": "Filters"
-            }
+            },
+            "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
           }
         ],
         "responses": {
@@ -453,11 +455,11 @@
             "required": false,
             "schema": {
               "type": "string",
-              "description": "Comma-separated list of sort fields.",
+              "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order.",
               "default": "id",
               "title": "Sort"
             },
-            "description": "Comma-separated list of sort fields."
+            "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order."
           },
           {
             "name": "filters",
@@ -465,9 +467,11 @@
             "required": false,
             "schema": {
               "type": "string",
+              "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
               "default": "{}",
               "title": "Filters"
-            }
+            },
+            "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
           }
         ],
         "responses": {
