@@ -1,27 +1,18 @@
-import json
 from typing import Annotated, Callable
 
 from fastapi import Depends, Query, Request
-from pydantic import ValidationError
+from fastapi.encoders import jsonable_encoder
+from pydantic import Json
 
 from src import enums
 from src.core.exceptions import ValidationException
 from src.schemas.common import Filters
 
-COMMON_SORTING_FIELDS = [
-    "id",
-    "-id",
-    "name",
-    "-name",
-    "created_at",
-    "-created_at",
-    "updated_at",
-    "-updated_at",
-]
+COMMON_SORTING_FIELDS = ["id", "name", "created_at", "updated_at"]
 
 SORTING_FIELDS_BY_PATH: dict[str, list[str]] = {
-    "/roles": ["description", "-description"],
-    "/permissions": ["description", "-description"],
+    "/roles": ["description"],
+    "/permissions": ["description"],
 }
 
 COMMON_FILTERING_FIELDS = ["id", "name", "created_at", "updated_at"]
@@ -48,7 +39,11 @@ def sort_query() -> Callable[..., list[str]]:
             return []
 
         sort_fields = [field.strip() for field in sort.split(",")]
-        invalid_fields = [field for field in sort_fields if field not in valid_fields]
+        invalid_fields = [
+            field_name
+            for field in sort_fields
+            if (field_name := field.lstrip("-")) not in valid_fields
+        ]
 
         if invalid_fields:
             raise ValidationException(
@@ -64,8 +59,8 @@ def sort_query() -> Callable[..., list[str]]:
 def filters_query() -> Callable[..., dict[str, dict]]:
     def dependency(
         request: Request,
-        filters: str = Query(
-            default="{}",
+        filters: Json[dict[str, Filters]] | None = Query(
+            default=None,
             description=(
                 "Filter expression as a JSON string.\n\n"
                 "Format:\n"
@@ -75,25 +70,15 @@ def filters_query() -> Callable[..., dict[str, dict]]:
                 "- `v` is a list of values\n"
                 "- `op` is the operator\n\n"
                 "Available operators are: "
-                + ", ".join(f"`{member.value}`" for member in enums.ComparisonOperator)
+                + ", ".join(f"`{op.value}`" for op in enums.ComparisonOperator)
             ),
         ),
     ) -> dict[str, dict]:
         if not filters:
             return {}
 
-        try:
-            filters = json.loads(filters)
-
-            if not isinstance(filters, dict):
-                raise ValueError
-        except ValueError as exc:
-            raise ValidationException(
-                "The 'filters' parameter must be a JSON string with key-value pairs"
-            ) from exc
-
         path = request.url.path
-        valid_fields = FILTERING_FIELDS_BY_PATH.get(path, {}) + COMMON_FILTERING_FIELDS
+        valid_fields = FILTERING_FIELDS_BY_PATH.get(path, []) + COMMON_FILTERING_FIELDS
         invalid_fields = [field for field in filters if field not in valid_fields]
 
         if invalid_fields:
@@ -102,12 +87,7 @@ def filters_query() -> Callable[..., dict[str, dict]]:
                 f"Allowed: {', '.join(valid_fields)}",
             )
 
-        try:
-            return Filters(filters=filters).model_dump().get("filters")
-        except ValidationError as exc:
-            raise ValidationException(
-                exc.errors(include_context=False, include_url=False)
-            ) from exc
+        return jsonable_encoder(filters)
 
     return dependency
 

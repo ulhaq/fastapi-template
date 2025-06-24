@@ -140,9 +140,22 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "contentMediaType": "application/json",
+                  "contentSchema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/Filters"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
-              "default": "{}",
               "title": "Filters"
             },
             "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
@@ -466,9 +479,22 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "contentMediaType": "application/json",
+                  "contentSchema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/Filters"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
-              "default": "{}",
               "title": "Filters"
             },
             "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
@@ -910,6 +936,44 @@
           "password"
         ],
         "title": "Body_get_access_token_auth_token_post"
+      },
+      "ComparisonOperator": {
+        "type": "string",
+        "enum": [
+          "eq",
+          "neq",
+          "lt",
+          "lte",
+          "gt",
+          "gte",
+          "co",
+          "ico",
+          "nco",
+          "inco",
+          "in",
+          "nin",
+          "between"
+        ],
+        "title": "ComparisonOperator"
+      },
+      "Filters": {
+        "properties": {
+          "v": {
+            "items": {},
+            "type": "array",
+            "title": "V"
+          },
+          "op": {
+            "$ref": "#/components/schemas/ComparisonOperator",
+            "default": "eq"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "v"
+        ],
+        "title": "Filters"
       },
       "HTTPValidationError": {
         "properties": {

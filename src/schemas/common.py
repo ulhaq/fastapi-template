@@ -30,7 +30,7 @@ class PaginatedResponse(BaseModel, Generic[SchemaOutType]):
     total: int
 
 
-class Filter(BaseModel):
+class Filters(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     v: Annotated[list, Field()]
@@ -43,10 +43,6 @@ class Filter(BaseModel):
             return ComparisonOperator(val)
         except ValueError as exc:
             raise ValidationException(f"Unsupported filter operator: {val}") from exc
-
-
-class Filters(BaseModel):
-    filters: Annotated[dict[str, Filter], Field()]
 
 
 class PageQueryParams(BaseModel):
