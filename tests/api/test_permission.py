@@ -1,5 +1,13 @@
+import json
 import logging
 from fastapi.testclient import TestClient
+import pytest
+
+from tests.utils import (
+    assert_filtering_of_items_list,
+    assert_pagination,
+    assert_sorting_of_items_list,
+)
 
 log = logging.getLogger(__name__)
 
@@ -242,6 +250,98 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert rs["items"][13]["created_at"]
     assert rs["items"][13]["updated_at"]
+
+
+@pytest.mark.parametrize(
+    "page_number, page_size, page_total, total",
+    [
+        pytest.param(1, 10, 10, 14),
+        pytest.param(2, 10, 4, 14),
+        pytest.param(3, 10, 0, 14),
+    ],
+)
+def test_paginate_permissions(
+    page_number: int,
+    page_size: int,
+    page_total: int,
+    total: int,
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get(
+        f"/permissions?page_number={page_number}&page_size{page_size}"
+    )
+    assert response.status_code == 200
+    rs = response.json()
+
+    assert_pagination(rs, page_number, page_size, page_total, total)
+
+
+@pytest.mark.parametrize(
+    "sort",
+    [
+        pytest.param("id"),
+        pytest.param("-id"),
+        pytest.param("name"),
+        pytest.param("-name"),
+        pytest.param("description"),
+        pytest.param("-description"),
+        pytest.param("name,description"),
+        pytest.param("-name,-description"),
+        pytest.param("-name,description"),
+        pytest.param("name,-description"),
+        pytest.param("created_at"),
+        pytest.param("-created_at"),
+        pytest.param("updated_at"),
+        pytest.param("-updated_at"),
+    ],
+)
+def test_sort_permissions(sort: str, admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get(f"/permissions?sort={sort}")
+    assert response.status_code == 200
+    rs = response.json()
+
+    assert_sorting_of_items_list(rs["items"], sort.split(","))
+
+
+@pytest.mark.parametrize(
+    "fields,values,operators,total_page",
+    [
+        pytest.param(["id"], [[1]], ["eq"], 1),
+        pytest.param(["id"], [[0, 1]], ["between"], 1),
+        pytest.param(["id"], [[1, 2]], ["between"], 2),
+        pytest.param(["id"], [[2, 3]], ["between"], 2),
+        pytest.param(["id", "name"], [[1], ["a"]], ["eq", "co"], 1),
+        pytest.param(["name"], [["create_user"]], ["eq"], 1),
+        pytest.param(["name"], [["re", "ate"]], ["co"], 3),
+        pytest.param(["description"], [["allows"]], ["ico"], 10),
+        pytest.param(
+            ["created_at"],
+            [["2025-04-22T14:04:38.586226", "2025-09-22T14:04:38.586226"]],
+            ["between"],
+            10,
+        ),
+    ],
+)
+def test_filter_permissions(
+    fields: list[str],
+    values: list[list],
+    operators: list[str],
+    total_page: int,
+    admin_authenticated: TestClient,
+) -> None:
+    filter_data = zip(fields, values, operators)
+    filters = {}
+
+    for field, value, op in filter_data:
+        filters[field] = {"v": [*value], "op": op}
+
+    response = admin_authenticated.get(f"/permissions?filters={json.dumps(filters)}")
+    assert response.status_code == 200
+    rs = response.json()
+
+    assert len(rs["items"]) == total_page
+
+    assert_filtering_of_items_list(rs["items"], filter_data)
 
 
 def test_create_a_permission(admin_authenticated: TestClient) -> None:
