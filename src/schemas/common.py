@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Generic, Sequence, TypeVar
+from typing import Annotated, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -20,10 +20,7 @@ class NameDescriptionOut(BaseModel):
     description: str | None = None
 
 
-SchemaOutType = TypeVar("SchemaOutType", bound=BaseModel)  # pylint: disable=invalid-name
-
-
-class PaginatedResponse(BaseModel, Generic[SchemaOutType]):
+class PaginatedResponse[SchemaOutType: BaseModel](BaseModel):  # pylint: disable=invalid-name
     items: Sequence[SchemaOutType]
     page_number: int
     page_size: int

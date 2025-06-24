@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Generic, Sequence, TypeVar
+from typing import Awaitable, Callable, Sequence
 
 from pydantic import BaseModel
 
@@ -17,15 +17,12 @@ class BaseService:
         self.repos = repos
 
 
-ResourceRepositoryType = TypeVar("ResourceRepositoryType", bound=ResourceRepository)  # pylint: disable=invalid-name
-BaseType = TypeVar("BaseType", bound=Base)  # pylint: disable=invalid-name
-SchemaInType = TypeVar("SchemaInType", bound=BaseModel)  # pylint: disable=invalid-name
-SchemaOutType = TypeVar("SchemaOutType", bound=BaseModel)  # pylint: disable=invalid-name
-
-
-class ResourceService(
-    BaseService, Generic[ResourceRepositoryType, BaseType, SchemaInType, SchemaOutType]
-):
+class ResourceService[
+    ResourceRepositoryType: ResourceRepository,  # pylint: disable=invalid-name
+    BaseType: Base,  # pylint: disable=invalid-name
+    SchemaInType: BaseModel,  # pylint: disable=invalid-name
+    SchemaOutType: BaseModel,  # pylint: disable=invalid-name
+](BaseService):
     repo: ResourceRepositoryType
 
     async def get(self, identifier: int) -> BaseType:

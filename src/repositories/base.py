@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any, Generic, Sequence, TypeVar
+from typing import Any, Sequence
 
 from sqlalchemy import BinaryExpression, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,10 +13,7 @@ from src.repositories import utils
 class BaseRepository: ...  # pylint: disable=too-few-public-methods
 
 
-ModelType = TypeVar("ModelType", bound=Base)  # pylint: disable=invalid-name
-
-
-class ResourceRepository(BaseRepository, Generic[ModelType]):
+class ResourceRepository[ModelType: Base](BaseRepository):  # pylint: disable=invalid-name
     model: type[ModelType]
     db: AsyncSession
 
