@@ -1,7 +1,4 @@
-import logging
 from fastapi.testclient import TestClient
-
-log = logging.getLogger(__name__)
 
 
 def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
@@ -129,7 +126,7 @@ def test_create_a_user(admin_authenticated: TestClient) -> None:
         json={
             "name": "John Doe",
             "email": "new@testing.com",
-            "password": "test",
+            "password": "password",
         },
     )
     assert response.status_code == 201
@@ -334,7 +331,7 @@ def test_cannot_create_a_user_while_unauthorized(client: TestClient) -> None:
         json={
             "name": "John Doe",
             "email": "new@testing.com",
-            "password": "test",
+            "password": "password",
         },
         headers={"Authorization": f"Bearer {rs['access_token']}"},
     )

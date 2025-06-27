@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.schemas.common import Timestamp
@@ -20,7 +22,15 @@ class UserOut(UserBase, Timestamp):
 
 
 class UserIn(UserBase):
-    password: str
+    password: Annotated[str, Field(min_length=6)]
+
+
+class EmailIn(BaseModel):
+    email: EmailStr
+
+
+class NewPasswordIn(BaseModel):
+    password: Annotated[str, Field(min_length=6)]
 
 
 class UserRoleIn(BaseModel):

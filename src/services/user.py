@@ -1,14 +1,16 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import BackgroundTasks, Depends
 
+from src.core.config import settings
 from src.core.exceptions import AlreadyExistsException
-from src.core.security import get_current_user, hash_password
+from src.core.security import get_current_user, hash_password, sign
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.user import UserRepository
 from src.schemas.user import UserIn, UserOut, UserRoleIn
 from src.services.base import ResourceService
+from src.services.utils import send_email
 
 
 class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
@@ -19,7 +21,9 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
     async def get_authenticated_user(self) -> UserOut:
         return UserOut.model_validate(await self.get(get_current_user().id))
 
-    async def create_user(self, schema_in: UserIn) -> UserOut:
+    async def create_user(
+        self, schema_in: UserIn, bg_tasks: BackgroundTasks
+    ) -> UserOut:
         async def validate() -> None:
             if await self.repo.get_by_email(schema_in.email):
                 raise AlreadyExistsException(
@@ -30,7 +34,23 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
 
         schema_in.password = hash_password(schema_in.password)
 
-        return UserOut.model_validate(await super().create(schema_in, validate))
+        user = await super().create(schema_in, validate)
+
+        token = sign(data=schema_in.email, salt="new-user")
+
+        bg_tasks.add_task(
+            send_email,
+            address=user.email,
+            user_name=user.name,
+            subject=f"Welcome to {settings.app_name}",
+            email_template="new-user",
+            data={
+                "reset_url": f"{settings.frontend_url}/reset-password/{token}",
+                "expiration_minutes": settings.auth_password_reset_expiry / 60,
+            },
+        )
+
+        return UserOut.model_validate(user)
 
     async def delete_user(self, identifier: int) -> None:
         get_current_user().authorize("delete_user")

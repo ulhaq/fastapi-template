@@ -49,6 +49,6 @@ async def handle_http_exception(request: Request, exc: HTTPException) -> JSONRes
 
 
 app.include_router(auth.router, tags=["Authentication"])
+app.include_router(user.router, tags=["Users"])
 app.include_router(role.router, tags=["Roles"])
 app.include_router(permission.router, tags=["Permissions"])
-app.include_router(user.router, tags=["Users"])

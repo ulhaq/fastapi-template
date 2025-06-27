@@ -1,8 +1,9 @@
 from contextvars import ContextVar
 from time import time
-from typing import Self
+from typing import Any, Literal, Self
 
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from jwt import encode
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -10,6 +11,10 @@ from pydantic import BaseModel
 from src.core.config import settings
 from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
 from src.models.user import User
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+current_user: ContextVar["Auth"] = ContextVar("current_user")
 
 
 class Auth(BaseModel):
@@ -58,8 +63,22 @@ class JWTTokenClaims(BaseModel):
     email: str
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+type SignSalt = Literal["welcome", "new-user", "reset-password"]
+
+
+def sign(data: Any, salt: SignSalt) -> str:
+    s = URLSafeTimedSerializer(secret_key=settings.app_secret, salt=salt)
+    return s.dumps(data)
+
+
+def unsign(token: str, salt: SignSalt, max_age: int = 10 * 60) -> Any:
+    try:
+        s = URLSafeTimedSerializer(secret_key=settings.app_secret, salt=salt)
+        return s.loads(token, max_age=max_age)
+    except SignatureExpired as exc:
+        raise NotAuthenticatedException("Signature expired") from exc
+    except BadSignature as exc:
+        raise NotAuthenticatedException("Signature invalid") from exc
 
 
 def hash_password(password: str) -> str:
@@ -92,9 +111,6 @@ def authenticate_user(
     if user and verify_password(auth_data.password, user.password):
         return user
     return None
-
-
-current_user: ContextVar[Auth] = ContextVar("current_user")
 
 
 def get_current_user() -> Auth:

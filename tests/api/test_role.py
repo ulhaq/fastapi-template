@@ -1,5 +1,4 @@
 import json
-import logging
 from fastapi.testclient import TestClient
 import pytest
 
@@ -8,8 +7,6 @@ from tests.utils import (
     assert_pagination,
     assert_sorting_of_items_list,
 )
-
-log = logging.getLogger(__name__)
 
 
 def test_get_all_roles(admin_authenticated: TestClient) -> None:

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, BackgroundTasks, Depends, Path
 
 from src.core.dependencies import authenticate
 from src.schemas.user import UserIn, UserOut, UserRoleIn
@@ -14,15 +14,13 @@ async def get_authenticated_user(service: Annotated[UserService, Depends()]) -> 
     return await service.get_authenticated_user()
 
 
-@router.post(
-    "/users",
-    dependencies=[Depends(authenticate)],
-    status_code=201,
-)
+@router.post("/users", dependencies=[Depends(authenticate)], status_code=201)
 async def create_a_user(
-    service: Annotated[UserService, Depends()], user_in: UserIn
+    bg_tasks: BackgroundTasks,
+    service: Annotated[UserService, Depends()],
+    user_in: UserIn,
 ) -> UserOut:
-    return await service.create_user(user_in)
+    return await service.create_user(user_in, bg_tasks)
 
 
 @router.delete(
