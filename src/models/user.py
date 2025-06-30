@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 # pylint: disable=too-few-public-methods
+
+
 class User(Base, TimestampMixin):
     __tablename__ = "user"
 

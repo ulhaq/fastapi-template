@@ -38,5 +38,8 @@ disallow_untyped_defs = true
 [tool.pylint.format]
 max-line-length = 88
 
+[tool.pylint.similarities]
+min-similarity-lines=5
+
 [tool.pylint."MESSAGES CONTROL"]
 disable = "missing-function-docstring,missing-class-docstring,missing-module-docstring"

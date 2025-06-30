@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 
 # pylint: disable=too-few-public-methods
+
+
 class Role(Base, TimestampMixin):
     __tablename__ = "role"
 

@@ -4,13 +4,12 @@ from pydantic import BaseModel
 
 from src.core.database import Base
 from src.core.exceptions import NotFoundException, ValidationException
-from src.repositories.base import ResourceRepository
+from src.repositories.abc import ResourceRepositoryABC
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
 
 
-# pylint: disable=too-few-public-methods
-class BaseService:
+class BaseService:  # pylint: disable=too-few-public-methods
     repos: RepositoryManager
 
     def __init__(self, repos: RepositoryManager):
@@ -18,7 +17,7 @@ class BaseService:
 
 
 class ResourceService[
-    ResourceRepositoryType: ResourceRepository,  # pylint: disable=invalid-name
+    ResourceRepositoryType: ResourceRepositoryABC,  # pylint: disable=invalid-name
     BaseType: Base,  # pylint: disable=invalid-name
     SchemaInType: BaseModel,  # pylint: disable=invalid-name
     SchemaOutType: BaseModel,  # pylint: disable=invalid-name

@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 # pylint: disable=too-few-public-methods
+
+
 class Permission(Base, TimestampMixin):
     __tablename__ = "permission"
 

@@ -2,25 +2,15 @@ from datetime import UTC, datetime
 from typing import Any, Sequence
 
 from sqlalchemy import BinaryExpression, exists, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import UnaryExpression
 
 from src.core.database import Base
 from src.repositories import utils
+from src.repositories.abc import ResourceRepositoryABC
 
 
-class BaseRepository: ...  # pylint: disable=too-few-public-methods
-
-
-class ResourceRepository[ModelType: Base](BaseRepository):  # pylint: disable=invalid-name
-    model: type[ModelType]
-    db: AsyncSession
-
-    def __init__(self, model: type[ModelType], db: AsyncSession) -> None:
-        self.model = model
-        self.db = db
-
+class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]):  # pylint: disable=invalid-name
     async def get_one(self, identifier: int) -> ModelType:
         return await self.db.get_one(self.model, identifier)
 
@@ -32,17 +22,47 @@ class ResourceRepository[ModelType: Base](BaseRepository):  # pylint: disable=in
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
-    async def get_total(self, *filter_expressions: BinaryExpression) -> int:
-        stmt = (
-            select(
-                func.count()  # pylint: disable=not-callable
-            )
-            .select_from(self.model)
-            .filter(*filter_expressions)
-        )
+    async def get_one_by_name(self, name: str) -> ModelType | None:
+        stmt = select(self.model).where(getattr(self.model, "name") == name)
         rs = await self.db.execute(stmt)
-        total = rs.scalar_one()
-        return int(total)
+        return rs.unique().scalar_one_or_none()
+
+    async def filter_by(self, **kwargs: Any) -> Sequence[ModelType]:
+        stmt = select(self.model).filter_by(**kwargs)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def filter_by_ids(self, identifiers: list[int]) -> Sequence[ModelType]:
+        stmt = select(self.model).filter(getattr(self.model, "id").in_(identifiers))
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def exists(self, identifier: int) -> bool:
+        stmt = select(exists().where(getattr(self.model, "id") == identifier))
+        rs = await self.db.execute(stmt)
+        return rs.scalar_one()
+
+    async def create(self, **kwargs: Any) -> ModelType:
+        instance = self.model(**kwargs)
+
+        self.db.add(instance)
+        await self.db.commit()
+        await self.db.refresh(instance)
+        return instance
+
+    async def update(self, model: ModelType, **kwargs: Any) -> ModelType:
+        for attr, value in kwargs.items():
+            setattr(model, attr, value)
+        setattr(model, "updated_at", datetime.now(UTC))
+
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return model
+
+    async def delete(self, model: ModelType) -> None:
+        await self.db.delete(model)
+        await self.db.commit()
 
     async def paginate(
         self,
@@ -67,90 +87,17 @@ class ResourceRepository[ModelType: Base](BaseRepository):  # pylint: disable=in
 
         return items, total
 
-    async def exists(self, identifier: int) -> bool:
-        stmt = select(exists().where(getattr(self.model, "id") == identifier))
-        rs = await self.db.execute(stmt)
-        return rs.scalar_one()
-
-    async def get_one_by_name(self, name: str) -> ModelType | None:
-        stmt = select(self.model).where(getattr(self.model, "name") == name)
-        rs = await self.db.execute(stmt)
-        return rs.unique().scalar_one_or_none()
-
-    async def filter_by(self, **kwargs: Any) -> Sequence[ModelType]:
-        stmt = select(self.model).filter_by(**kwargs)
-        rs = await self.db.execute(stmt)
-        return rs.unique().scalars().all()
-
-    async def filter_by_ids(self, identifiers: list[int]) -> Sequence[ModelType]:
-        stmt = select(self.model).filter(getattr(self.model, "id").in_(identifiers))
-        rs = await self.db.execute(stmt)
-        return rs.unique().scalars().all()
-
-    async def create(self, **kwargs: Any) -> ModelType:
-        instance = self.model(**kwargs)
-
-        self.db.add(instance)
-        await self.db.commit()
-        await self.db.refresh(instance)
-        return instance
-
-    async def update(self, model: ModelType, **kwargs: Any) -> ModelType:
-        for attr, value in kwargs.items():
-            setattr(model, attr, value)
-        setattr(model, "updated_at", datetime.now(UTC))
-
-        self.db.add(model)
-        await self.db.commit()
-        await self.db.refresh(model)
-        return model
-
-    async def delete(self, model: ModelType) -> None:
-        await self.db.delete(model)
-        await self.db.commit()
-
-    async def add_relationship(
-        self,
-        target_model: ModelType,
-        related_model: Any,
-        relationship_attr: str,
-        *related_ids: int,
-    ) -> None:
-        stmt = select(related_model).filter(related_model.id.in_(related_ids))
-        rs = await self.db.execute(stmt)
-        related_objects = rs.unique().scalars().all()
-
-        if related_objects:
-            current_value = getattr(target_model, relationship_attr)
-
-            if isinstance(current_value, list):
-                current_value.extend(related_objects)
-            else:
-                setattr(target_model, relationship_attr, related_objects[0])
-
-            await self.db.commit()
-            await self.db.refresh(target_model)
-
-    async def remove_relationship(
-        self, target_model: ModelType, relationship_attr: str, *related_ids: int
-    ) -> None:
-        current_value = getattr(target_model, relationship_attr)
-
-        if isinstance(current_value, list):
-            setattr(
-                target_model,
-                relationship_attr,
-                [
-                    related_obj
-                    for related_obj in current_value
-                    if related_obj.id not in related_ids
-                ],
+    async def get_total(self, *filter_expressions: BinaryExpression) -> int:
+        stmt = (
+            select(
+                func.count()  # pylint: disable=not-callable
             )
-        else:
-            setattr(target_model, relationship_attr, None)
-
-        await self.db.commit()
-        await self.db.refresh(target_model)
+            .select_from(self.model)
+            .filter(*filter_expressions)
+        )
+        rs = await self.db.execute(stmt)
+        total = rs.scalar_one()
+        return int(total)
 
     def _get_order_expressions(self, sort: list[str]) -> list[UnaryExpression]:
         ordering: list[UnaryExpression] = []
@@ -200,3 +147,46 @@ class ResourceRepository[ModelType: Base](BaseRepository):  # pylint: disable=in
                     filters.append(filter_expression)
 
         return filters
+
+    async def add_relationship(
+        self,
+        target_model: ModelType,
+        related_model: Any,
+        relationship_attr: str,
+        *related_ids: int,
+    ) -> None:
+        stmt = select(related_model).filter(related_model.id.in_(related_ids))
+        rs = await self.db.execute(stmt)
+        related_objects = rs.unique().scalars().all()
+
+        if related_objects:
+            current_value = getattr(target_model, relationship_attr)
+
+            if isinstance(current_value, list):
+                current_value.extend(related_objects)
+            else:
+                setattr(target_model, relationship_attr, related_objects[0])
+
+            await self.db.commit()
+            await self.db.refresh(target_model)
+
+    async def remove_relationship(
+        self, target_model: ModelType, relationship_attr: str, *related_ids: int
+    ) -> None:
+        current_value = getattr(target_model, relationship_attr)
+
+        if isinstance(current_value, list):
+            setattr(
+                target_model,
+                relationship_attr,
+                [
+                    related_obj
+                    for related_obj in current_value
+                    if related_obj.id not in related_ids
+                ],
+            )
+        else:
+            setattr(target_model, relationship_attr, None)
+
+        await self.db.commit()
+        await self.db.refresh(target_model)
