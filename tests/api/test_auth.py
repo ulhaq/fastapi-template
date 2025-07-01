@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from pytest_mock import MockerFixture, mocker as _mocker
+from pytest_mock import MockerFixture
 
 
 def test_register_an_account(client: TestClient) -> None:
@@ -37,7 +37,7 @@ def test_get_access_token(client: TestClient) -> None:
 
 def test_request_password_reset(client: TestClient) -> None:
     response = client.post("auth/reset-password", json={"email": "admin@example.org"})
-    assert response.status_code == 204
+    assert response.status_code == 202
 
 
 def test_reset_password(mocker: MockerFixture, client: TestClient) -> None:
@@ -66,7 +66,7 @@ def test_request_password_reset_with_non_existent_email(client: TestClient) -> N
     response = client.post(
         "auth/reset-password", json={"email": "non-existent@example.org"}
     )
-    assert response.status_code == 204
+    assert response.status_code == 202
 
 
 def test_cannot_reset_password_with_invalid_token(client: TestClient) -> None:

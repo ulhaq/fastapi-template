@@ -27,7 +27,7 @@ async def get_access_token(
     return await service.get_access_token(auth_data)
 
 
-@router.post("/auth/reset-password", status_code=204)
+@router.post("/auth/reset-password", status_code=202)
 async def request_password_reset(
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
