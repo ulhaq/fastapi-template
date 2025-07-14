@@ -1,8 +1,9 @@
 import logging
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Depends
+from fastapi import BackgroundTasks, Depends, Response
 from fastapi.security import OAuth2PasswordRequestForm
+from jwt import ExpiredSignatureError, InvalidTokenError, decode
 
 from src.core.config import settings
 from src.core.exceptions import (
@@ -14,6 +15,7 @@ from src.core.security import (
     Token,
     authenticate_user,
     create_access_token,
+    create_refresh_token,
     hash_password,
     sign,
     unsign,
@@ -55,7 +57,9 @@ class AuthService(BaseService):
 
         return UserOut.model_validate(user)
 
-    async def get_access_token(self, auth_data: OAuth2PasswordRequestForm) -> Token:
+    async def get_access_token(
+        self, auth_data: OAuth2PasswordRequestForm, response: Response
+    ) -> Token:
         user = authenticate_user(
             auth_data, await self.repos.user.get_by_email(auth_data.username)
         )
@@ -63,7 +67,56 @@ class AuthService(BaseService):
         if not user:
             raise NotAuthenticatedException(headers={"WWW-Authenticate": "Bearer"})
 
-        return Token(access_token=create_access_token(user))
+        access_token = create_access_token(user)
+        refresh_token = create_refresh_token(user)
+
+        self._set_refresh_token_cookie(refresh_token=refresh_token, response=response)
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+
+    async def refresh_access_token(
+        self, refresh_token: str | None, response: Response
+    ) -> Token:
+        credentials_exception = NotAuthenticatedException(
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+        if not refresh_token:
+            raise credentials_exception
+
+        try:
+            payload = decode(
+                refresh_token,
+                settings.app_secret,
+                algorithms=[settings.auth_algorithm],
+                audience=settings.app_name,
+            )
+            user_id = payload.get("sub")
+        except ExpiredSignatureError as exc:
+            raise NotAuthenticatedException(
+                detail="Token expired", headers={"WWW-Authenticate": "Bearer"}
+            ) from exc
+        except InvalidTokenError as exc:
+            raise credentials_exception from exc
+
+        if not user_id:
+            raise credentials_exception
+
+        user = await self.repos.user.get(user_id)
+        if not user:
+            raise credentials_exception
+
+        self._set_refresh_token_cookie(refresh_token=refresh_token, response=response)
+
+        return Token(
+            access_token=create_access_token(user),
+            refresh_token=refresh_token,
+        )
+
+    async def logout(self, response: Response) -> None:
+        self._delete_refresh_token_cookie(response=response)
 
     async def request_password_reset(
         self, email_in: EmailIn, bg_tasks: BackgroundTasks
@@ -102,3 +155,27 @@ class AuthService(BaseService):
             return None
 
         raise NotFoundException(f"User not found. [{email=}]")
+
+    def _set_refresh_token_cookie(
+        self,
+        refresh_token: str,
+        response: Response,
+    ) -> None:
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            expires=settings.auth_refresh_token_expiry,
+            # secure=True,  # Only over HTTPS
+            # samesite="strict",  # or "lax" depending on use case
+            path="/auth/refresh",
+        )
+
+    def _delete_refresh_token_cookie(self, response: Response) -> None:
+        response.delete_cookie(
+            key="refresh_token",
+            httponly=True,
+            # secure=True,  # Only over HTTPS
+            # samesite="strict",  # or "lax" depending on use case
+            path="/auth/refresh",
+        )

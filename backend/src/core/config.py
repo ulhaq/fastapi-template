@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file="./.env", env_file_encoding="utf-8")
 
     app_name: str = ""
     app_url: str = "http://localhost"
@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     db_connection: str = ""
 
     auth_algorithm: str = "HS256"
-    auth_token_expiry: int = 1800
-    auth_password_reset_expiry: int = 600
+    auth_access_token_expiry: int = 30 * 60
+    auth_refresh_token_expiry: int = 15 * 24 * 60 * 60
+    auth_password_reset_expiry: int = 10 * 60
 
     raw_allow_origins: str = Field(default="*", validation_alias="allow_origins")
 
@@ -43,16 +44,16 @@ class Settings(BaseSettings):
     def allow_headers(self) -> list[str]:
         return [header.strip() for header in self.raw_allow_headers.split(",")]  # pylint: disable=no-member
 
-    email_host: str
-    email_user: str
-    email_password: str
+    email_host: str = ""
+    email_user: str = ""
+    email_password: str = ""
     email_tls: bool = True
     email_port: int = 587
-    email_from_address: str
-    email_from_name: str
+    email_from_address: str = ""
+    email_from_name: str = ""
 
     template_path: str = "./src/templates"
-    frontend_url: str = "http://localhost:8000"
+    frontend_url: str = "http://localhost:3000"
 
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False

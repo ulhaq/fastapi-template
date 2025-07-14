@@ -1,3 +1,5 @@
+import time
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
@@ -33,6 +35,58 @@ def test_get_access_token(client: TestClient) -> None:
     rs = response.json()
     assert rs["token_type"] == "bearer"
     assert rs["access_token"]
+    assert rs["refresh_token"]
+
+
+def test_refresh_access_token(client: TestClient) -> None:
+    with patch("src.core.config.settings.auth_access_token_expiry", 2):
+        response = client.post(
+            "auth/token",
+            data={"username": "admin@example.org", "password": "password"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 200
+        rs = response.json()
+        old_access_token = rs["access_token"]
+        old_refresh_token = rs["refresh_token"]
+
+        response = client.get(
+            "users/me", headers={"Authorization": f"Bearer {old_access_token}"}
+        )
+        assert response.status_code == 200
+
+        time.sleep(2)
+
+        response = client.get(
+            "users/me", headers={"Authorization": f"Bearer {old_access_token}"}
+        )
+        assert response.status_code == 401
+
+        response = client.post("auth/refresh")
+        assert response.status_code == 200
+        rs = response.json()
+        assert rs["token_type"] == "bearer"
+        assert rs["access_token"] and rs["access_token"] != old_access_token
+        assert rs["refresh_token"] and rs["refresh_token"] == old_refresh_token
+
+        response = client.get(
+            "users/me", headers={"Authorization": f"Bearer {rs['access_token']}"}
+        )
+        assert response.status_code == 200
+
+
+def test_logout(client: TestClient) -> None:
+    response = client.post(
+        "auth/token",
+        data={"username": "admin@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    assert "refresh_token=" in response.headers["set-cookie"]
+
+    response = client.post("auth/logout")
+    assert response.status_code == 204
+    assert "refresh_token=" in dict(response.headers).get("set-cookie", "")
 
 
 def test_request_password_reset(client: TestClient) -> None:
@@ -69,6 +123,36 @@ def test_request_password_reset_with_non_existent_email(client: TestClient) -> N
     assert response.status_code == 202
 
 
+def test_cannot_refresh_access_token_with_invalid_token(client: TestClient) -> None:
+    response = client.post(
+        "auth/refresh",
+        cookies={"refresh_token": "invalidtoken"},
+    )
+    assert response.status_code == 401
+    rs = response.json()
+    assert rs["type"] == "NotAuthenticatedException"
+    assert rs["msg"] == "Not authenticated"
+
+
+def test_cannot_refresh_access_token_with_expired_token(client: TestClient) -> None:
+    with patch("src.core.config.settings.auth_refresh_token_expiry", -1):
+        response = client.post(
+            "auth/token",
+            data={"username": "admin@example.org", "password": "password"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 200
+        rs = response.json()
+
+        response = client.post(
+            "auth/refresh", cookies={"refresh_token": rs["refresh_token"]}
+        )
+        assert response.status_code == 401
+        rs = response.json()
+        assert rs["type"] == "NotAuthenticatedException"
+        assert rs["msg"] == "Token expired"
+
+
 def test_cannot_reset_password_with_invalid_token(client: TestClient) -> None:
     token = "invalidtoken"
 
@@ -81,16 +165,23 @@ def test_cannot_reset_password_with_invalid_token(client: TestClient) -> None:
     assert rs["msg"] == "Signature invalid"
 
 
-def test_cannot_reset_password_with_expired_token(client: TestClient) -> None:
-    token = "ImFkbWluQGV4YW1wbGUub3JnIg.aF8G0w.BdTusBenIsBI6wSVfzBk16ATs-I"
+def test_cannot_reset_password_with_expired_token(
+    mocker: MockerFixture, client: TestClient
+) -> None:
+    mock_send = mocker.patch("src.services.auth.send_email")
 
-    response = client.post(
-        f"auth/reset-password/{token}", json={"password": "new password"}
-    )
-    assert response.status_code == 401
-    rs = response.json()
-    assert rs["type"] == "NotAuthenticatedException"
-    assert rs["msg"] == "Signature expired"
+    with patch("src.core.config.settings.auth_password_reset_expiry", -1):
+        client.post("auth/reset-password", json={"email": "admin@example.org"})
+
+        token = mock_send.call_args.kwargs["data"]["reset_url"].split("reset/")[1]
+
+        response = client.post(
+            f"auth/reset-password/{token}", json={"password": "new password"}
+        )
+        assert response.status_code == 401
+        rs = response.json()
+        assert rs["type"] == "NotAuthenticatedException"
+        assert rs["msg"] == "Signature expired"
 
 
 def test_cannot_register_an_account_with_already_existing_email(
@@ -98,11 +189,7 @@ def test_cannot_register_an_account_with_already_existing_email(
 ) -> None:
     response = client.post(
         "/auth/register",
-        json={
-            "name": "new user",
-            "email": "admin@example.org",
-            "password": "password",
-        },
+        json={"name": "new user", "email": "admin@example.org", "password": "password"},
     )
     assert response.status_code == 409
     rs = response.json()

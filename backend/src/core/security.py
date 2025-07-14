@@ -49,6 +49,7 @@ class Auth(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
 
@@ -59,8 +60,8 @@ class JWTTokenClaims(BaseModel):
     exp: int
     iat: int
 
-    name: str
-    email: str
+    name: str | None = None
+    email: str | None = None
 
 
 type SignSalt = Literal["welcome", "new-user", "reset-password"]
@@ -95,11 +96,25 @@ def create_access_token(user: User) -> str:
             iss=settings.app_name,
             aud=settings.app_name,
             sub=str(user.id),
-            exp=int(time() + settings.auth_token_expiry),
+            exp=int(time() + settings.auth_access_token_expiry),
             iat=int(time()),
             name=user.name,
             email=user.email,
         ).model_dump(),
+        settings.app_secret,
+        algorithm=settings.auth_algorithm,
+    )
+
+
+def create_refresh_token(user: User) -> str:
+    return encode(
+        JWTTokenClaims(
+            iss=settings.app_name,
+            aud=settings.app_name,
+            sub=str(user.id),
+            exp=int(time() + settings.auth_refresh_token_expiry),
+            iat=int(time()),
+        ).model_dump(exclude_unset=True),
         settings.app_secret,
         algorithm=settings.auth_algorithm,
     )

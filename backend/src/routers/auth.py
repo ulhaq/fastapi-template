@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Path
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.core.security import Token
@@ -21,10 +21,29 @@ async def create_an_account(
 
 @router.post("/auth/token", status_code=200)
 async def get_access_token(
+    response: Response,
     auth_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     service: Annotated[AuthService, Depends()],
 ) -> Token:
-    return await service.get_access_token(auth_data)
+    return await service.get_access_token(auth_data, response)
+
+
+@router.post("/auth/refresh", status_code=200)
+async def refresh_access_token(
+    request: Request,
+    response: Response,
+    service: Annotated[AuthService, Depends()],
+) -> Token:
+    return await service.refresh_access_token(
+        request.cookies.get("refresh_token"), response
+    )
+
+
+@router.post("/auth/logout", status_code=204)
+async def logout(
+    response: Response, service: Annotated[AuthService, Depends()]
+) -> None:
+    await service.logout(response)
 
 
 @router.post("/auth/reset-password", status_code=202)
