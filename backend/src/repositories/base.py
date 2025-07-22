@@ -45,6 +45,9 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
     async def create(self, **kwargs: Any) -> ModelType:
         instance = self.model(**kwargs)
 
+        setattr(instance, "created_at", datetime.now(UTC))
+        setattr(instance, "updated_at", datetime.now(UTC))
+
         self.db.add(instance)
         await self.db.commit()
         await self.db.refresh(instance)
