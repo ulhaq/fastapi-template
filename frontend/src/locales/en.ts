@@ -44,13 +44,13 @@ export default {
     title: "Roles",
     add: "Add new role",
     added: "Role added successfully",
+    assignedPermissions: "Permissions assigned to the role successfully",
     form: {
       title: "Add new role",
       name: "Name",
       description: "Description",
-      saveAndNext: "Save & add permissions",
-      addPermissions: "Add permissions",
-      addPermissionsToRole: "Add permissions to role",
+      saveAndNext: "Save & assign permissions",
+      assignPermissionsToRole: "Assign permissions",
     },
     table: {
       name: "Name",

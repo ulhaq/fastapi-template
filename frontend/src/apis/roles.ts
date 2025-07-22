@@ -33,4 +33,11 @@ export default {
   async deleteById(id: string | number) {
     await axios.delete(`${endpoint}/${id}`);
   },
+
+  async assignPermissions(roleId: Number, permissionIds: Array<Number>) {
+    const response = await axios.post(`${endpoint}/${roleId}/permissions`, {
+      permission_ids: permissionIds,
+    });
+    return response.data;
+  },
 };

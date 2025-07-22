@@ -91,14 +91,16 @@
               </template>
               <template v-slot:item.2>
                 <v-card
-                  :title="t('roles.form.addPermissionsToRole')"
+                  :title="t('roles.form.assignPermissionsToRole')"
                   class="bg-blue-grey-lighten-5"
                   flat
                 >
                   <v-card-text>
                     <v-row>
                       <v-col>
-                        <AddPermissionToRoleTable />
+                        <AddPermissionToRoleTable
+                          v-model="selectedPermissions"
+                        />
                       </v-col>
                     </v-row>
                   </v-card-text>
@@ -117,10 +119,10 @@
                     <v-spacer></v-spacer>
                     <v-btn
                       color="white"
-                      :text="t('roles.form.addPermissions')"
+                      :text="t('roles.form.assignPermissionsToRole')"
                       size="large"
                       variant="elevated"
-                      @click="addPermissionsToRole"
+                      @click="assignPermissionsToRole"
                     ></v-btn>
                   </v-card-actions>
                 </v-card>
@@ -152,6 +154,8 @@ const roleTableKey = ref(true);
 
 const loading = ref(false);
 const search = ref("");
+
+const selectedPermissions = ref([]);
 
 const role = ref({});
 
@@ -204,6 +208,7 @@ const addRoleAndNextStep = () => {
       roleTableKey.value = !roleTableKey.value;
       role.value = {};
       roleId.value = rs.id;
+      step.value = 2;
     })
     .catch((err) => {
       messagesStore.add({
@@ -211,7 +216,27 @@ const addRoleAndNextStep = () => {
         color: "error",
       });
     });
+};
 
-  step.value = 2;
+const assignPermissionsToRole = () => {
+  roleApi
+    .assignPermissions(roleId.value, selectedPermissions.value)
+    .then((rs) => {
+      messagesStore.add({
+        text: t("roles.assignedPermissions"),
+        color: "success",
+      });
+
+      selectedPermissions.value = [];
+      roleId.value = null;
+      dialog.value = false;
+      step.value = 1;
+    })
+    .catch((err) => {
+      messagesStore.add({
+        text: err.response?.data.msg,
+        color: "error",
+      });
+    });
 };
 </script>

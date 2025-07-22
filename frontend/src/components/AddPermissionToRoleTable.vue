@@ -5,9 +5,9 @@
     :total-items="totalItems"
     :loading="loading"
     :options="options"
-    :selectedItems="selectedItems"
     :item-value="id"
     show-select
+    v-model="selectedItems"
     @update:options="fetchPermissions"
   />
 </template>
@@ -49,6 +49,4 @@ const fetchPermissions = async (newOptions) => {
   totalItems.value = permissions.total;
   loading.value = false;
 };
-
-const emit = defineEmits(["update:selectedPermissions"]);
 </script>

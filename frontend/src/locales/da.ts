@@ -44,13 +44,13 @@ export default {
     title: "Roller",
     add: "Tilføj ny rolle",
     added: "Rollen blev tilføjet",
+    assignedPermissions: "Tilladelserne blev tildelt rollen",
     form: {
       title: "Tilføj ny rolle",
       name: "Navn",
       description: "Beskrivelse",
-      saveAndNext: "Gem og tilføj tilladelser",
-      addPermissions: "Tilføj tilladelser",
-      addPermissionsToRole: "Tilføj tilladelser til rolle",
+      saveAndNext: "Gem og tildel tilladelser",
+      assignPermissionsToRole: "Tildel tilladelser",
     },
     table: {
       name: "Navn",
