@@ -8,11 +8,15 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AddPermissionToRoleTable: typeof import('./components/AddPermissionToRoleTable.vue')['default']
     AppFooter: typeof import('./components/AppFooter.vue')['default']
     AppNavigationBar: typeof import('./components/AppNavigationBar.vue')['default']
-    copy: typeof import('./components/AppNavigationBar.vue')['default']
+    copy: typeof import('./components/PermissionTable copy.vue')['default']
     DataTable: typeof import('./components/DataTable.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
+    Permissions: typeof import('./components/tables/Permissions.vue')['default']
+    PermissionTable: typeof import('./components/PermissionTable.vue')['default']
+    RoleTable: typeof import('./components/RoleTable.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

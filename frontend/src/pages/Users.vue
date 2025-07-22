@@ -8,6 +8,9 @@
           :total-items="totalItems"
           :loading="loading"
           :options="options"
+          :item-value="id"
+          show-select
+          v-model="selectedItems"
           @update:options="fetchUsers"
         >
           <template #top>
@@ -23,15 +26,6 @@
               />
             </v-toolbar>
           </template>
-
-          <template #item="{ item }">
-            <tr>
-              <td>{{ item.name }}</td>
-              <td>{{ item.description }}</td>
-              <td>{{ item.created_at }}</td>
-              <td>{{ item.updated_at }}</td>
-            </tr>
-          </template>
         </DataTable>
       </v-col>
     </v-row>
@@ -46,14 +40,15 @@ import roleApi from "@/apis/roles";
 
 const { t } = useI18n();
 
-const headers = [
+const headers = computed(() => [
   { title: t("users.table.name"), key: "name" },
   { title: t("users.table.description"), key: "description" },
-  { title: t("common.createdAt"), key: "createdAt" },
-  { title: t("common.updatedAt"), key: "updatedAt" },
-];
+  { title: t("common.table.createdAt"), key: "created_at" },
+  { title: t("common.table.updatedAt"), key: "updated_at" },
+]);
 
 const items = ref([]);
+const selectedItems = ref([]);
 const totalItems = ref(0);
 const loading = ref(false);
 const search = ref("");

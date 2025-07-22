@@ -8,18 +8,10 @@
     :page="options.page"
     :sort-by="options.sortBy"
     :sort-desc="options.sortDesc"
-    :items-per-page-options="[10, 25, 50, 100, 500]"
+    :items-per-page-options="[10, 25, 50, 100]"
     @update:options="emitOptions"
-    class="border"
+    class="elevation-2 rounded"
   >
-    <template #top>
-      <slot name="top" />
-    </template>
-
-    <template #item="{ item, index }">
-      <slot name="item" :item="item" :index="index" />
-    </template>
-
     <template #no-data>
       <slot name="no-data">No data available</slot>
     </template>
@@ -27,7 +19,7 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   headers: {
     type: Array,
     required: true,

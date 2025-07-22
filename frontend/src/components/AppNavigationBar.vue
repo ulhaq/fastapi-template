@@ -3,8 +3,9 @@
     <v-navigation-drawer
       v-model="drawer"
       :location="$vuetify.display.mobile ? 'left' : undefined"
+      class="bg-blue-grey-lighten-5 border-e-0 ps-4"
     >
-      <v-sheet class="pt-4 pb-8 pl-4">
+      <v-sheet class="bg-blue-grey-lighten-5 pt-4 pb-8 pl-4">
         <v-img
           src="https://cdn.vuetifyjs.com/docs/images/one/logos/vuetify-logo-light.png"
           cover
@@ -29,9 +30,9 @@
       </v-list>
     </v-navigation-drawer>
 
-    <v-app-bar :elevation="0" class="border-b-thin">
+    <v-app-bar :elevation="0" class="bg-blue-grey-lighten-5">
       <v-app-bar-nav-icon
-        variant="text"
+        variant="plain"
         @click.stop="drawer = !drawer"
       ></v-app-bar-nav-icon>
 
@@ -64,25 +65,32 @@
   </div>
 </template>
 <script setup>
-import { ref, watch } from "vue";
 import { useLocale } from "vuetify";
+import { useI18n } from "vue-i18n";
+import { ref, watch } from "vue";
 import { availableLocales } from "@/locales/index";
 import { useAuthStore } from "@/stores/auth";
 
 const { current } = useLocale();
 
+const { t } = useI18n();
 const authStore = useAuthStore();
 
 function changeLocale(locale) {
   current.value = locale;
+  localStorage.setItem("locale", locale);
 }
 
-const items = [
-  { name: "index", text: "Home", icon: "mdi-home" },
-  { name: "users", text: "Users", icon: "mdi-account-group" },
-  { name: "roles", text: "Roles", icon: "mdi-shield-account" },
-  { name: "permissions", text: "Permissions", icon: "mdi-shield-star" },
-];
+const items = computed(() => [
+  { name: "index", text: t("menuBar.index"), icon: "mdi-home" },
+  { name: "users", text: t("menuBar.users"), icon: "mdi-account-group" },
+  { name: "roles", text: t("menuBar.roles"), icon: "mdi-shield-account" },
+  {
+    name: "permissions",
+    text: t("menuBar.permissions"),
+    icon: "mdi-shield-star",
+  },
+]);
 
 const drawer = ref(true);
 const group = ref(null);
@@ -92,6 +100,6 @@ watch(group, () => {
 });
 
 function logout() {
-  authStore.logout()
+  authStore.logout();
 }
 </script>

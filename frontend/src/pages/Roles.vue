@@ -1,38 +1,138 @@
 <template>
   <v-container>
-    <v-row justify="center">
+    <v-row>
+      <v-col class="text-h4">{{ t("roles.title") }}</v-col>
+    </v-row>
+    <v-row>
       <v-col>
-        <DataTable
-          :headers="headers"
-          :items="items"
-          :total-items="totalItems"
-          :loading="loading"
-          :options="options"
-          @update:options="fetchRoles"
-        >
-          <template #top>
-            <v-toolbar flat>
-              <v-toolbar-title>{{ t("roles.title") }}</v-toolbar-title>
-              <v-spacer />
-              <v-text-field
-                v-model="search"
-                :label="t('common.table.search')"
-                hide-details
-                clearable
-                variant="underlined"
-              />
-            </v-toolbar>
-          </template>
+        <v-toolbar color="transparent">
+          <v-text-field
+            v-model="search"
+            :label="t('common.table.search')"
+            append-inner-icon="mdi-magnify"
+            variant="solo"
+            density="comfortable"
+            class="elevation-0"
+            hide-details
+            clearable
+          />
+          <v-spacer />
+          <v-dialog v-model="dialog" max-width="768">
+            <template v-slot:activator="{ props: activatorProps }">
+              <v-btn
+                color="white"
+                size="large"
+                variant="elevated"
+                v-bind="activatorProps"
+              >
+                {{ t("roles.add") }}
+              </v-btn>
+            </template>
 
-          <template #item="{ item }">
-            <tr>
-              <td>{{ item.name }}</td>
-              <td>{{ item.description }}</td>
-              <td>{{ item.created_at }}</td>
-              <td>{{ item.updated_at }}</td>
-            </tr>
-          </template>
-        </DataTable>
+            <v-stepper
+              :items="[t('roles.title'), t('permissions.title')]"
+              class="bg-blue-grey-lighten-5"
+              v-model="step"
+              hide-actions
+            >
+              <template v-slot:item.1>
+                <v-card
+                  :title="t('roles.form.title')"
+                  class="bg-blue-grey-lighten-5"
+                  flat
+                >
+                  <v-card-text>
+                    <v-row>
+                      <v-col>
+                        <v-text-field
+                          :label="t('roles.form.name')"
+                          v-model="role.name"
+                          required
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col>
+                        <v-text-field
+                          :label="t('roles.form.description')"
+                          v-model="role.description"
+                          required
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                  </v-card-text>
+
+                  <v-card-actions>
+                    <v-btn
+                      color="error"
+                      :text="t('common.close')"
+                      size="large"
+                      variant="plain"
+                      @click="dialog = false"
+                    ></v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      color="white"
+                      :text="t('roles.form.saveAndNext')"
+                      size="large"
+                      variant="elevated"
+                      :loading="loading"
+                      @click="addRoleAndNextStep"
+                    ></v-btn>
+                    <v-btn
+                      color="white"
+                      :text="t('common.save')"
+                      size="large"
+                      variant="elevated"
+                      @click="addRole"
+                    ></v-btn>
+                  </v-card-actions>
+                </v-card>
+              </template>
+              <template v-slot:item.2>
+                <v-card
+                  :title="t('roles.form.addPermissionsToRole')"
+                  class="bg-blue-grey-lighten-5"
+                  flat
+                >
+                  <v-card-text>
+                    <v-row>
+                      <v-col>
+                        <AddPermissionToRoleTable />
+                      </v-col>
+                    </v-row>
+                  </v-card-text>
+
+                  <v-card-actions>
+                    <v-btn
+                      color="error"
+                      text="Close"
+                      size="large"
+                      variant="plain"
+                      @click="
+                        dialog = false;
+                        step = 1;
+                      "
+                    ></v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      color="white"
+                      :text="t('roles.form.addPermissions')"
+                      size="large"
+                      variant="elevated"
+                      @click="addPermissionsToRole"
+                    ></v-btn>
+                  </v-card-actions>
+                </v-card>
+              </template>
+            </v-stepper>
+          </v-dialog>
+        </v-toolbar>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <RoleTable :key="roleTableKey" />
       </v-col>
     </v-row>
   </v-container>
@@ -40,46 +140,78 @@
 
 <script setup>
 import { useI18n } from "vue-i18n";
-import { ref, watch } from "vue";
-import DataTable from "@/components/DataTable.vue";
+import { ref, shallowRef } from "vue";
+import { useMessagesStore } from "@/stores/message";
+import RoleTable from "@/components/RoleTable.vue";
+import AddPermissionToRoleTable from "@/components/AddPermissionToRoleTable.vue";
 import roleApi from "@/apis/roles";
 
 const { t } = useI18n();
 
-const headers = [
-  { title: t("roles.table.name"), key: "name" },
-  { title: t("roles.table.description"), key: "description" },
-  { title: t("common.createdAt"), key: "createdAt" },
-  { title: t("common.updatedAt"), key: "updatedAt" },
-];
+const roleTableKey = ref(true);
 
-const items = ref([]);
-const totalItems = ref(0);
 const loading = ref(false);
 const search = ref("");
 
-const options = ref({
-  page: 1,
-  itemsPerPage: 10,
-  sortBy: [],
-});
+const role = ref({});
 
-const fetchRoles = async (newOptions) => {
-  options.value = newOptions;
+const roleId = ref(null);
+
+const step = ref(1);
+const dialog = shallowRef(false);
+const messagesStore = useMessagesStore();
+
+const addRole = () => {
   loading.value = true;
 
-  const roles = await roleApi.getAll({
-    page_number: newOptions.page,
-    page_size: newOptions.itemsPerPage,
-    sort: newOptions.sortBy,
-  });
+  roleApi
+    .create({
+      name: role.value.name,
+      description: role.value.description,
+    })
+    .then((rs) => {
+      messagesStore.add({
+        text: t("roles.added"),
+        color: "success",
+      });
 
-  items.value = roles.items;
-  totalItems.value = roles.total;
+      roleTableKey.value = !roleTableKey.value;
+      role.value = {};
+      dialog.value = false;
+    })
+    .catch((err) => {
+      messagesStore.add({
+        text: err.response?.data.msg,
+        color: "error",
+      });
+    });
+
   loading.value = false;
 };
 
-watch(search, () => {
-  fetchRoles({ ...options.value, page: 1 });
-});
+const addRoleAndNextStep = () => {
+  roleApi
+    .create({
+      name: role.value.name,
+      description: role.value.description,
+    })
+    .then((rs) => {
+      messagesStore.add({
+        text: t("roles.added"),
+        color: "success",
+      });
+
+      roleTableKey.value = !roleTableKey.value;
+      role.value = {};
+      roleId.value = rs.id;
+    })
+    .catch((err) => {
+      messagesStore.add({
+        text: err.response?.data.msg,
+        color: "error",
+      });
+    });
+
+  step.value = 2;
+};
 </script>

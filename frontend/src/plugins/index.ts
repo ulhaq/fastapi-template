@@ -20,8 +20,6 @@ router.beforeEach(async (to) => {
   const route = useRoute();
   const authStore = useAuthStore();
 
-  console.log("B" + authStore.isAuthenticated);
-
   if (authStore.loading) {
     await new Promise<void>((resolve) => {
       const interval = setInterval(() => {
@@ -32,13 +30,10 @@ router.beforeEach(async (to) => {
       }, 10);
     });
   }
-  console.log("B2" + authStore.isAuthenticated);
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.log("router auth" + to.fullPath);
     router.replace({ name: "login", query: { redirect: to.fullPath } });
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    console.log("router guest" + to.fullPath);
 
     const redirect = route.query.redirect;
     router.replace(redirect?.startsWith("/") ? redirect : { name: "index" });

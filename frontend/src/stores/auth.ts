@@ -9,7 +9,7 @@ import authApi from "@/apis/auth";
 
 export const useAuthStore = defineStore("auth", () => {
   const route = useRoute();
-  const messages = useMessagesStore();
+  const messagesStore = useMessagesStore();
 
   const user = ref(null);
   const accessToken = ref<string | null>(null);
@@ -37,9 +37,9 @@ export const useAuthStore = defineStore("auth", () => {
       router.push(redirect?.startsWith("/") ? redirect : { name: "index" });
     } catch (err: any) {
       if (err?.status) {
-        messages.add({ text: t("login.invalid"), color: "error" });
+        messagesStore.add({ text: t("login.error.invalid"), color: "error" });
       } else {
-        messages.add({ text: t("login.failed"), color: "error" });
+        messagesStore.add({ text: t("login.error.failed"), color: "error" });
       }
     } finally {
       loading.value = false;

@@ -7,8 +7,30 @@ export default {
   common: {
     table: {
       search: "Search",
-      createdAt: "Created At",
-      updatedAt: "Updated At",
+      createdAt: "Created at",
+      updatedAt: "Updated at",
+    },
+    close: "Close",
+    save: "Save",
+  },
+  menuBar: {
+    index: "Home",
+    users: "Users",
+    roles: "Roles",
+    permissions: "Permissions",
+  },
+  login: {
+    form: {
+      title: "Login",
+      username: "Email",
+      password: "Password",
+      submit: "Login",
+      newAccount: "New account",
+      resetPassword: "Reset password",
+    },
+    error: {
+      invalid: "Username or password is incorrect",
+      failed: "Login failed",
     },
   },
   users: {
@@ -20,6 +42,16 @@ export default {
   },
   roles: {
     title: "Roles",
+    add: "Add new role",
+    added: "Role added successfully",
+    form: {
+      title: "Add new role",
+      name: "Name",
+      description: "Description",
+      saveAndNext: "Save & add permissions",
+      addPermissions: "Add permissions",
+      addPermissionsToRole: "Add permissions to role",
+    },
     table: {
       name: "Name",
       description: "Description",
@@ -27,6 +59,13 @@ export default {
   },
   permissions: {
     title: "Permissions",
+    add: "Add new permission",
+    added: "Permission added successfully",
+    form: {
+      title: "Add new permission",
+      name: "Name",
+      description: "Description",
+    },
     table: {
       name: "Name",
       description: "Description",

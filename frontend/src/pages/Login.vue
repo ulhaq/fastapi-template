@@ -2,20 +2,20 @@
   <v-container class="fill-height d-flex align-center justify-center">
     <v-card class="pa-6" elevation="8" width="450">
       <v-card-title class="text-h5 text-center mb-6">{{
-        t("login.title")
+        t("login.form.title")
       }}</v-card-title>
       <v-card-text>
         <v-form v-model="valid" @submit.prevent="submit" class="pb-4">
           <v-text-field
             v-model="email"
-            :label="t('login.email')"
+            :label="t('login.form.username')"
             :rules="[rules.required, rules.email]"
             type="email"
             required
           />
           <v-text-field
             v-model="password"
-            :label="t('login.password')"
+            :label="t('login.form.password')"
             :rules="[rules.required]"
             type="password"
             required
@@ -27,12 +27,12 @@
             :loading="authStore.loading"
             block
           >
-            {{ t("login.login") }}
+            {{ t("login.form.submit") }}
           </v-btn>
           <v-card-actions>
-            <v-btn class="mt-4">{{ t("login.newAccount") }}</v-btn>
+            <v-btn class="mt-4">{{ t("login.form.newAccount") }}</v-btn>
             <v-spacer />
-            <v-btn class="mt-4">{{ t("login.resetPassword") }}</v-btn>
+            <v-btn class="mt-4">{{ t("login.form.resetPassword") }}</v-btn>
           </v-card-actions>
         </v-form>
       </v-card-text>
@@ -44,12 +44,9 @@
 import { useI18n } from "vue-i18n";
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
-import { useRoute } from "vue-router";
-import router from "@/router";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
-const route = useRoute();
 
 const email = ref("");
 const password = ref("");
@@ -65,10 +62,6 @@ const submit = () => {
 };
 
 onMounted(async () => {
-  console.log("C")
-  // if (authStore.isAuthenticated) {
-  //   const redirect = route.query.redirect;
-  //   router.replace(redirect?.startsWith("/") ? redirect : { name: "index" });
-  // }
+  //
 });
 </script>
