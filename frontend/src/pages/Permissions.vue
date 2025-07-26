@@ -6,16 +6,7 @@
     <v-row>
       <v-col>
         <v-toolbar color="transparent">
-          <v-text-field
-            v-model="search"
-            :label="t('common.table.search')"
-            append-inner-icon="mdi-magnify"
-            variant="solo"
-            density="comfortable"
-            class="elevation-0"
-            hide-details
-            clearable
-          />
+          <search-bar v-model="search" />
           <v-spacer />
           <v-dialog v-model="dialog" max-width="768">
             <template v-slot:activator="{ props: activatorProps }">
@@ -29,23 +20,27 @@
               </v-btn>
             </template>
 
-            <v-card :title="t('permissions.form.title')" class="bg-blue-grey-lighten-5" flat>
+            <v-card
+              :title="t('permissions.addForm.title')"
+              class="bg-blue-grey-lighten-5"
+              flat
+            >
               <v-card-text>
                 <v-row>
                   <v-col>
                     <v-text-field
-                      :label="t('permissions.form.name')"
+                      :label="t('permissions.addForm.name')"
                       v-model="permission.name"
-                      required
+                      :rules="[(v) => !!v || t('rules.required')]"
                     ></v-text-field>
                   </v-col>
                 </v-row>
                 <v-row>
                   <v-col>
                     <v-text-field
-                      :label="t('permissions.form.description')"
+                      :label="t('permissions.addForm.description')"
                       v-model="permission.description"
-                      required
+                      :rules="[(v) => !!v || t('rules.required')]"
                     ></v-text-field>
                   </v-col>
                 </v-row>
@@ -54,7 +49,7 @@
               <v-card-actions>
                 <v-btn
                   color="error"
-                  :text="t('common.close')"
+                  :text="t('common.cancel')"
                   size="large"
                   variant="plain"
                   @click="dialog = false"
@@ -75,7 +70,7 @@
     </v-row>
     <v-row>
       <v-col>
-        <PermissionTable :key="permissionTableKey"/>
+        <permission-table :key="permissionTableKey" :search="search" />
       </v-col>
     </v-row>
   </v-container>
@@ -85,6 +80,7 @@
 import { useI18n } from "vue-i18n";
 import { ref, shallowRef } from "vue";
 import { useMessagesStore } from "@/stores/message";
+import SearchBar from "@/components/SearchBar.vue";
 import PermissionTable from "@/components/PermissionTable.vue";
 import permissionApi from "@/apis/permissions";
 

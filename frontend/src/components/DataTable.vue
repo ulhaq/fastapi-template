@@ -8,12 +8,13 @@
     :page="options.page"
     :sort-by="options.sortBy"
     :sort-desc="options.sortDesc"
+    multi-sort
     :items-per-page-options="[10, 25, 50, 100]"
     @update:options="emitOptions"
     class="elevation-2 rounded"
   >
-    <template #no-data>
-      <slot name="no-data">No data available</slot>
+    <template #item.actions="{ item }">
+      <slot name="row-actions" :item="item"> </slot>
     </template>
   </v-data-table-server>
 </template>

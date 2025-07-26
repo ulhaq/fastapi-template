@@ -4,13 +4,19 @@ export default {
   $vuetify: {
     ...da,
   },
+  rules: {
+    required: "Dette felt er påkrævet",
+  },
   common: {
     table: {
       search: "Søg",
       createdAt: "Oprettet den",
       updatedAt: "Opdateret den",
+      actions: "Handlinger",
     },
+    error: "Noget gik galt",
     close: "Luk",
+    cancel: "Annuller",
     save: "Gem",
   },
   menuBar: {
@@ -45,7 +51,9 @@ export default {
     add: "Tilføj ny rolle",
     added: "Rollen blev tilføjet",
     assignedPermissions: "Tilladelserne blev tildelt rollen",
-    form: {
+    managePermissions: "Administrer tilladelser",
+    permissionsUpdated: "Tilladelser opdateret",
+    addForm: {
       title: "Tilføj ny rolle",
       name: "Navn",
       description: "Beskrivelse",
@@ -61,7 +69,7 @@ export default {
     title: "Tilladelser",
     add: "Tilføj ny tilladelse",
     added: "Tilladelsen blev tilføjet",
-    form: {
+    addForm: {
       title: "Tilføj ny tilladelse",
       name: "Navn",
       description: "Beskrivelse",

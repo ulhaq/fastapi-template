@@ -19,5 +19,6 @@ declare module 'vue' {
     RoleTable: typeof import('./components/RoleTable.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SearchBar: typeof import('./components/SearchBar.vue')['default']
   }
 }

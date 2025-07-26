@@ -2,7 +2,7 @@
   <v-container>
     <v-row justify="center">
       <v-col>
-        <DataTable
+        <data-table
           :headers="headers"
           :items="items"
           :total-items="totalItems"
@@ -26,7 +26,7 @@
               />
             </v-toolbar>
           </template>
-        </DataTable>
+        </data-table>
       </v-col>
     </v-row>
   </v-container>

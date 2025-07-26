@@ -6,16 +6,7 @@
     <v-row>
       <v-col>
         <v-toolbar color="transparent">
-          <v-text-field
-            v-model="search"
-            :label="t('common.table.search')"
-            append-inner-icon="mdi-magnify"
-            variant="solo"
-            density="comfortable"
-            class="elevation-0"
-            hide-details
-            clearable
-          />
+          <search-bar v-model="search" />
           <v-spacer />
           <v-dialog v-model="dialog" max-width="768">
             <template v-slot:activator="{ props: activatorProps }">
@@ -37,7 +28,7 @@
             >
               <template v-slot:item.1>
                 <v-card
-                  :title="t('roles.form.title')"
+                  :title="t('roles.addForm.title')"
                   class="bg-blue-grey-lighten-5"
                   flat
                 >
@@ -45,7 +36,7 @@
                     <v-row>
                       <v-col>
                         <v-text-field
-                          :label="t('roles.form.name')"
+                          :label="t('roles.addForm.name')"
                           v-model="role.name"
                           required
                         ></v-text-field>
@@ -54,7 +45,7 @@
                     <v-row>
                       <v-col>
                         <v-text-field
-                          :label="t('roles.form.description')"
+                          :label="t('roles.addForm.description')"
                           v-model="role.description"
                           required
                         ></v-text-field>
@@ -65,7 +56,7 @@
                   <v-card-actions>
                     <v-btn
                       color="error"
-                      :text="t('common.close')"
+                      :text="t('common.cancel')"
                       size="large"
                       variant="plain"
                       @click="dialog = false"
@@ -73,7 +64,7 @@
                     <v-spacer></v-spacer>
                     <v-btn
                       color="white"
-                      :text="t('roles.form.saveAndNext')"
+                      :text="t('roles.addForm.saveAndNext')"
                       size="large"
                       variant="elevated"
                       :loading="loading"
@@ -91,7 +82,7 @@
               </template>
               <template v-slot:item.2>
                 <v-card
-                  :title="t('roles.form.assignPermissionsToRole')"
+                  :title="t('roles.addForm.assignPermissionsToRole')"
                   class="bg-blue-grey-lighten-5"
                   flat
                 >
@@ -108,7 +99,7 @@
                   <v-card-actions>
                     <v-btn
                       color="error"
-                      text="Close"
+                      :text="t('common.cancel')"
                       size="large"
                       variant="plain"
                       @click="
@@ -119,7 +110,7 @@
                     <v-spacer></v-spacer>
                     <v-btn
                       color="white"
-                      :text="t('roles.form.assignPermissionsToRole')"
+                      :text="t('roles.addForm.assignPermissionsToRole')"
                       size="large"
                       variant="elevated"
                       @click="assignPermissionsToRole"
@@ -134,7 +125,7 @@
     </v-row>
     <v-row>
       <v-col>
-        <RoleTable :key="roleTableKey" />
+        <role-table :key="roleTableKey" :search="search" />
       </v-col>
     </v-row>
   </v-container>
@@ -144,6 +135,7 @@
 import { useI18n } from "vue-i18n";
 import { ref, shallowRef } from "vue";
 import { useMessagesStore } from "@/stores/message";
+import SearchBar from "@/components/SearchBar.vue";
 import RoleTable from "@/components/RoleTable.vue";
 import AddPermissionToRoleTable from "@/components/AddPermissionToRoleTable.vue";
 import roleApi from "@/apis/roles";
@@ -220,7 +212,7 @@ const addRoleAndNextStep = () => {
 
 const assignPermissionsToRole = () => {
   roleApi
-    .assignPermissions(roleId.value, selectedPermissions.value)
+    .managePermissions(roleId.value, selectedPermissions.value)
     .then((rs) => {
       messagesStore.add({
         text: t("roles.assignedPermissions"),

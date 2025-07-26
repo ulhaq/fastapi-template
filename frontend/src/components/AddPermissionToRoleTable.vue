@@ -1,5 +1,5 @@
 <template>
-  <DataTable
+  <data-table
     :headers="headers"
     :items="items"
     :total-items="totalItems"
@@ -14,7 +14,7 @@
 
 <script setup>
 import { useI18n } from "vue-i18n";
-import { ref, defineEmits } from "vue";
+import { ref } from "vue";
 import DataTable from "@/components/DataTable.vue";
 import permissionApi from "@/apis/permissions";
 

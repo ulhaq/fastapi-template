@@ -4,13 +4,19 @@ export default {
   $vuetify: {
     ...en,
   },
+  rules: {
+    required: "This field is required",
+  },
   common: {
     table: {
       search: "Search",
       createdAt: "Created at",
       updatedAt: "Updated at",
+      actions: "Actions",
     },
+    error: "Something went wrong",
     close: "Close",
+    cancel: "Cancel",
     save: "Save",
   },
   menuBar: {
@@ -45,7 +51,16 @@ export default {
     add: "Add new role",
     added: "Role added successfully",
     assignedPermissions: "Permissions assigned to the role successfully",
-    form: {
+    managePermissions: "Manage permissions",
+    permissionsUpdated: "Permissions updated successfully",
+    addForm: {
+      title: "Add new role",
+      name: "Name",
+      description: "Description",
+      saveAndNext: "Save & assign permissions",
+      assignPermissionsToRole: "Assign permissions",
+    },
+    editForm: {
       title: "Add new role",
       name: "Name",
       description: "Description",
@@ -61,7 +76,7 @@ export default {
     title: "Permissions",
     add: "Add new permission",
     added: "Permission added successfully",
-    form: {
+    addForm: {
       title: "Add new permission",
       name: "Name",
       description: "Description",
