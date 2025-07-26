@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any, Sequence
 
-from sqlalchemy import BinaryExpression, exists, func, select
+from sqlalchemy import BinaryExpression, exists, func, or_, select
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import UnaryExpression
 
@@ -78,7 +78,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         filter_expressions = self._get_filter_expressions(filters)
         stmt = (
             select(self.model)
-            .filter(*filter_expressions)
+            .filter(or_(*filter_expressions))
             .order_by(*order_expressions)
             .offset((page_number - 1) * page_size)
             .limit(page_size)
@@ -96,7 +96,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
                 func.count()  # pylint: disable=not-callable
             )
             .select_from(self.model)
-            .filter(*filter_expressions)
+            .filter(or_(*filter_expressions))
         )
         rs = await self.db.execute(stmt)
         total = rs.scalar_one()
