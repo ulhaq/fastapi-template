@@ -10,7 +10,7 @@ from src.schemas.utils import sort_by_id
 class UserBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    name: str
+    name: Annotated[str, Field(min_length=1)]
     email: EmailStr
 
 

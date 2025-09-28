@@ -135,7 +135,8 @@ class AuthService(BaseService):
             subject="Password Reset",
             email_template="reset-password",
             data={
-                "reset_url": f"{settings.frontend_url}/password-reset/{token}",
+                "reset_url": f"{settings.frontend_url}/"
+                f"{settings.frontend_password_reset_path}/{token}",
                 "expiration_minutes": settings.auth_password_reset_expiry,
             },
         )
