@@ -134,7 +134,7 @@
 <script setup>
 import { useI18n } from "vue-i18n";
 import { ref, shallowRef } from "vue";
-import { useMessagesStore } from "@/stores/message";
+import { useMessageStore } from "@/stores/message";
 import SearchBar from "@/components/SearchBar.vue";
 import RoleTable from "@/components/RoleTable.vue";
 import AddPermissionToRoleTable from "@/components/AddPermissionToRoleTable.vue";
@@ -155,7 +155,7 @@ const roleId = ref(null);
 
 const step = ref(1);
 const dialog = shallowRef(false);
-const messagesStore = useMessagesStore();
+const messagesStore = useMessageStore();
 
 const addRole = () => {
   loading.value = true;

@@ -12,6 +12,8 @@ import Users from "@/pages/Users.vue";
 import Roles from "@/pages/Roles.vue";
 import Permissions from "@/pages/Permissions.vue";
 import Login from "@/pages/Login.vue";
+import ResetPassword from "@/pages/ResetPassword.vue";
+import Register from "@/pages/Register.vue";
 import Index from "@/pages/Index.vue";
 import NotFound from "@/pages/NotFound.vue";
 
@@ -30,6 +32,26 @@ const routes = [
     component: Login,
     meta: {
       title: "Login",
+      layout: "empty",
+      requiresGuest: true,
+    },
+  },
+  {
+    path: "/reset/:token?",
+    name: "reset",
+    component: ResetPassword,
+    meta: {
+      title: "Reset Password",
+      layout: "empty",
+      requiresGuest: true,
+    },
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: Register,
+    meta: {
+      title: "Register",
       layout: "empty",
       requiresGuest: true,
     },

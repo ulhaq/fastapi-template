@@ -11,9 +11,9 @@
 
 <script lang="ts" setup>
 import { useAuthStore } from "@/stores/auth";
-import { useMessagesStore } from "@/stores/message";
+import { useMessageStore } from "@/stores/message";
 
-const messagesStore = useMessagesStore();
+const messagesStore = useMessageStore();
 const authStore = useAuthStore();
 
 onMounted(async () => {

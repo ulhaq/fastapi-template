@@ -79,7 +79,7 @@
 <script setup>
 import { useI18n } from "vue-i18n";
 import { ref, shallowRef } from "vue";
-import { useMessagesStore } from "@/stores/message";
+import { useMessageStore } from "@/stores/message";
 import SearchBar from "@/components/SearchBar.vue";
 import PermissionTable from "@/components/PermissionTable.vue";
 import permissionApi from "@/apis/permissions";
@@ -95,7 +95,7 @@ const loading = ref(false);
 
 const permission = ref({});
 
-const messagesStore = useMessagesStore();
+const messagesStore = useMessageStore();
 
 const addPermission = () => {
   loading.value = true;

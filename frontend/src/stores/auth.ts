@@ -2,14 +2,14 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
-import { useMessagesStore } from "@/stores/message";
+import { useMessageStore } from "@/stores/message";
 import router from "@/router";
 import axios from "@/apis/base";
 import authApi from "@/apis/auth";
 
 export const useAuthStore = defineStore("auth", () => {
   const route = useRoute();
-  const messagesStore = useMessagesStore();
+  const messagesStore = useMessageStore();
 
   const user = ref(null);
   const accessToken = ref<string | null>(null);

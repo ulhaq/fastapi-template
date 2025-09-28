@@ -39,6 +39,15 @@ export default {
       failed: "Login failed",
     },
   },
+  register: {
+    form: {
+      title: "Create an account",
+      name: "Name",
+      username: "Email",
+      password: "Password",
+      submit: "Create account",
+    },
+  },
   users: {
     title: "Users",
     table: {

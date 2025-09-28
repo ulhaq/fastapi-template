@@ -140,7 +140,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useMessagesStore } from "@/stores/message";
+import { useMessageStore } from "@/stores/message";
 import DataTable from "@/components/DataTable.vue";
 import roleApi from "@/apis/roles";
 import permissionApi from "@/apis/permissions";
@@ -174,7 +174,7 @@ const options = ref({
   sortBy: [],
 });
 
-const messagesStore = useMessagesStore();
+const messagesStore = useMessageStore();
 const deleteMenus = ref({});
 
 const editDialog = ref(false);

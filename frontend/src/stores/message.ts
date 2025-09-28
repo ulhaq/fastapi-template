@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-export const useMessagesStore = defineStore("messages", () => {
+export const useMessageStore = defineStore("messages", () => {
   const queue = ref([]);
 
   function add(message) {

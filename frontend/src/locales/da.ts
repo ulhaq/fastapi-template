@@ -39,6 +39,16 @@ export default {
       failed: "Login mislykkedes",
     },
   },
+  register: {
+    form: {
+      title: "Opret en konto",
+      name: "Navn",
+      username: "Email",
+      password: "Adgangskode",
+      submit: "Opret konto",
+    },
+  },
+
   users: {
     title: "Brugere",
     table: {
