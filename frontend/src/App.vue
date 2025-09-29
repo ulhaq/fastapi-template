@@ -10,15 +10,11 @@
 </template>
 
 <script lang="ts" setup>
-import { useAuthStore } from "@/stores/auth";
 import { useMessageStore } from "@/stores/message";
 
 const messagesStore = useMessageStore();
-const authStore = useAuthStore();
 
 onMounted(async () => {
-  if (!authStore.isAuthenticated) {
-    await authStore.refreshToken();
-  }
+  //
 });
 </script>

@@ -49,7 +49,6 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true;
 
     if (authStore.loading) {
-      await authStore.logout();
       return Promise.reject(error);
     }
 
