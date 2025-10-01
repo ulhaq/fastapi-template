@@ -20,27 +20,29 @@
               </v-btn>
             </template>
 
-            <v-card
-              :title="t('permissions.addForm.title')"
-              class="bg-blue-grey-lighten-5"
-              flat
-            >
+            <v-card>
+              <v-card-title>
+                <span class="text-h6">{{
+                  t("permissions.addForm.title")
+                }}</span>
+              </v-card-title>
+
               <v-card-text>
                 <v-row>
                   <v-col>
                     <v-text-field
-                      :label="t('permissions.addForm.name')"
+                      :label="t('common.name')"
                       v-model="permission.name"
-                      :rules="[(v) => !!v || t('rules.required')]"
+                      :rules="[validation.required]"
                     ></v-text-field>
                   </v-col>
                 </v-row>
                 <v-row>
                   <v-col>
                     <v-text-field
-                      :label="t('permissions.addForm.description')"
+                      :label="t('common.description')"
                       v-model="permission.description"
-                      :rules="[(v) => !!v || t('rules.required')]"
+                      :rules="[validation.required]"
                     ></v-text-field>
                   </v-col>
                 </v-row>
@@ -80,6 +82,7 @@
 import { useI18n } from "vue-i18n";
 import { ref, shallowRef } from "vue";
 import { useMessageStore } from "@/stores/message";
+import { validation } from "@/plugins/validation";
 import SearchBar from "@/components/SearchBar.vue";
 import PermissionTable from "@/components/PermissionTable.vue";
 import permissionApi from "@/apis/permissions";
@@ -107,7 +110,7 @@ const addPermission = () => {
     })
     .then(() => {
       messagesStore.add({
-        text: t("permissions.added"),
+        text: t("common.addSuccess", { name: "Permission" }),
         color: "success",
       });
 

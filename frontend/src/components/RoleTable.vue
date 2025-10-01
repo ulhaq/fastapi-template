@@ -56,21 +56,20 @@
   <v-dialog v-model="editDialog" max-width="600px">
     <v-card>
       <v-card-title>
-        <span class="text-h6">{{ t("roles.editRole") }}</span>
+        <span class="text-h6">{{ t("roles.editForm.title") }}</span>
       </v-card-title>
 
       <v-card-text>
         <v-form ref="editForm" v-model="formValid">
           <v-text-field
             v-model="editedItem.name"
-            :label="t('roles.editForm.name')"
-            :rules="[(v) => !!v || t('rules.required')]"
-            required
+            :label="t('common.name')"
+            :rules="[validation.required]"
           />
           <v-text-field
             v-model="editedItem.description"
-            :label="t('roles.editForm.description')"
-            :rules="[(v) => !!v || t('rules.required')]"
+            :label="t('common.description')"
+            :rules="[validation.required]"
           />
         </v-form>
       </v-card-text>
@@ -100,7 +99,8 @@
     <v-card>
       <v-card-title>
         <span class="text-h6"
-          >{{ t("roles.managePermissions") }} - {{ selectedRole?.name }}</span
+          >{{ t("roles.permissionForm.title") }} -
+          {{ selectedRole?.name }}</span
         >
       </v-card-title>
 
@@ -108,7 +108,7 @@
         <v-select
           v-model="selectedPermissions"
           :items="allPermissions"
-          :label="t('roles.permissions')"
+          :label="t('roles.permissionForm.permissions')"
           item-title="name"
           item-value="id"
           multiple
@@ -138,9 +138,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { ref, computed, watch } from "vue";
 import { useMessageStore } from "@/stores/message";
+import { validation } from "@/plugins/validation";
 import DataTable from "@/components/DataTable.vue";
 import roleApi from "@/apis/roles";
 import permissionApi from "@/apis/permissions";
@@ -157,11 +158,11 @@ const props = defineProps({
 const { t } = useI18n();
 
 const headers = computed(() => [
-  { title: t("roles.table.name"), key: "name" },
-  { title: t("roles.table.description"), key: "description" },
-  { title: t("common.table.createdAt"), key: "created_at" },
-  { title: t("common.table.updatedAt"), key: "updated_at" },
-  { title: t("common.table.actions"), key: "actions", sortable: false },
+  { title: t("common.name"), key: "name" },
+  { title: t("common.description"), key: "description" },
+  { title: t("common.createdAt"), key: "created_at" },
+  { title: t("common.updatedAt"), key: "updated_at" },
+  { title: t("common.actions"), key: "actions", sortable: false },
 ]);
 
 const items = ref([]);
@@ -222,19 +223,25 @@ const saveEdit = async () => {
 
   try {
     await roleApi.updateById(editedItem.value.id, editedItem.value);
-    messagesStore.add({ text: t("roles.updated"), color: "success" });
+    messagesStore.add({
+      text: t("common.updateSuccess", { name: "Role" }),
+      color: "success",
+    });
     editDialog.value = false;
     fetchRoles(options.value);
   } catch (err) {
     console.log(err);
-    messagesStore.add({ text: t("common.error"), color: "error" });
+    messagesStore.add({ text: t("errors.common"), color: "error" });
   }
 };
 
 const confirmDelete = async (item) => {
   deleteMenus.value[item.id] = false;
   await roleApi.deleteById(item.id);
-  messagesStore.add({ text: t("roles.deleted"), color: "success" });
+  messagesStore.add({
+    text: t("common.deleteSuccess", { name: "Role" }),
+    color: "success",
+  });
   fetchRoles(options.value);
 };
 
@@ -244,15 +251,15 @@ const openPermissionsDialog = async (role) => {
 
   try {
     if (allPermissions.value.length === 0) {
-      const response = await permissionApi.getAll({ page_size: 100});
+      const response = await permissionApi.getAll({ page_size: 100 });
       allPermissions.value = response.items;
     }
     console.log(allPermissions);
     const response = await roleApi.getById(role.id);
-    selectedPermissions.value = response.permissions;
+    selectedPermissions.value = response.permissions.map((p) => p.id);
   } catch (err) {
     console.log(err);
-    messagesStore.add({ text: t("common.error"), color: "error" });
+    messagesStore.add({ text: t("errors.common"), color: "error" });
   }
 };
 
@@ -269,13 +276,13 @@ const savePermissions = async () => {
       selectedPermissions.value
     );
     messagesStore.add({
-      text: t("roles.permissionsUpdated"),
+      text: t("common.updateSuccess", { name: "Permissions" }),
       color: "success",
     });
     closePermissionsDialog();
   } catch (err) {
     console.log(err);
-    messagesStore.add({ text: t("common.error"), color: "error" });
+    messagesStore.add({ text: t("errors.common"), color: "error" });
   }
 };
 

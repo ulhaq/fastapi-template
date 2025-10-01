@@ -8,10 +8,9 @@
         <v-form v-model="valid" @submit.prevent="request" class="pb-4">
           <v-text-field
             v-model="email"
-            :label="t('reset.form.username')"
-            :rules="[rules.required, rules.email]"
+            :label="t('common.email')"
+            :rules="[validation.required, validation.email]"
             type="email"
-            required
           />
           <v-btn class="mb-4" color="primary" type="submit" block>
             {{ t("reset.form.submit") }}
@@ -36,10 +35,9 @@
         <v-form v-model="valid" @submit.prevent="reset" class="pb-4">
           <v-text-field
             v-model="password"
-            :label="t('reset.form.password')"
-            :rules="[rules.required]"
+            :label="t('common.password')"
+            :rules="[validation.required]"
             type="password"
-            required
           />
           <v-btn class="mb-4" color="primary" type="submit" block>
             {{ t("reset.form.submit") }}
@@ -56,6 +54,7 @@ import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useMessageStore } from "@/stores/message";
+import { validation } from "@/plugins/validation";
 import authApi from "@/apis/auth";
 
 const route = useRoute();
@@ -71,11 +70,6 @@ const valid = ref(false);
 const newPassword = computed(() => {
   return route.params.token;
 });
-
-const rules = {
-  required: (v) => !!v || "Required",
-  email: (v) => /.+@.+\..+/.test(v) || "E-mail must be valid",
-};
 
 const request = () => {
   authApi.requestPasswordReset(email.value);

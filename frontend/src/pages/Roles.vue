@@ -27,16 +27,16 @@
               hide-actions
             >
               <template v-slot:item.1>
-                <v-card
-                  :title="t('roles.addForm.title')"
-                  class="bg-blue-grey-lighten-5"
-                  flat
-                >
+                <v-card>
+                  <v-card-title>
+                    <span class="text-h6">{{ t("roles.addForm.title") }}</span>
+                  </v-card-title>
+
                   <v-card-text>
                     <v-row>
                       <v-col>
                         <v-text-field
-                          :label="t('roles.addForm.name')"
+                          :label="t('common.name')"
                           v-model="role.name"
                           required
                         ></v-text-field>
@@ -45,7 +45,7 @@
                     <v-row>
                       <v-col>
                         <v-text-field
-                          :label="t('roles.addForm.description')"
+                          :label="t('common.description')"
                           v-model="role.description"
                           required
                         ></v-text-field>
@@ -81,11 +81,13 @@
                 </v-card>
               </template>
               <template v-slot:item.2>
-                <v-card
-                  :title="t('roles.addForm.assignPermissionsToRole')"
-                  class="bg-blue-grey-lighten-5"
-                  flat
-                >
+                <v-card>
+                  <v-card-title>
+                    <span class="text-h6">{{
+                      t("roles.addForm.assignPermissionsToRole")
+                    }}</span>
+                  </v-card-title>
+
                   <v-card-text>
                     <v-row>
                       <v-col>
@@ -167,7 +169,7 @@ const addRole = () => {
     })
     .then((rs) => {
       messagesStore.add({
-        text: t("roles.added"),
+        text: t("common.addSuccess", { name: "Role" }),
         color: "success",
       });
 
@@ -193,7 +195,7 @@ const addRoleAndNextStep = () => {
     })
     .then((rs) => {
       messagesStore.add({
-        text: t("roles.added"),
+        text: t("common.addSuccess", { name: "Role" }),
         color: "success",
       });
 
@@ -215,7 +217,7 @@ const assignPermissionsToRole = () => {
     .managePermissions(roleId.value, selectedPermissions.value)
     .then((rs) => {
       messagesStore.add({
-        text: t("roles.assignedPermissions"),
+        text: t("roles.addForm.assignedPermissionsSuccess"),
         color: "success",
       });
 

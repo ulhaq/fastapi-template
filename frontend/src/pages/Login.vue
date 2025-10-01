@@ -8,17 +8,15 @@
         <v-form v-model="valid" @submit.prevent="submit" class="pb-4">
           <v-text-field
             v-model="email"
-            :label="t('login.form.username')"
-            :rules="[rules.required, rules.email]"
+            :label="t('common.email')"
+            :rules="[validation.required, validation.email]"
             type="email"
-            required
           />
           <v-text-field
             v-model="password"
-            :label="t('login.form.password')"
-            :rules="[rules.required]"
+            :label="t('common.password')"
+            :rules="[validation.required]"
             type="password"
-            required
           />
           <v-btn
             class="mb-4"
@@ -30,9 +28,13 @@
             {{ t("login.form.submit") }}
           </v-btn>
           <v-card-actions>
-            <v-btn class="mt-4" :to="{ name: 'register' }">{{ t("login.form.newAccount") }}</v-btn>
+            <v-btn class="mt-4" :to="{ name: 'register' }">{{
+              t("login.form.newAccount")
+            }}</v-btn>
             <v-spacer />
-            <v-btn class="mt-4" :to="{ name: 'reset' }">{{ t("login.form.resetPassword") }}</v-btn>
+            <v-btn class="mt-4" :to="{ name: 'reset' }">{{
+              t("login.form.resetPassword")
+            }}</v-btn>
           </v-card-actions>
         </v-form>
       </v-card-text>
@@ -44,6 +46,7 @@
 import { useI18n } from "vue-i18n";
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { validation } from "@/plugins/validation";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -51,11 +54,6 @@ const authStore = useAuthStore();
 const email = ref("");
 const password = ref("");
 const valid = ref(false);
-
-const rules = {
-  required: (v) => !!v || "Required",
-  email: (v) => /.+@.+\..+/.test(v) || "E-mail must be valid",
-};
 
 const submit = () => {
   authStore.login(email.value, password.value, t);

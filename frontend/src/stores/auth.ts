@@ -37,9 +37,12 @@ export const useAuthStore = defineStore("auth", () => {
       router.push(redirect?.startsWith("/") ? redirect : { name: "index" });
     } catch (err: any) {
       if (err?.status) {
-        messagesStore.add({ text: t("login.error.invalid"), color: "error" });
+        messagesStore.add({
+          text: t("errors.invalidCredentials"),
+          color: "error",
+        });
       } else {
-        messagesStore.add({ text: t("login.error.failed"), color: "error" });
+        messagesStore.add({ text: t("errors.loginFailed"), color: "error" });
       }
     } finally {
       loading.value = false;

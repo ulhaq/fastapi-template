@@ -6,18 +6,28 @@ export default {
   },
   rules: {
     required: "This field is required",
+    email: "Email is invalid",
+  },
+  errors: {
+    common: "Something went wrong",
+    invalidCredentials: "Credentials are invalid",
+    loginFailed: "Login failed",
   },
   common: {
-    table: {
-      search: "Search",
-      createdAt: "Created at",
-      updatedAt: "Updated at",
-      actions: "Actions",
-    },
-    error: "Something went wrong",
+    name: "Name",
+    email: "Email",
+    password: "Password",
+    description: "Description",
+    createdAt: "Created at",
+    updatedAt: "Updated at",
+    actions: "Actions",
+    search: "Search",
     close: "Close",
     cancel: "Cancel",
     save: "Save",
+    addSuccess: "{name} added successfully",
+    updateSuccess: "{name} updated successfully",
+    deleteSuccess: "{name} deleted successfully",
   },
   menuBar: {
     index: "Home",
@@ -28,71 +38,54 @@ export default {
   login: {
     form: {
       title: "Login",
-      username: "Email",
-      password: "Password",
       submit: "Login",
       newAccount: "New account",
       resetPassword: "Reset password",
-    },
-    error: {
-      invalid: "Username or password is incorrect",
-      failed: "Login failed",
     },
   },
   register: {
     form: {
       title: "Create an account",
-      name: "Name",
-      username: "Email",
-      password: "Password",
       submit: "Create account",
+    },
+  },
+  reset: {
+    form: {
+      title: "Request password reset",
+      submit: "Submit",
+      newAccount: "New account",
+      login: "Login",
     },
   },
   users: {
     title: "Users",
-    table: {
-      name: "Name",
-      description: "Description",
-    },
   },
   roles: {
     title: "Roles",
     add: "Add new role",
-    added: "Role added successfully",
-    assignedPermissions: "Permissions assigned to the role successfully",
-    managePermissions: "Manage permissions",
-    permissionsUpdated: "Permissions updated successfully",
     addForm: {
       title: "Add new role",
-      name: "Name",
-      description: "Description",
       saveAndNext: "Save & assign permissions",
       assignPermissionsToRole: "Assign permissions",
+      assignedPermissionsSuccess:
+        "Permissions assigned to the role successfully",
     },
     editForm: {
-      title: "Add new role",
-      name: "Name",
-      description: "Description",
-      saveAndNext: "Save & assign permissions",
-      assignPermissionsToRole: "Assign permissions",
+      title: "Edit role",
     },
-    table: {
-      name: "Name",
-      description: "Description",
+    permissionForm: {
+      title: "Manage permissions",
+      permissions: "Permissions",
     },
   },
   permissions: {
     title: "Permissions",
     add: "Add new permission",
-    added: "Permission added successfully",
     addForm: {
       title: "Add new permission",
-      name: "Name",
-      description: "Description",
     },
-    table: {
-      name: "Name",
-      description: "Description",
+    editForm: {
+      title: "Edit permission",
     },
   },
 };

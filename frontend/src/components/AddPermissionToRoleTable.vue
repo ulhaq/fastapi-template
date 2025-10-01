@@ -21,8 +21,8 @@ import permissionApi from "@/apis/permissions";
 const { t } = useI18n();
 
 const headers = computed(() => [
-  { title: t("permissions.table.name"), key: "name" },
-  { title: t("permissions.table.description"), key: "description" },
+  { title: t("common.name"), key: "name" },
+  { title: t("common.description"), key: "description" },
 ]);
 
 const items = ref([]);

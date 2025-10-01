@@ -8,23 +8,21 @@
         <v-form v-model="valid" @submit.prevent="submit" class="pb-4">
           <v-text-field
             v-model="name"
-            :label="t('register.form.name')"
+            :label="t('common.name')"
             type="name"
-            required
+            :rules="[validation.required]"
           />
           <v-text-field
             v-model="email"
-            :label="t('register.form.username')"
-            :rules="[rules.required, rules.email]"
+            :label="t('common.email')"
+            :rules="[validation.required, validation.email]"
             type="email"
-            required
           />
           <v-text-field
             v-model="password"
-            :label="t('register.form.password')"
-            :rules="[rules.required]"
+            :label="t('common.password')"
+            :rules="[validation.required]"
             type="password"
-            required
           />
           <v-btn
             class="mb-4"
@@ -46,6 +44,7 @@ import { useI18n } from "vue-i18n";
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useMessageStore } from "@/stores/message";
+import { validation } from "@/plugins/validation";
 import authApi from "@/apis/auth";
 
 const { t } = useI18n();
@@ -57,20 +56,15 @@ const email = ref("");
 const password = ref("");
 const valid = ref(false);
 
-const rules = {
-  required: (v) => !!v || "Required",
-  email: (v) => /.+@.+\..+/.test(v) || "E-mail must be valid",
-};
-
 const submit = async () => {
   try {
     let res = await authApi.register(name.value, email.value, password.value);
 
-    console.log(res)
+    console.log(res);
     authStore.login(email.value, password.value);
   } catch (err) {
     let msg;
-    console.log(err)
+    console.log(err);
 
     if (err?.response?.data?.msg) {
       msg = err.response.data.msg;

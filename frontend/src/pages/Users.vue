@@ -19,7 +19,7 @@
               <v-spacer />
               <v-text-field
                 v-model="search"
-                :label="t('common.table.search')"
+                :label="t('common.search')"
                 hide-details
                 clearable
                 variant="underlined"
@@ -41,10 +41,10 @@ import roleApi from "@/apis/roles";
 const { t } = useI18n();
 
 const headers = computed(() => [
-  { title: t("users.table.name"), key: "name" },
-  { title: t("users.table.description"), key: "description" },
-  { title: t("common.table.createdAt"), key: "created_at" },
-  { title: t("common.table.updatedAt"), key: "updated_at" },
+  { title: t("common.name"), key: "name" },
+  { title: t("common.description"), key: "description" },
+  { title: t("common.createdAt"), key: "created_at" },
+  { title: t("common.updatedAt"), key: "updated_at" },
 ]);
 
 const items = ref([]);

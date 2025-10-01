@@ -1,6 +1,6 @@
 <template>
   <v-text-field
-    :label="t('common.table.search')"
+    :label="t('common.search')"
     append-inner-icon="mdi-magnify"
     density="comfortable"
     class="elevation-0"
