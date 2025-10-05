@@ -7,6 +7,7 @@ export default {
   rules: {
     required: "This field is required",
     email: "Email is invalid",
+    min: "Minimum {length} characters are required",
   },
   errors: {
     common: "Something went wrong",
@@ -24,6 +25,7 @@ export default {
     search: "Search",
     close: "Close",
     cancel: "Cancel",
+    confirm: "Confirm",
     save: "Save",
     addSuccess: "{name} added successfully",
     updateSuccess: "{name} updated successfully",
@@ -63,15 +65,13 @@ export default {
   roles: {
     title: "Roles",
     add: "Add new role",
-    addForm: {
-      title: "Add new role",
+    form: {
+      addTitle: "Add new role",
+      editTitle: "Edit role",
       saveAndNext: "Save & assign permissions",
       assignPermissionsToRole: "Assign permissions",
       assignedPermissionsSuccess:
         "Permissions assigned to the role successfully",
-    },
-    editForm: {
-      title: "Edit role",
     },
     permissionForm: {
       title: "Manage permissions",

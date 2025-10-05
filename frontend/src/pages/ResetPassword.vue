@@ -36,7 +36,7 @@
           <v-text-field
             v-model="password"
             :label="t('common.password')"
-            :rules="[validation.required]"
+            :rules="[validation.required, validation.minLength(6)]"
             type="password"
           />
           <v-btn class="mb-4" color="primary" type="submit" block>

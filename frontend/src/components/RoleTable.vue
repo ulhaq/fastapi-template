@@ -11,19 +11,11 @@
   >
     <template #row-actions="{ item }">
       <v-btn
-        icon
-        variant="text"
-        size="small"
-        @click="openPermissionsDialog(item)"
-      >
-        <v-icon>mdi-shield-star</v-icon>
-      </v-btn>
-      <v-btn
         class="me-2"
         icon
         variant="text"
         size="small"
-        @click="editItem(item)"
+        @click="$emit('editItem', item)"
       >
         <v-icon>mdi-pencil</v-icon>
       </v-btn>
@@ -40,111 +32,25 @@
 
         <v-card>
           <v-card-actions>
-            <v-btn variant="text" @click="deleteMenus[item.id] = false"
-              >Cancel</v-btn
-            >
-            <v-btn color="red" variant="text" @click="confirmDelete(item)"
-              >Confirm</v-btn
-            >
+            <v-btn variant="text" @click="deleteMenus[item.id] = false">{{
+              t("common.cancel")
+            }}</v-btn>
+            <v-btn color="red" variant="text" @click="confirmDelete(item)">{{
+              t("common.confirm")
+            }}</v-btn>
           </v-card-actions>
         </v-card>
       </v-menu>
     </template>
   </data-table>
-
-  <!-- Edit Dialog -->
-  <v-dialog v-model="editDialog" max-width="600px">
-    <v-card>
-      <v-card-title>
-        <span class="text-h6">{{ t("roles.editForm.title") }}</span>
-      </v-card-title>
-
-      <v-card-text>
-        <v-form ref="editForm" v-model="formValid">
-          <v-text-field
-            v-model="editedItem.name"
-            :label="t('common.name')"
-            :rules="[validation.required]"
-          />
-          <v-text-field
-            v-model="editedItem.description"
-            :label="t('common.description')"
-            :rules="[validation.required]"
-          />
-        </v-form>
-      </v-card-text>
-
-      <v-card-actions>
-        <v-btn
-          color="error"
-          :text="t('common.cancel')"
-          size="large"
-          variant="plain"
-          @click="closeEditDialog"
-        ></v-btn>
-        <v-spacer />
-        <v-btn
-          color="white"
-          :text="t('common.save')"
-          size="large"
-          variant="elevated"
-          @click="saveEdit"
-          :disabled="!formValid"
-        />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-
-  <v-dialog v-model="permissionsDialog" max-width="600px">
-    <v-card>
-      <v-card-title>
-        <span class="text-h6"
-          >{{ t("roles.permissionForm.title") }} -
-          {{ selectedRole?.name }}</span
-        >
-      </v-card-title>
-
-      <v-card-text>
-        <v-select
-          v-model="selectedPermissions"
-          :items="allPermissions"
-          :label="t('roles.permissionForm.permissions')"
-          item-title="name"
-          item-value="id"
-          multiple
-          chips
-        />
-      </v-card-text>
-
-      <v-card-actions>
-        <v-btn
-          color="error"
-          :text="t('common.cancel')"
-          size="large"
-          variant="plain"
-          @click="closePermissionsDialog"
-        ></v-btn>
-        <v-spacer></v-spacer>
-        <v-btn
-          color="white"
-          :text="t('common.save')"
-          size="large"
-          variant="elevated"
-          @click="savePermissions"
-        ></v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
 </template>
 
 <script setup>
 import { useI18n } from "vue-i18n";
 import { ref, computed, watch } from "vue";
 import { useMessageStore } from "@/stores/message";
-import { validation } from "@/plugins/validation";
 import DataTable from "@/components/DataTable.vue";
 import roleApi from "@/apis/roles";
-import permissionApi from "@/apis/permissions";
 import utils from "@/utils";
 
 const props = defineProps({
@@ -154,6 +60,8 @@ const props = defineProps({
     default: "",
   },
 });
+
+defineEmits(["editItem"]);
 
 const { t } = useI18n();
 
@@ -178,16 +86,6 @@ const options = ref({
 const messagesStore = useMessageStore();
 const deleteMenus = ref({});
 
-const editDialog = ref(false);
-const editedItem = ref({});
-const editForm = ref(null);
-const formValid = ref(false);
-
-const permissionsDialog = ref(false);
-const selectedRole = ref(null);
-const allPermissions = ref([]);
-const selectedPermissions = ref([]);
-
 const fetchRoles = async (newOptions) => {
   options.value = newOptions;
   loading.value = true;
@@ -207,34 +105,6 @@ const fetchRoles = async (newOptions) => {
   loading.value = false;
 };
 
-const editItem = (item) => {
-  editedItem.value = { ...item };
-  editDialog.value = true;
-};
-
-const closeEditDialog = () => {
-  editDialog.value = false;
-  editedItem.value = {};
-};
-
-const saveEdit = async () => {
-  const isValid = await editForm.value.validate();
-  if (!isValid) return;
-
-  try {
-    await roleApi.updateById(editedItem.value.id, editedItem.value);
-    messagesStore.add({
-      text: t("common.updateSuccess", { name: "Role" }),
-      color: "success",
-    });
-    editDialog.value = false;
-    fetchRoles(options.value);
-  } catch (err) {
-    console.log(err);
-    messagesStore.add({ text: t("errors.common"), color: "error" });
-  }
-};
-
 const confirmDelete = async (item) => {
   deleteMenus.value[item.id] = false;
   await roleApi.deleteById(item.id);
@@ -243,47 +113,6 @@ const confirmDelete = async (item) => {
     color: "success",
   });
   fetchRoles(options.value);
-};
-
-const openPermissionsDialog = async (role) => {
-  selectedRole.value = role;
-  permissionsDialog.value = true;
-
-  try {
-    if (allPermissions.value.length === 0) {
-      const response = await permissionApi.getAll({ page_size: 100 });
-      allPermissions.value = response.items;
-    }
-    console.log(allPermissions);
-    const response = await roleApi.getById(role.id);
-    selectedPermissions.value = response.permissions.map((p) => p.id);
-  } catch (err) {
-    console.log(err);
-    messagesStore.add({ text: t("errors.common"), color: "error" });
-  }
-};
-
-const closePermissionsDialog = () => {
-  permissionsDialog.value = false;
-  selectedRole.value = null;
-  selectedPermissions.value = [];
-};
-
-const savePermissions = async () => {
-  try {
-    await roleApi.managePermissions(
-      selectedRole.value.id,
-      selectedPermissions.value
-    );
-    messagesStore.add({
-      text: t("common.updateSuccess", { name: "Permissions" }),
-      color: "success",
-    });
-    closePermissionsDialog();
-  } catch (err) {
-    console.log(err);
-    messagesStore.add({ text: t("errors.common"), color: "error" });
-  }
 };
 
 watch(

@@ -6,6 +6,7 @@ import { useMessageStore } from "@/stores/message";
 import router from "@/router";
 import axios from "@/apis/base";
 import authApi from "@/apis/auth";
+import i18n from "@/plugins/i18n";
 
 export const useAuthStore = defineStore("auth", () => {
   const route = useRoute();
@@ -25,7 +26,7 @@ export const useAuthStore = defineStore("auth", () => {
     accessToken.value = null;
   }
 
-  async function login(email: string, password: string, t: any) {
+  async function login(email: string, password: string) {
     loading.value = true;
     try {
       const res = await authApi.getToken(email, password);
@@ -38,11 +39,14 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (err: any) {
       if (err?.status) {
         messagesStore.add({
-          text: t("errors.invalidCredentials"),
+          text: i18n.global.t("errors.invalidCredentials"),
           color: "error",
         });
       } else {
-        messagesStore.add({ text: t("errors.loginFailed"), color: "error" });
+        messagesStore.add({
+          text: i18n.global.t("errors.loginFailed"),
+          color: "error",
+        });
       }
     } finally {
       loading.value = false;

@@ -1,23 +1,23 @@
 import i18n from "@/plugins/i18n";
 
 export const validation = {
-  required(value: any) {
+  required(v: any) {
     let result = true;
 
-    if (value === undefined || value === null) {
+    if (v === undefined || v === null) {
       result = false;
-    } else if (Array.isArray(value) && value.length === 0) {
+    } else if (Array.isArray(v) && v.length === 0) {
       result = false;
     } else {
-      result = !!String(value).trim().length;
+      result = !!String(v).trim().length;
     }
     return result || i18n.global.t("rules.required");
   },
-  email(value: string) {
-    if (!value) return true;
+  email(v: string) {
+    if (!v) return true;
 
-    return (
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || i18n.global.t("rules.email")
-    );
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || i18n.global.t("rules.email");
   },
+  minLength: (length: number) => (v: string) =>
+    (v && v.length >= length) || i18n.global.t("rules.min", { length: length }),
 };

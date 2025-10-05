@@ -5,7 +5,7 @@
         t("login.form.title")
       }}</v-card-title>
       <v-card-text>
-        <v-form v-model="valid" @submit.prevent="submit" class="pb-4">
+        <v-form ref="loginForm" @submit.prevent="submit" class="pb-4">
           <v-text-field
             v-model="email"
             :label="t('common.email')"
@@ -15,7 +15,7 @@
           <v-text-field
             v-model="password"
             :label="t('common.password')"
-            :rules="[validation.required]"
+            :rules="[validation.required, validation.minLength(6)]"
             type="password"
           />
           <v-btn
@@ -53,10 +53,13 @@ const authStore = useAuthStore();
 
 const email = ref("");
 const password = ref("");
-const valid = ref(false);
+const loginForm = ref(null);
 
-const submit = () => {
-  authStore.login(email.value, password.value, t);
+const submit = async () => {
+  const { valid } = await loginForm.value.validate();
+  if (!valid) return;
+
+  authStore.login(email.value, password.value);
 };
 
 onMounted(async () => {

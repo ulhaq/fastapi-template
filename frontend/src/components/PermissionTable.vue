@@ -44,7 +44,7 @@
       </v-card-title>
 
       <v-card-text>
-        <v-form ref="editForm" v-model="formValid">
+        <v-form ref="editForm">
           <v-text-field
             v-model="editedItem.name"
             :label="t('common.name')"
@@ -73,7 +73,6 @@
           size="large"
           variant="elevated"
           @click="saveEdit"
-          :disabled="!formValid"
         />
       </v-card-actions>
     </v-card>
@@ -123,7 +122,6 @@ const deleteMenus = ref({});
 const editDialog = ref(false);
 const editedItem = ref({});
 const editForm = ref(null);
-const formValid = ref(false);
 
 const fetchPermissions = async (newOptions) => {
   options.value = newOptions;
@@ -155,8 +153,8 @@ const closeEditDialog = () => {
 };
 
 const saveEdit = async () => {
-  const isValid = await editForm.value.validate();
-  if (!isValid) return;
+  const { valid } = await editForm.value.validate();
+  if (!valid) return;
 
   try {
     await permissionApi.updateById(editedItem.value.id, editedItem.value);
