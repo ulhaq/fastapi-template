@@ -143,16 +143,16 @@ def test_create_a_user(admin_authenticated: TestClient) -> None:
 
 def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/users/1/roles",
+        "/users/2/roles",
         json={
             "role_ids": [1, 2],
         },
     )
     assert response.status_code == 200
     rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "Admin"
-    assert rs["email"] == "admin@example.org"
+    assert rs["id"] == 2
+    assert rs["name"] == "Standard"
+    assert rs["email"] == "standard@example.org"
 
     assert len(rs["roles"]) == 2
     assert rs["roles"][0]["id"] == 1
@@ -284,16 +284,16 @@ def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
     response = admin_authenticated.post(
-        "/users/1/roles",
+        "/users/2/roles",
         json={
             "role_ids": [2],
         },
     )
     assert response.status_code == 200
     rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "Admin"
-    assert rs["email"] == "admin@example.org"
+    assert rs["id"] == 2
+    assert rs["name"] == "Standard"
+    assert rs["email"] == "standard@example.org"
 
     assert len(rs["roles"]) == 1
     assert rs["roles"][0]["id"] == 2
@@ -317,6 +317,19 @@ def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
 
     assert rs["created_at"]
     assert rs["updated_at"]
+
+
+def test_cannot_manage_own_roles(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.post(
+        "/users/1/roles",
+        json={
+            "role_ids": [1, 2],
+        },
+    )
+
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "You are not allowed to manage your own roles"
 
 
 def test_cannot_create_a_user_while_unauthorized(client: TestClient) -> None:

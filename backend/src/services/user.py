@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import BackgroundTasks, Depends
 
 from src.core.config import settings
-from src.core.exceptions import AlreadyExistsException
+from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
 from src.core.security import get_current_user, hash_password, sign
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
@@ -58,7 +58,17 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
         await super().delete(identifier)
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
-        get_current_user().authorize("manage_user_role")
+        def authorize():
+            auth_user = get_current_user()
+
+            auth_user.authorize("manage_user_role")
+
+            if auth_user.id == identifier:
+                raise PermissionDeniedException(
+                    detail="You are not allowed to manage your own roles"
+                )
+
+        authorize()
 
         user = await self.get(identifier)
 
