@@ -5,9 +5,9 @@
     :total-items="totalItems"
     :loading="loading"
     :options="options"
-    :item-value="id"
+    item-value="id"
     show-select
-    v-model="selectedItems"
+    v-model="modelValue"
     @update:options="fetchPermissions"
   />
 </template>
@@ -20,13 +20,14 @@ import permissionApi from "@/apis/permissions";
 
 const { t } = useI18n();
 
+const modelValue = ref();
+
 const headers = computed(() => [
   { title: t("common.name"), key: "name" },
   { title: t("common.description"), key: "description" },
 ]);
 
 const items = ref([]);
-const selectedItems = ref([]);
 const totalItems = ref(0);
 const loading = ref(false);
 const options = ref({

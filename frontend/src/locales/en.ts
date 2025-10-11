@@ -80,12 +80,10 @@ export default {
   },
   permissions: {
     title: "Permissions",
-    add: "Add new permission",
-    addForm: {
-      title: "Add new permission",
-    },
-    editForm: {
-      title: "Edit permission",
+    add: "Add new Permission",
+    form: {
+      addTitle: "Add new Permission",
+      editTitle: "Edit Permission",
     },
   },
 };

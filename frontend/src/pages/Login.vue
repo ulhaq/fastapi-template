@@ -1,44 +1,58 @@
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-card class="pa-6" elevation="8" width="450">
-      <v-card-title class="text-h5 text-center mb-6">{{
-        t("login.form.title")
-      }}</v-card-title>
-      <v-card-text>
-        <v-form ref="loginForm" @submit.prevent="submit" class="pb-4">
-          <v-text-field
-            v-model="email"
-            :label="t('common.email')"
-            :rules="[validation.required, validation.email]"
-            type="email"
-          />
-          <v-text-field
-            v-model="password"
-            :label="t('common.password')"
-            :rules="[validation.required, validation.minLength(6)]"
-            type="password"
-          />
-          <v-btn
-            class="mb-4"
-            color="primary"
-            type="submit"
-            :loading="authStore.loading"
-            block
-          >
-            {{ t("login.form.submit") }}
-          </v-btn>
-          <v-card-actions>
-            <v-btn class="mt-4" :to="{ name: 'register' }">{{
-              t("login.form.newAccount")
-            }}</v-btn>
-            <v-spacer />
-            <v-btn class="mt-4" :to="{ name: 'reset' }">{{
-              t("login.form.resetPassword")
-            }}</v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card-text>
-    </v-card>
+    <v-form ref="loginForm" @submit.prevent="submit" class="pb-4">
+      <v-card class="pa-6" elevation="8" width="450">
+        <v-card-title class="text-h5 text-center mb-6">{{
+          t("login.form.title")
+        }}</v-card-title>
+
+        <v-card-text>
+          <v-row>
+            <v-col>
+              <v-text-field
+                v-model="email"
+                :label="t('common.email')"
+                :rules="[validation.required, validation.email]"
+                type="email"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <v-text-field
+                v-model="password"
+                :label="t('common.password')"
+                :rules="[validation.required, validation.minLength(6)]"
+                type="password"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <v-btn
+                class="mb-4"
+                color="primary"
+                type="submit"
+                :loading="authStore.loading"
+                block
+              >
+                {{ t("login.form.submit") }}
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-btn :to="{ name: 'register' }">{{
+            t("login.form.newAccount")
+          }}</v-btn>
+          <v-spacer />
+          <v-btn :to="{ name: 'reset' }">{{
+            t("login.form.resetPassword")
+          }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-form>
   </v-container>
 </template>
 

@@ -1,29 +1,29 @@
 <template>
   <data-table
     :headers="headers"
-    :items="items"
-    :total-items="totalItems"
-    :loading="loading"
+    :items="permissionStore.permissions.items"
+    :total-items="permissionStore.permissions.total"
+    :selected-items="selectedItems"
+    :loading="permissionStore.loading"
     :options="options"
-    :selectedItems="selectedItems"
     show-select
-    @update:options="fetchRoles"
+    @update:options="fetchPermissions"
   >
+    <template #toolbar-action>
+      <permission-form />
+    </template>
+
     <template #row-actions="{ item }">
       <v-btn
         class="me-2"
         icon
         variant="text"
         size="small"
-        @click="$emit('editItem', item)"
+        @click="editPermission(item)"
       >
         <v-icon>mdi-pencil</v-icon>
       </v-btn>
-      <v-menu
-        v-model="deleteMenus[item.id]"
-        offset-y
-        :close-on-content-click="false"
-      >
+      <v-menu v-model="deleteMenus[item.id]" :close-on-content-click="false">
         <template #activator="{ props }">
           <v-btn v-bind="props" icon variant="text" size="small">
             <v-icon>mdi-delete</v-icon>
@@ -47,21 +47,12 @@
 
 <script setup>
 import { useI18n } from "vue-i18n";
-import { ref, computed, watch } from "vue";
-import { useMessageStore } from "@/stores/message";
+import { ref, computed } from "vue";
+import { usePermissionStore } from "@/stores/permission";
 import DataTable from "@/components/DataTable.vue";
-import roleApi from "@/apis/roles";
-import utils from "@/utils";
+import PermissionForm from "@/components/permissions/PermissionForm.vue";
 
-const props = defineProps({
-  search: {
-    type: String,
-    required: false,
-    default: "",
-  },
-});
-
-defineEmits(["editItem"]);
+const permissionStore = usePermissionStore();
 
 const { t } = useI18n();
 
@@ -73,52 +64,28 @@ const headers = computed(() => [
   { title: t("common.actions"), key: "actions", sortable: false },
 ]);
 
-const items = ref([]);
+const deleteMenus = ref({});
 const selectedItems = ref([]);
-const totalItems = ref(0);
-const loading = ref(false);
 const options = ref({
   page: 1,
   itemsPerPage: 10,
-  sortBy: [],
+  sortBy: [{ key: "updated_at", order: "desc" }],
+  filterBy: { name: "co", description: "co" },
 });
 
-const messagesStore = useMessageStore();
-const deleteMenus = ref({});
-
-const fetchRoles = async (newOptions) => {
+const fetchPermissions = async (newOptions) => {
   options.value = newOptions;
-  loading.value = true;
 
-  const roles = await roleApi.getAll({
-    page_number: newOptions.page,
-    page_size: newOptions.itemsPerPage,
-    sort: newOptions.sortBy,
-    filters: utils.createFilters(
-      { name: "co", description: "co" },
-      props.search
-    ),
-  });
+  await permissionStore.fetchPermissions(newOptions);
+};
 
-  items.value = roles.items;
-  totalItems.value = roles.total;
-  loading.value = false;
+const editPermission = (permission) => {
+  permissionStore.permission = permission;
 };
 
 const confirmDelete = async (item) => {
   deleteMenus.value[item.id] = false;
-  await roleApi.deleteById(item.id);
-  messagesStore.add({
-    text: t("common.deleteSuccess", { name: "Role" }),
-    color: "success",
-  });
-  fetchRoles(options.value);
-};
 
-watch(
-  () => props.search,
-  () => {
-    fetchRoles({ ...options.value, page: 1 });
-  }
-);
+  await permissionStore.deletePermission(item.id);
+};
 </script>

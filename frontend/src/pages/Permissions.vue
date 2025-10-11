@@ -5,74 +5,7 @@
     </v-row>
     <v-row>
       <v-col>
-        <v-toolbar color="transparent">
-          <search-bar v-model="search" />
-          <v-spacer />
-          <v-dialog v-model="dialog" max-width="768">
-            <template v-slot:activator="{ props: activatorProps }">
-              <v-btn
-                color="white"
-                size="large"
-                variant="elevated"
-                v-bind="activatorProps"
-              >
-                {{ t("permissions.add") }}
-              </v-btn>
-            </template>
-
-            <v-card>
-              <v-card-title>
-                <span class="text-h6">{{
-                  t("permissions.addForm.title")
-                }}</span>
-              </v-card-title>
-
-              <v-card-text>
-                <v-row>
-                  <v-col>
-                    <v-text-field
-                      :label="t('common.name')"
-                      v-model="permission.name"
-                      :rules="[validation.required]"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-                <v-row>
-                  <v-col>
-                    <v-text-field
-                      :label="t('common.description')"
-                      v-model="permission.description"
-                      :rules="[validation.required]"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-              </v-card-text>
-
-              <v-card-actions>
-                <v-btn
-                  color="error"
-                  :text="t('common.cancel')"
-                  size="large"
-                  variant="plain"
-                  @click="dialog = false"
-                ></v-btn>
-                <v-spacer></v-spacer>
-                <v-btn
-                  color="white"
-                  :text="t('common.save')"
-                  size="large"
-                  variant="elevated"
-                  @click="addPermission"
-                ></v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-dialog>
-        </v-toolbar>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col>
-        <permission-table :key="permissionTableKey" :search="search" />
+        <permission-table />
       </v-col>
     </v-row>
   </v-container>
@@ -80,51 +13,7 @@
 
 <script setup>
 import { useI18n } from "vue-i18n";
-import { ref, shallowRef } from "vue";
-import { useMessageStore } from "@/stores/message";
-import { validation } from "@/plugins/validation";
-import SearchBar from "@/components/SearchBar.vue";
-import PermissionTable from "@/components/PermissionTable.vue";
-import permissionApi from "@/apis/permissions";
+import PermissionTable from "@/components/permissions/PermissionTable.vue";
 
 const { t } = useI18n();
-
-const dialog = shallowRef(false);
-const search = ref("");
-
-const permissionTableKey = ref(true);
-
-const loading = ref(false);
-
-const permission = ref({});
-
-const messagesStore = useMessageStore();
-
-const addPermission = () => {
-  loading.value = true;
-
-  permissionApi
-    .create({
-      name: permission.value.name,
-      description: permission.value.description,
-    })
-    .then(() => {
-      messagesStore.add({
-        text: t("common.addSuccess", { name: "Permission" }),
-        color: "success",
-      });
-
-      permissionTableKey.value = !permissionTableKey.value;
-      permission.value = {};
-      dialog.value = false;
-    })
-    .catch((err) => {
-      messagesStore.add({
-        text: err.response?.data.msg,
-        color: "error",
-      });
-    });
-
-  loading.value = false;
-};
 </script>

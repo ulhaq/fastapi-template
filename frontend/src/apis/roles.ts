@@ -6,11 +6,6 @@ export default {
   async getAll(params?: any) {
     params = params || {};
 
-    if (params.sort) {
-      params.sort = params.sort
-        .map((sort: any) => (sort.order === "desc" ? `-${sort.key}` : sort.key))
-        .join(",");
-    }
     const response = await axios.get(endpoint, { params });
     return response.data;
   },

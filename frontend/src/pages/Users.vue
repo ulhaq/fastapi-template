@@ -8,7 +8,7 @@
           :total-items="totalItems"
           :loading="loading"
           :options="options"
-          :item-value="id"
+          item-value="id"
           show-select
           v-model="selectedItems"
           @update:options="fetchUsers"

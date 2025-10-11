@@ -1,5 +1,6 @@
 <template>
   <v-text-field
+    v-model="modelValue"
     :label="t('common.search')"
     append-inner-icon="mdi-magnify"
     density="comfortable"
@@ -14,4 +15,6 @@
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
+
+const modelValue = defineModel();
 </script>
