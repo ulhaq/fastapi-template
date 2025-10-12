@@ -49,7 +49,7 @@ export const useRoleStore = defineStore("role", () => {
       roles.value.items = [rs, ...roles.value.items];
 
       messageStore.add({
-        text: t("common.addSuccess", { name: "Role" }),
+        text: t("roles.form.addSuccess", { name: "Role" }),
         color: "success",
       });
 
@@ -77,7 +77,7 @@ export const useRoleStore = defineStore("role", () => {
       );
 
       messageStore.add({
-        text: t("common.updateSuccess", { name: "Role" }),
+        text: t("roles.form.updateSuccess", { name: "Role" }),
         color: "success",
       });
 
@@ -128,7 +128,7 @@ export const useRoleStore = defineStore("role", () => {
       roles.value.total -= 1;
 
       messageStore.add({
-        text: t("common.deleteSuccess", { name: "Role" }),
+        text: t("roles.form.deleteSuccess", { name: "Role" }),
         color: "success",
       });
     } catch (err) {

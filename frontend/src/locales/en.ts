@@ -27,9 +27,6 @@ export default {
     cancel: "Cancel",
     confirm: "Confirm",
     save: "Save",
-    addSuccess: "{name} added successfully",
-    updateSuccess: "{name} updated successfully",
-    deleteSuccess: "{name} deleted successfully",
   },
   menuBar: {
     index: "Home",
@@ -70,6 +67,9 @@ export default {
       editTitle: "Edit role",
       saveAndNext: "Save & assign permissions",
       assignPermissionsToRole: "Assign permissions",
+      addSuccess: "Role was added successfully",
+      updateSuccess: "Role was updated successfully",
+      deleteSuccess: "Role was deleted successfully",
       assignedPermissionsSuccess:
         "Permissions assigned to the role successfully",
     },
@@ -84,6 +84,9 @@ export default {
     form: {
       addTitle: "Add new Permission",
       editTitle: "Edit Permission",
+      addSuccess: "Permission was added successfully",
+      updateSuccess: "Permission was updated successfully",
+      deleteSuccess: "Permission was deleted successfully",
     },
   },
 };

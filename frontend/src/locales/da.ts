@@ -6,17 +6,26 @@ export default {
   },
   rules: {
     required: "Dette felt er påkrævet",
+    email: "E-mailen er ugyldig",
+    min: "Mindst {length} tegn er påkrævet",
+  },
+  errors: {
+    common: "Noget gik galt",
+    invalidCredentials: "Legitimationsoplysningerne er ugyldige",
+    loginFailed: "Login mislykkedes",
   },
   common: {
-    table: {
-      search: "Søg",
-      createdAt: "Oprettet den",
-      updatedAt: "Opdateret den",
-      actions: "Handlinger",
-    },
-    error: "Noget gik galt",
+    name: "Navn",
+    email: "E-mail",
+    password: "Adgangskode",
+    description: "Beskrivelse",
+    createdAt: "Oprettet den",
+    updatedAt: "Opdateret den",
+    actions: "Handlinger",
+    search: "Søg",
     close: "Luk",
     cancel: "Annuller",
+    confirm: "Bekræft",
     save: "Gem",
   },
   menuBar: {
@@ -27,66 +36,56 @@ export default {
   },
   login: {
     form: {
-      title: "Log ind",
-      username: "Email",
-      password: "Adgangskode",
-      submit: "Log ind",
+      title: "Login",
+      submit: "Login",
       newAccount: "Ny konto",
       resetPassword: "Nulstil adgangskode",
-    },
-    error: {
-      invalid: "Brugernavn eller adgangskode er forkert",
-      failed: "Login mislykkedes",
     },
   },
   register: {
     form: {
       title: "Opret en konto",
-      name: "Navn",
-      username: "Email",
-      password: "Adgangskode",
       submit: "Opret konto",
     },
   },
-
+  reset: {
+    form: {
+      title: "Anmod om nulstilling af adgangskode",
+      submit: "Indsend",
+      newAccount: "Ny konto",
+      login: "Login",
+    },
+  },
   users: {
     title: "Brugere",
-    table: {
-      name: "Navn",
-      description: "Beskrivelse",
-    },
   },
   roles: {
     title: "Roller",
     add: "Tilføj ny rolle",
-    added: "Rollen blev tilføjet",
-    assignedPermissions: "Tilladelserne blev tildelt rollen",
-    managePermissions: "Administrer tilladelser",
-    permissionsUpdated: "Tilladelser opdateret",
-    addForm: {
-      title: "Tilføj ny rolle",
-      name: "Navn",
-      description: "Beskrivelse",
+    form: {
+      addTitle: "Tilføj ny rolle",
+      editTitle: "Rediger rolle",
       saveAndNext: "Gem og tildel tilladelser",
       assignPermissionsToRole: "Tildel tilladelser",
+      addSuccess: "Rollen blev tilføjet succesfuldt",
+      updateSuccess: "Rollen blev opdateret succesfuldt",
+      deleteSuccess: "Rollen blev slettet succesfuldt",
+      assignedPermissionsSuccess: "Tilladelser blev tildelt rollen succesfuldt",
     },
-    table: {
-      name: "Navn",
-      description: "Beskrivelse",
+    permissionForm: {
+      title: "Administrér tilladelser",
+      permissions: "Tilladelser",
     },
   },
   permissions: {
     title: "Tilladelser",
     add: "Tilføj ny tilladelse",
-    added: "Tilladelsen blev tilføjet",
-    addForm: {
-      title: "Tilføj ny tilladelse",
-      name: "Navn",
-      description: "Beskrivelse",
-    },
-    table: {
-      name: "Navn",
-      description: "Beskrivelse",
+    form: {
+      addTitle: "Tilføj ny tilladelse",
+      editTitle: "Rediger tilladelse",
+      addSuccess: "Tilladelsen blev tilføjet succesfuldt",
+      updateSuccess: "Tilladelsen blev opdateret succesfuldt",
+      deleteSuccess: "Tilladelsen blev slettet succesfuldt",
     },
   },
 };

@@ -48,7 +48,7 @@ export const usePermissionStore = defineStore("permission", () => {
       permissions.value.items = [rs, ...permissions.value.items];
 
       messageStore.add({
-        text: t("common.addSuccess", { name: "Permission" }),
+        text: t("permissions.form.addSuccess", { name: "Permission" }),
         color: "success",
       });
 
@@ -76,7 +76,7 @@ export const usePermissionStore = defineStore("permission", () => {
       );
 
       messageStore.add({
-        text: t("common.updateSuccess", { name: "Permission" }),
+        text: t("permissions.form.updateSuccess", { name: "Permission" }),
         color: "success",
       });
 
@@ -105,7 +105,7 @@ export const usePermissionStore = defineStore("permission", () => {
       permissions.value.total -= 1;
 
       messageStore.add({
-        text: t("common.deleteSuccess", { name: "Permission" }),
+        text: t("permissions.form.deleteSuccess", { name: "Permission" }),
         color: "success",
       });
     } catch (err) {
