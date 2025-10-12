@@ -1,20 +1,20 @@
 <template>
   <v-text-field
     v-model="modelValue"
-    :label="t('common.search')"
     append-inner-icon="mdi-magnify"
-    density="comfortable"
     class="elevation-0"
-    variant="solo"
-    hide-details
     clearable
+    density="comfortable"
+    hide-details
+    :label="t('common.search')"
+    variant="solo"
   />
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
+  import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n();
+  const { t } = useI18n()
 
-const modelValue = defineModel();
+  const modelValue = defineModel()
 </script>

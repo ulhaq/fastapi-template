@@ -1,91 +1,86 @@
-import axios, {
-  AxiosError,
-  type AxiosInstance,
-  type InternalAxiosRequestConfig,
-} from "axios";
-import { useAuthStore } from "@/stores/auth";
+import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
+import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
   withCredentials: true,
-});
+})
 
-let requestQueue: Array<(token: string) => void> = [];
+let requestQueue: Array<(token: string) => void> = []
 
-const queueFailedRequest = (callback: (token: string) => void) => {
-  requestQueue.push(callback);
-};
+function queueFailedRequest (callback: (token: string) => void) {
+  requestQueue.push(callback)
+}
 
-const resolveFailedRequests = (token: string) => {
-  requestQueue.forEach((cb) => cb(token));
-  requestQueue = [];
-};
+function resolveFailedRequests (token: string) {
+  for (const cb of requestQueue) {
+    cb(token)
+  }
+  requestQueue = []
+}
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const authStore = useAuthStore();
+  const authStore = useAuthStore()
 
   if (authStore.accessToken && config.headers) {
-    config.headers.Authorization = `Bearer ${authStore.accessToken}`;
+    config.headers.Authorization = `Bearer ${authStore.accessToken}`
   }
 
-  return config;
-});
+  return config
+})
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  response => response,
   async (error: AxiosError) => {
-    const authStore = useAuthStore();
+    const authStore = useAuthStore()
     const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
+      _retry?: boolean
+    }
 
     if (error.response?.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
+      throw error
     }
 
-    originalRequest._retry = true;
+    originalRequest._retry = true
 
     if (authStore.loading) {
-      return Promise.reject(error);
+      throw error
     }
 
     if (authStore.loading) {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         queueFailedRequest((newToken: string) => {
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newToken}`
           }
-          resolve(apiClient(originalRequest));
-        });
-      });
+          resolve(apiClient(originalRequest))
+        })
+      })
     }
 
     try {
-      authStore.loading = true;
+      authStore.loading = true
 
-      const newToken = await authStore.refreshToken();
+      const newToken = await authStore.refreshToken()
 
-      resolveFailedRequests(newToken);
+      resolveFailedRequests(newToken)
 
       if (originalRequest.headers) {
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
       }
 
-      return apiClient(originalRequest);
+      return apiClient(originalRequest)
     } catch (refreshError) {
-      await authStore.logout();
-      return Promise.reject(
-        refreshError instanceof Error
-          ? refreshError
-          : new Error(String(refreshError))
-      );
+      await authStore.logout()
+      throw refreshError instanceof Error ? refreshError : new Error(String(refreshError))
     } finally {
-      authStore.loading = false;
+      authStore.loading = false
     }
-  }
-);
+  },
+)
 
-export default apiClient;
+export default apiClient

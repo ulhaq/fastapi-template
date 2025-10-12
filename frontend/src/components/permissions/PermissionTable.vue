@@ -1,31 +1,32 @@
 <template>
   <data-table
+    v-model="selectedItems"
     :headers="headers"
     :items="permissionStore.permissions.items"
-    :total-items="permissionStore.permissions.total"
-    :selected-items="selectedItems"
     :loading="permissionStore.loading"
     :options="options"
     show-select
+    :total-items="permissionStore.permissions.total"
     @update:options="fetchPermissions"
   >
-    <template #toolbar-action>
-      <permission-form />
+    <template #toolbar.action>
+      <slot v-if="$slots['toolbar.action']" name="toolbar.action" />
+      <permission-form v-else />
     </template>
 
-    <template #row-actions="{ item }">
+    <template #item.actions="{ item }">
       <v-btn
         class="me-2"
         icon
-        variant="text"
         size="small"
+        variant="text"
         @click="editPermission(item)"
       >
         <v-icon>mdi-pencil</v-icon>
       </v-btn>
       <v-menu v-model="deleteMenus[item.id]" :close-on-content-click="false">
         <template #activator="{ props }">
-          <v-btn v-bind="props" icon variant="text" size="small">
+          <v-btn v-bind="props" icon size="small" variant="text">
             <v-icon>mdi-delete</v-icon>
           </v-btn>
         </template>
@@ -46,23 +47,35 @@
 </template>
 
 <script setup>
+import { isEmpty } from "lodash";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ref, computed } from "vue";
-import { usePermissionStore } from "@/stores/permission";
 import DataTable from "@/components/DataTable.vue";
 import PermissionForm from "@/components/permissions/PermissionForm.vue";
+import { usePermissionStore } from "@/stores/permission";
+
+const componentProps = defineProps({
+  headers: {
+    type: Array,
+    default: () => [],
+  },
+});
 
 const permissionStore = usePermissionStore();
 
 const { t } = useI18n();
 
-const headers = computed(() => [
-  { title: t("common.name"), key: "name" },
-  { title: t("common.description"), key: "description" },
-  { title: t("common.createdAt"), key: "created_at" },
-  { title: t("common.updatedAt"), key: "updated_at" },
-  { title: t("common.actions"), key: "actions", sortable: false },
-]);
+const headers = computed(() => {
+  return isEmpty(componentProps.headers)
+    ? [
+        { title: t("common.name"), key: "name" },
+        { title: t("common.description"), key: "description" },
+        { title: t("common.createdAt"), key: "created_at" },
+        { title: t("common.updatedAt"), key: "updated_at" },
+        { title: t("common.actions"), key: "actions", sortable: false },
+      ]
+    : componentProps.headers;
+});
 
 const deleteMenus = ref({});
 const selectedItems = ref([]);
@@ -73,19 +86,19 @@ const options = ref({
   filterBy: { name: "co", description: "co" },
 });
 
-const fetchPermissions = async (newOptions) => {
+async function fetchPermissions(newOptions) {
   options.value = newOptions;
 
   await permissionStore.fetchPermissions(newOptions);
-};
+}
 
-const editPermission = (permission) => {
+function editPermission(permission) {
   permissionStore.permission = permission;
-};
+}
 
-const confirmDelete = async (item) => {
+async function confirmDelete(item) {
   deleteMenus.value[item.id] = false;
 
   await permissionStore.deletePermission(item.id);
-};
+}
 </script>

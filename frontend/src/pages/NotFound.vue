@@ -4,11 +4,11 @@
   >
     <v-card class="pa-8" elevation="6" width="500">
       <v-img
-        src="https://cdn.jsdelivr.net/gh/maizzle/404@main/images/404.svg"
         alt="404 error"
-        height="200"
         class="mb-6"
         contain
+        height="200"
+        src="https://cdn.jsdelivr.net/gh/maizzle/404@main/images/404.svg"
       />
       <v-card-title class="text-h4 font-weight-bold mb-2">
         {{ t("error.404Title") }}
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
+  import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n();
+  const { t } = useI18n()
 </script>

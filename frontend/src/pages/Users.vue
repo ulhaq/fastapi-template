@@ -3,14 +3,14 @@
     <v-row justify="center">
       <v-col>
         <data-table
+          v-model="selectedItems"
           :headers="headers"
+          item-value="id"
           :items="items"
-          :total-items="totalItems"
           :loading="loading"
           :options="options"
-          item-value="id"
           show-select
-          v-model="selectedItems"
+          :total-items="totalItems"
           @update:options="fetchUsers"
         >
           <template #top>
@@ -19,9 +19,9 @@
               <v-spacer />
               <v-text-field
                 v-model="search"
-                :label="t('common.search')"
-                hide-details
                 clearable
+                hide-details
+                :label="t('common.search')"
                 variant="underlined"
               />
             </v-toolbar>
@@ -33,48 +33,49 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import { ref, watch } from "vue";
-import DataTable from "@/components/DataTable.vue";
-import roleApi from "@/apis/roles";
+  import { ref, watch } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import roleApi from '@/apis/roles'
+  import DataTable from '@/components/DataTable.vue'
 
-const { t } = useI18n();
+  const { t } = useI18n()
 
-const headers = computed(() => [
-  { title: t("common.name"), key: "name" },
-  { title: t("common.description"), key: "description" },
-  { title: t("common.createdAt"), key: "created_at" },
-  { title: t("common.updatedAt"), key: "updated_at" },
-]);
+  const search = ref('')
 
-const items = ref([]);
-const selectedItems = ref([]);
-const totalItems = ref(0);
-const loading = ref(false);
-const search = ref("");
+  const headers = computed(() => [
+    { title: t('common.name'), key: 'name' },
+    { title: t('common.description'), key: 'description' },
+    { title: t('common.createdAt'), key: 'created_at' },
+    { title: t('common.updatedAt'), key: 'updated_at' },
+  ])
 
-const options = ref({
-  page: 1,
-  itemsPerPage: 10,
-  sortBy: [],
-});
+  const items = ref([])
+  const selectedItems = ref([])
+  const totalItems = ref(0)
+  const loading = ref(false)
 
-const fetchUsers = async (newOptions) => {
-  options.value = newOptions;
-  loading.value = true;
+  const options = ref({
+    page: 1,
+    itemsPerPage: 10,
+    sortBy: [],
+  })
 
-  const users = await roleApi.getAll({
-    page_number: newOptions.page,
-    page_size: newOptions.itemsPerPage,
-    sort: newOptions.sortBy,
-  });
+  async function fetchUsers (newOptions) {
+    options.value = newOptions
+    loading.value = true
 
-  items.value = users.items;
-  totalItems.value = users.total;
-  loading.value = false;
-};
+    const users = await roleApi.getAll({
+      page_number: newOptions.page,
+      page_size: newOptions.itemsPerPage,
+      sort: newOptions.sortBy,
+    })
 
-watch(search, () => {
-  fetchUsers({ ...options.value, page: 1 });
-});
+    items.value = users.items
+    totalItems.value = users.total
+    loading.value = false
+  }
+
+  watch(search, () => {
+    fetchUsers({ ...options.value, page: 1 })
+  })
 </script>

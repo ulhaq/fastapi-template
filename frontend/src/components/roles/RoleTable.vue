@@ -1,31 +1,31 @@
 <template>
   <data-table
+    v-model="selectedItems"
     :headers="headers"
     :items="roleStore.roles.items"
-    :total-items="roleStore.roles.total"
-    :selected-items="selectedItems"
     :loading="roleStore.loading"
     :options="options"
     show-select
+    :total-items="roleStore.roles.total"
     @update:options="fetchRoles"
   >
-    <template #toolbar-action>
+    <template #toolbar.action>
       <role-form />
     </template>
 
-    <template #row-actions="{ item }">
+    <template #item.actions="{ item }">
       <v-btn
         class="me-2"
         icon
-        variant="text"
         size="small"
+        variant="text"
         @click="editRole(item)"
       >
         <v-icon>mdi-pencil</v-icon>
       </v-btn>
       <v-menu v-model="deleteMenus[item.id]" :close-on-content-click="false">
         <template #activator="{ props }">
-          <v-btn v-bind="props" icon variant="text" size="small">
+          <v-btn v-bind="props" icon size="small" variant="text">
             <v-icon>mdi-delete</v-icon>
           </v-btn>
         </template>
@@ -46,46 +46,46 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import { ref, computed } from "vue";
-import { useRoleStore } from "@/stores/role";
-import DataTable from "@/components/DataTable.vue";
-import RoleForm from "@/components/roles/RoleForm.vue";
+  import { computed, ref } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import DataTable from '@/components/DataTable.vue'
+  import RoleForm from '@/components/roles/RoleForm.vue'
+  import { useRoleStore } from '@/stores/role'
 
-const roleStore = useRoleStore();
+  const roleStore = useRoleStore()
 
-const { t } = useI18n();
+  const { t } = useI18n()
 
-const headers = computed(() => [
-  { title: t("common.name"), key: "name" },
-  { title: t("common.description"), key: "description" },
-  { title: t("common.createdAt"), key: "created_at" },
-  { title: t("common.updatedAt"), key: "updated_at" },
-  { title: t("common.actions"), key: "actions", sortable: false },
-]);
+  const headers = computed(() => [
+    { title: t('common.name'), key: 'name' },
+    { title: t('common.description'), key: 'description' },
+    { title: t('common.createdAt'), key: 'created_at' },
+    { title: t('common.updatedAt'), key: 'updated_at' },
+    { title: t('common.actions'), key: 'actions', sortable: false },
+  ])
 
-const deleteMenus = ref({});
-const selectedItems = ref([]);
-const options = ref({
-  page: 1,
-  itemsPerPage: 10,
-  sortBy: [{ key: "updated_at", order: "desc" }],
-  filterBy: { name: "co", description: "co" },
-});
+  const deleteMenus = ref({})
+  const selectedItems = ref([])
+  const options = ref({
+    page: 1,
+    itemsPerPage: 10,
+    sortBy: [{ key: 'updated_at', order: 'desc' }],
+    filterBy: { name: 'co', description: 'co' },
+  })
 
-const fetchRoles = async (newOptions) => {
-  options.value = newOptions;
+  async function fetchRoles (newOptions) {
+    options.value = newOptions
 
-  await roleStore.fetchRoles(newOptions);
-};
+    await roleStore.fetchRoles(newOptions)
+  }
 
-const editRole = (role) => {
-  roleStore.role = role;
-};
+  function editRole (role) {
+    roleStore.role = role
+  }
 
-const confirmDelete = async (item) => {
-  deleteMenus.value[item.id] = false;
+  async function confirmDelete (item) {
+    deleteMenus.value[item.id] = false
 
-  await roleStore.deleteRole(item.id);
-};
+    await roleStore.deleteRole(item.id)
+  }
 </script>

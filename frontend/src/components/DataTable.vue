@@ -2,33 +2,44 @@
   <v-row>
     <v-col>
       <v-toolbar color="transparent">
-        <slot name="toolbar-search">
+        <slot name="toolbar.search">
           <search-bar v-model="search" />
         </slot>
         <v-spacer />
-        <slot name="toolbar-action"></slot>
+        <slot name="toolbar.action" />
       </v-toolbar>
     </v-col>
   </v-row>
   <v-row>
     <v-col>
       <v-data-table-server
+        v-model="modelValue"
+        class="elevation-2 rounded"
         :headers="headers"
         :items="items"
         :items-length="totalItems"
-        :loading="loading"
         :items-per-page="options.itemsPerPage"
+        :items-per-page-options="[10, 25, 50, 100]"
+        :loading="loading"
+        multi-sort
         :page="options.page"
+        :show-select="showSelect"
         :sort-by="options.sortBy"
         :sort-desc="options.sortDesc"
-        multi-sort
-        :show-select="showSelect"
-        :items-per-page-options="[10, 25, 50, 100]"
-        class="elevation-2 rounded"
         @update:options="emitOptions"
       >
-        <template #item.actions="{ item }">
-          <slot name="row-actions" :item="item"></slot>
+        <!-- <template #loading>
+          <v-skeleton-loader type="table-row@10" />
+        </template> -->
+
+        <template
+          v-for="header in headers"
+          :key="header.key"
+          #[`item.${header.key}`]="{ item }"
+        >
+          <slot :item="item" :name="`item.${header.key}`">
+            {{ item[header.key] }}
+          </slot>
         </template>
       </v-data-table-server>
     </v-col>
@@ -36,51 +47,57 @@
 </template>
 
 <script setup>
-import debounce from "lodash/debounce";
+  import debounce from 'lodash/debounce'
 
-const props = defineProps({
-  headers: {
-    type: Array,
-    required: true,
-  },
-  items: {
-    type: Array,
-    required: true,
-  },
-  totalItems: {
-    type: Number,
-    required: true,
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-  options: {
-    type: Object,
-    required: true,
-  },
-  showSelect: {
-    type: Object,
-    required: true,
-  },
-});
+  const props = defineProps({
+    headers: {
+      type: Array,
+      required: true,
+    },
+    items: {
+      type: Array,
+      required: true,
+    },
+    totalItems: {
+      type: Number,
+      required: true,
+    },
+    itemValue: {
+      type: String,
+      required: false,
+    },
+    loading: {
+      type: Boolean,
+      default: false,
+    },
+    options: {
+      type: Object,
+      required: true,
+    },
+    showSelect: {
+      type: Boolean,
+      default: false,
+    },
+  })
 
-const emit = defineEmits(["update:options"]);
+  const emit = defineEmits(['update:options'])
 
-const search = ref("");
+  const modelValue = defineModel()
 
-function emitOptions(newOptions) {
-  emit("update:options", {
-    ...props.options,
-    ...newOptions,
-    search: search.value,
-  });
-}
+  const search = ref('')
 
-watch(
-  search,
-  debounce(() => {
-    emitOptions({ ...props.options, page: 1 });
-  }, 300)
-);
+  function emitOptions (newOptions) {
+    emit('update:options', {
+      ...props.options,
+      ...newOptions,
+      search: search.value,
+    })
+  }
+
+  watch(
+    search,
+    debounce(() => {
+      emitOptions({ ...props.options, page: 1 })
+    }, 300),
+  )
 </script>

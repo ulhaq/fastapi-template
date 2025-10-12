@@ -12,8 +12,8 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import RoleTable from "@/components/roles/RoleTable.vue";
+  import { useI18n } from 'vue-i18n'
+  import RoleTable from '@/components/roles/RoleTable.vue'
 
-const { t } = useI18n();
+  const { t } = useI18n()
 </script>

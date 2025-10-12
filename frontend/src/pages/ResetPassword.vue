@@ -1,18 +1,18 @@
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-card class="pa-6" elevation="8" width="450" v-if="!newPassword">
+    <v-card v-if="!newPassword" class="pa-6" elevation="8" width="450">
       <v-card-title class="text-h5 text-center mb-6">{{
-        t("reset.form.title")
+        t("reset.form.requestTitle")
       }}</v-card-title>
       <v-card-text>
-        <v-form v-model="valid" @submit.prevent="request" class="pb-4">
+        <v-form v-model="valid" class="pb-4" @submit.prevent="request">
           <v-text-field
             v-model="email"
             :label="t('common.email')"
             :rules="[validation.required, validation.email]"
             type="email"
           />
-          <v-btn class="mb-4" color="primary" type="submit" block>
+          <v-btn block class="mb-4" color="primary" type="submit">
             {{ t("reset.form.submit") }}
           </v-btn>
           <v-card-actions>
@@ -27,19 +27,25 @@
         </v-form>
       </v-card-text>
     </v-card>
-    <v-card class="pa-6" elevation="8" width="450" v-else>
+    <v-card v-else class="pa-6" elevation="8" width="450">
       <v-card-title class="text-h5 text-center mb-6">{{
-        t("reset.form.title")
+        t("reset.form.resetTitle")
       }}</v-card-title>
       <v-card-text>
-        <v-form v-model="valid" @submit.prevent="reset" class="pb-4">
+        <v-form v-model="valid" class="pb-4" @submit.prevent="reset">
+          <v-text-field
+            v-model="email"
+            :label="t('common.email')"
+            :rules="[validation.required, validation.email]"
+            type="email"
+          />
           <v-text-field
             v-model="password"
             :label="t('common.password')"
             :rules="[validation.required, validation.minLength(6)]"
             type="password"
           />
-          <v-btn class="mb-4" color="primary" type="submit" block>
+          <v-btn block class="mb-4" color="primary" type="submit">
             {{ t("reset.form.submit") }}
           </v-btn>
         </v-form>
@@ -49,57 +55,54 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
-import { useMessageStore } from "@/stores/message";
-import { validation } from "@/plugins/validation";
-import authApi from "@/apis/auth";
+  import { computed, ref } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import { useRoute } from 'vue-router'
+  import authApi from '@/apis/auth'
+  import { validation } from '@/plugins/validation'
+  import { useAuthStore } from '@/stores/auth'
+  import { useMessageStore } from '@/stores/message'
 
-const route = useRoute();
-const authStore = useAuthStore();
-const messageStore = useMessageStore();
+  const route = useRoute()
+  const authStore = useAuthStore()
+  const messageStore = useMessageStore()
 
-const { t } = useI18n();
+  const { t } = useI18n()
 
-const email = ref("");
-const password = ref("");
-const valid = ref(false);
+  const email = ref('')
+  const password = ref('')
+  const valid = ref(false)
 
-const newPassword = computed(() => {
-  return route.params.token;
-});
+  const newPassword = computed(() => {
+    return route.params.token
+  })
 
-const request = () => {
-  authApi.requestPasswordReset(email.value);
-};
-
-const reset = async () => {
-  try {
-    let res = await authApi.resetPassword(password.value, route.params.token);
-
-    console.log(res);
-    authStore.login(email.value, password.value);
-  } catch (err) {
-    let msg;
-    console.log(err);
-
-    if (err?.response?.data?.msg) {
-      msg = err.response.data.msg;
-    } else if (err?.response?.data?.detail?.[0]) {
-      const loc = err.response.data.detail[0].loc;
-      const locPart = Array.isArray(loc) ? loc[loc.length - 1] : "";
-      const detailMsg = err.response.data.detail[0].msg || "";
-      msg = `${locPart} ${detailMsg}`.toLowerCase();
-    } else {
-      msg = err.response.data.msg;
-    }
-    messageStore.add({ text: msg, color: "error" });
+  function request () {
+    authApi.requestPasswordReset(email.value)
   }
-};
 
-onMounted(async () => {
+  async function reset () {
+    try {
+      await authApi.resetPassword(password.value, route.params.token)
+
+      authStore.login(email.value, password.value)
+    } catch (error) {
+      let msg
+      if (error?.response?.data?.msg) {
+        msg = error.response.data.msg
+      } else if (error?.response?.data?.detail?.[0]) {
+        const loc = error.response.data.detail[0].loc
+        const locPart = Array.isArray(loc) ? loc.at(-1) : ''
+        const detailMsg = error.response.data.detail[0].msg || ''
+        msg = `${locPart} ${detailMsg}`.toLowerCase()
+      } else {
+        msg = error.response.data.msg
+      }
+      messageStore.add({ text: msg, color: 'error' })
+    }
+  }
+
+  onMounted(async () => {
   //
-});
+  })
 </script>

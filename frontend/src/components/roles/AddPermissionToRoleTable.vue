@@ -1,53 +1,44 @@
 <template>
   <data-table
-    :headers="headers"
-    :items="items"
-    :total-items="totalItems"
-    :loading="loading"
-    :options="options"
-    item-value="id"
-    show-select
     v-model="modelValue"
+    :headers="headers"
+    item-value="id"
+    :items="permissionStore.permissions.items"
+    :loading="permissionStore.loading"
+    :options="options"
+    show-select
+    :total-items="permissionStore.permissions.total"
     @update:options="fetchPermissions"
   />
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import { ref } from "vue";
-import DataTable from "@/components/DataTable.vue";
-import permissionApi from "@/apis/permissions";
+  import { ref } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import DataTable from '@/components/DataTable.vue'
+  import { usePermissionStore } from '@/stores/permission'
 
-const { t } = useI18n();
+  const { t } = useI18n()
 
-const modelValue = ref();
+  const permissionStore = usePermissionStore()
 
-const headers = computed(() => [
-  { title: t("common.name"), key: "name" },
-  { title: t("common.description"), key: "description" },
-]);
+  const modelValue = defineModel()
 
-const items = ref([]);
-const totalItems = ref(0);
-const loading = ref(false);
-const options = ref({
-  page: 1,
-  itemsPerPage: 10,
-  sortBy: [],
-});
+  const headers = computed(() => [
+    { title: t('common.name'), key: 'name' },
+    { title: t('common.description'), key: 'description' },
+  ])
 
-const fetchPermissions = async (newOptions) => {
-  options.value = newOptions;
-  loading.value = true;
+  const options = ref({
+    page: 1,
+    itemsPerPage: 10,
+    sortBy: [{ key: 'updated_at', order: 'desc' }],
+    filterBy: { name: 'co', description: 'co' },
+  })
 
-  const permissions = await permissionApi.getAll({
-    page_number: newOptions.page,
-    page_size: newOptions.itemsPerPage,
-    sort: newOptions.sortBy,
-  });
+  async function fetchPermissions (newOptions) {
+    options.value = newOptions
 
-  items.value = permissions.items;
-  totalItems.value = permissions.total;
-  loading.value = false;
-};
+    await permissionStore.fetchPermissions(newOptions)
+  }
 </script>

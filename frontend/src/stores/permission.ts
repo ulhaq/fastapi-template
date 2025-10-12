@@ -1,136 +1,130 @@
-import { defineStore } from "pinia";
-import { ref } from "vue";
-import { useI18n } from "vue-i18n";
-import { useMessageStore } from "@/stores/message";
-import permissionApi from "@/apis/permissions";
-import utils from "@/utils";
+import type { FetchOptions, PaginatedResponse } from '@/types/common'
+import type { Permission } from '@/types/permission'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import permissionApi from '@/apis/permissions'
+import { useMessageStore } from '@/stores/message'
+import utils from '@/utils'
 
-export const usePermissionStore = defineStore("permission", () => {
-  const { t } = useI18n();
-  const messageStore = useMessageStore();
+export const usePermissionStore = defineStore('permission', () => {
+  const { t } = useI18n()
+  const messageStore = useMessageStore()
 
-  const loading = ref(false);
+  const loading = ref(false)
 
-  const permissions = ref({
+  const permissions = ref<PaginatedResponse<Permission>>({
     items: [],
     page_number: 1,
     page_size: 10,
     total: 0,
-  });
-  const permission = ref({
-    id: "",
-    name: "",
-    description: "",
-  });
+  })
 
-  async function fetchPermissions(options: any) {
-    loading.value = true;
+  const permission = ref<Permission>({
+    id: 0,
+    name: '',
+    description: '',
+  })
 
-    permissions.value = await permissionApi.getAll({
-      page_number: options.page,
-      page_size: options.itemsPerPage,
-      sort: utils.createSorts(options.sortBy),
-      filters: utils.createFilters(options.filterBy, options.search),
-    });
-
-    loading.value = false;
-  }
-
-  async function createPermission(permission) {
-    loading.value = true;
-
+  async function fetchPermissions (options: FetchOptions) {
+    loading.value = true
     try {
-      const rs = await permissionApi.create({
-        name: permission.name,
-        description: permission.description,
-      });
-
-      permissions.value.items = [rs, ...permissions.value.items];
-
-      messageStore.add({
-        text: t("permissions.form.addSuccess", { name: "Permission" }),
-        color: "success",
-      });
-
-      return rs;
-    } catch (err) {
-      messageStore.add({
-        text: err.response?.data?.msg || t("errors.common"),
-        color: "error",
-      });
-
-      throw err;
+      permissions.value = await permissionApi.getAll({
+        page_number: options.page,
+        page_size: options.itemsPerPage,
+        sort: utils.createSorts(options.sortBy),
+        filters: utils.createFilters(options.filterBy, options.search),
+      })
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  async function updatePermission(permission) {
-    loading.value = true;
-
+  async function createPermission (newPermission: Permission) {
+    loading.value = true
     try {
-      const rs = await permissionApi.updateById(permission.id, permission);
+      const rs = await permissionApi.create(newPermission)
 
-      permissions.value.items = permissions.value.items.map((item) =>
-        item.id === permission.id ? rs : item
-      );
+      permissions.value.items = [rs, ...permissions.value.items]
 
       messageStore.add({
-        text: t("permissions.form.updateSuccess", { name: "Permission" }),
-        color: "success",
-      });
+        text: t('permissions.form.addSuccess'),
+        color: 'success',
+      })
 
-      return rs;
-    } catch (err) {
+      return rs
+    } catch (error: any) {
       messageStore.add({
-        text: err.response?.data?.msg || t("errors.common"),
-        color: "error",
-      });
-
-      throw err;
+        text: error.response?.data?.msg || t('errors.common'),
+        color: 'error',
+      })
+      throw error
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  async function deletePermission(id: string | number) {
-    loading.value = true;
-
+  async function updatePermission (updatedPermission: Permission) {
+    loading.value = true
     try {
-      await permissionApi.deleteById(id);
+      const rs = await permissionApi.updateById(
+        updatedPermission.id,
+        updatedPermission,
+      )
+
+      permissions.value.items = permissions.value.items.map(item =>
+        item.id === updatedPermission.id ? rs : item,
+      )
+
+      messageStore.add({
+        text: t('permissions.form.updateSuccess'),
+        color: 'success',
+      })
+
+      return rs
+    } catch (error: any) {
+      messageStore.add({
+        text: error.response?.data?.msg || t('errors.common'),
+        color: 'error',
+      })
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deletePermission (id: number) {
+    loading.value = true
+    try {
+      await permissionApi.deleteById(id)
 
       permissions.value.items = permissions.value.items.filter(
-        (item) => item.id !== id
-      );
-      permissions.value.total -= 1;
+        item => item.id !== id,
+      )
+      permissions.value.total = Math.max(0, permissions.value.total - 1)
 
       messageStore.add({
-        text: t("permissions.form.deleteSuccess", { name: "Permission" }),
-        color: "success",
-      });
-    } catch (err) {
+        text: t('permissions.form.deleteSuccess'),
+        color: 'success',
+      })
+    } catch (error: any) {
       messageStore.add({
-        text: err.response?.data?.msg || t("errors.common"),
-        color: "error",
-      });
-
-      throw err;
+        text: error.response?.data?.msg || t('errors.common'),
+        color: 'error',
+      })
+      throw error
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  const setPermission = (newPermission) => {
-    permission.value = newPermission;
-  };
+  const setPermission = (newPermission: Permission) => {
+    permission.value = newPermission
+  }
 
   const resetPermission = () => {
-    permission.value = {
-      id: "",
-      name: "",
-      description: "",
-    };
-  };
+    permission.value = { id: 0, name: '', description: '' }
+  }
 
   return {
     loading,
@@ -142,5 +136,5 @@ export const usePermissionStore = defineStore("permission", () => {
     deletePermission,
     setPermission,
     resetPermission,
-  };
-});
+  }
+})

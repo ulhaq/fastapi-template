@@ -1,86 +1,85 @@
-// stores/auth.ts
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
-import { useMessageStore } from "@/stores/message";
-import router from "@/router";
-import axios from "@/apis/base";
-import authApi from "@/apis/auth";
-import i18n from "@/plugins/i18n";
+import type { User } from '@/types/user'
+import { defineStore } from 'pinia'
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import authApi from '@/apis/auth'
+import axios from '@/apis/base'
+import i18n from '@/plugins/i18n'
+import router from '@/router'
+import { useMessageStore } from '@/stores/message'
 
-export const useAuthStore = defineStore("auth", () => {
-  const route = useRoute();
-  const messagesStore = useMessageStore();
+export const useAuthStore = defineStore('auth', () => {
+  const route = useRoute()
+  const messagesStore = useMessageStore()
 
-  const user = ref(null);
-  const accessToken = ref<string | null>(null);
-  const loading = ref(true);
+  const user = ref<User | null>(null)
+  const accessToken = ref<string | null>(null)
+  const loading = ref(true)
 
-  const isAuthenticated = computed(() => !!accessToken.value);
+  const isAuthenticated = computed(() => !!accessToken.value)
 
-  function setAccessToken(token: string) {
-    accessToken.value = token;
+  watch(accessToken, token => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    } else {
+      delete axios.defaults.headers.common['Authorization']
+    }
+  })
+
+  function setAccessToken (token: string) {
+    accessToken.value = token
   }
 
-  function unsetAccessToken() {
-    accessToken.value = null;
+  function unsetAccessToken () {
+    accessToken.value = null
   }
 
-  async function login(email: string, password: string) {
-    loading.value = true;
+  async function login (email: string, password: string) {
+    loading.value = true
     try {
-      const res = await authApi.getToken(email, password);
-      setAccessToken(res.access_token);
+      const res = await authApi.getToken(email, password)
+      setAccessToken(res.access_token)
+      await setUser()
 
-      await setUser();
-
-      const redirect = route.query.redirect;
-      router.push(redirect?.startsWith("/") ? redirect : { name: "index" });
-    } catch (err: any) {
-      if (err?.status) {
-        messagesStore.add({
-          text: i18n.global.t("errors.invalidCredentials"),
-          color: "error",
-        });
-      } else {
-        messagesStore.add({
-          text: i18n.global.t("errors.loginFailed"),
-          color: "error",
-        });
-      }
+      const redirect = route.query.redirect as string | undefined
+      router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
+    } catch (error: any) {
+      messagesStore.add({
+        text: i18n.global.t(
+          error?.status ? 'errors.invalidCredentials' : 'errors.loginFailed',
+        ),
+        color: 'error',
+      })
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  async function refreshToken() {
-    loading.value = true;
+  async function refreshToken () {
+    loading.value = true
     try {
-      const res = await authApi.refreshToken();
-      setAccessToken(res.access_token);
-      await setUser();
-
-      return res.access_token;
+      const res = await authApi.refreshToken()
+      setAccessToken(res.access_token)
+      await setUser()
+      return res.access_token
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  async function logout() {
-    await authApi.logout();
-    unsetAccessToken();
-    user.value = null;
-    delete axios.defaults.headers.common["Authorization"];
-    router.push({ name: "login" });
+  async function logout () {
+    await authApi.logout()
+    unsetAccessToken()
+    user.value = null
+    router.push({ name: 'login' })
   }
 
-  async function setUser() {
-    const rs = await authApi.getAuthenticatedUser();
-    user.value = rs;
+  async function setUser () {
+    user.value = await authApi.getAuthenticatedUser()
   }
 
-  async function getUser() {
-    return user.value;
+  async function getUser () {
+    return user.value
   }
 
   return {
@@ -92,5 +91,5 @@ export const useAuthStore = defineStore("auth", () => {
     refreshToken,
     logout,
     getUser,
-  };
-});
+  }
+})

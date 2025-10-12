@@ -12,8 +12,8 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import PermissionTable from "@/components/permissions/PermissionTable.vue";
+  import { useI18n } from 'vue-i18n'
+  import PermissionTable from '@/components/permissions/PermissionTable.vue'
 
-const { t } = useI18n();
+  const { t } = useI18n()
 </script>

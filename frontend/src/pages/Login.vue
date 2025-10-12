@@ -1,6 +1,6 @@
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-form ref="loginForm" @submit.prevent="submit" class="pb-4">
+    <v-form ref="loginForm" class="pb-4" @submit.prevent="submit">
       <v-card class="pa-6" elevation="8" width="450">
         <v-card-title class="text-h5 text-center mb-6">{{
           t("login.form.title")
@@ -30,11 +30,11 @@
           <v-row>
             <v-col>
               <v-btn
+                block
                 class="mb-4"
                 color="primary"
-                type="submit"
                 :loading="authStore.loading"
-                block
+                type="submit"
               >
                 {{ t("login.form.submit") }}
               </v-btn>
@@ -57,26 +57,26 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import { ref } from "vue";
-import { useAuthStore } from "@/stores/auth";
-import { validation } from "@/plugins/validation";
+  import { ref } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import { validation } from '@/plugins/validation'
+  import { useAuthStore } from '@/stores/auth'
 
-const { t } = useI18n();
-const authStore = useAuthStore();
+  const { t } = useI18n()
+  const authStore = useAuthStore()
 
-const email = ref("");
-const password = ref("");
-const loginForm = ref(null);
+  const email = ref('')
+  const password = ref('')
+  const loginForm = ref(null)
 
-const submit = async () => {
-  const { valid } = await loginForm.value.validate();
-  if (!valid) return;
+  async function submit () {
+    const { valid } = await loginForm.value.validate()
+    if (!valid) return
 
-  authStore.login(email.value, password.value);
-};
+    authStore.login(email.value, password.value)
+  }
 
-onMounted(async () => {
+  onMounted(async () => {
   //
-});
+  })
 </script>

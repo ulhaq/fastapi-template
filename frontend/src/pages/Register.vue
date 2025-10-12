@@ -5,12 +5,12 @@
         t("register.form.title")
       }}</v-card-title>
       <v-card-text>
-        <v-form v-model="valid" @submit.prevent="submit" class="pb-4">
+        <v-form v-model="valid" class="pb-4" @submit.prevent="submit">
           <v-text-field
             v-model="name"
             :label="t('common.name')"
-            type="name"
             :rules="[validation.required]"
+            type="name"
           />
           <v-text-field
             v-model="email"
@@ -25,11 +25,11 @@
             type="password"
           />
           <v-btn
+            block
             class="mb-4"
             color="primary"
-            type="submit"
             :loading="authStore.loading"
-            block
+            type="submit"
           >
             {{ t("register.form.submit") }}
           </v-btn>
@@ -40,47 +40,47 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import { ref } from "vue";
-import { useAuthStore } from "@/stores/auth";
-import { useMessageStore } from "@/stores/message";
-import { validation } from "@/plugins/validation";
-import authApi from "@/apis/auth";
+  import { ref } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import authApi from '@/apis/auth'
+  import { validation } from '@/plugins/validation'
+  import { useAuthStore } from '@/stores/auth'
+  import { useMessageStore } from '@/stores/message'
 
-const { t } = useI18n();
-const authStore = useAuthStore();
-const messageStore = useMessageStore();
+  const { t } = useI18n()
+  const authStore = useAuthStore()
+  const messageStore = useMessageStore()
 
-const name = ref("");
-const email = ref("");
-const password = ref("");
-const valid = ref(false);
+  const name = ref('')
+  const email = ref('')
+  const password = ref('')
+  const valid = ref(false)
 
-const submit = async () => {
-  try {
-    let res = await authApi.register(name.value, email.value, password.value);
+  async function submit () {
+    try {
+      const res = await authApi.register(name.value, email.value, password.value)
 
-    console.log(res);
-    authStore.login(email.value, password.value);
-  } catch (err) {
-    let msg;
-    console.log(err);
+      console.log(res)
+      authStore.login(email.value, password.value)
+    } catch (error) {
+      let msg
+      console.log(error)
 
-    if (err?.response?.data?.msg) {
-      msg = err.response.data.msg;
-    } else if (err?.response?.data?.detail?.[0]) {
-      const loc = err.response.data.detail[0].loc;
-      const locPart = Array.isArray(loc) ? loc[loc.length - 1] : "";
-      const detailMsg = err.response.data.detail[0].msg || "";
-      msg = `${locPart} ${detailMsg}`.toLowerCase();
-    } else {
-      msg = err.response.data.msg;
+      if (error?.response?.data?.msg) {
+        msg = error.response.data.msg
+      } else if (error?.response?.data?.detail?.[0]) {
+        const loc = error.response.data.detail[0].loc
+        const locPart = Array.isArray(loc) ? loc.at(-1) : ''
+        const detailMsg = error.response.data.detail[0].msg || ''
+        msg = `${locPart} ${detailMsg}`.toLowerCase()
+      } else {
+        msg = error.response.data.msg
+      }
+      messageStore.add({ text: msg, color: 'error' })
     }
-    messageStore.add({ text: msg, color: "error" });
   }
-};
 
-onMounted(async () => {
+  onMounted(async () => {
   //
-});
+  })
 </script>

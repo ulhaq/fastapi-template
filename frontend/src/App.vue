@@ -3,18 +3,18 @@
     <v-snackbar-queue
       v-model="messagesStore.queue"
       location="top right"
-    ></v-snackbar-queue>
+    />
 
     <router-view />
   </v-app>
 </template>
 
 <script lang="ts" setup>
-import { useMessageStore } from "@/stores/message";
+  import { useMessageStore } from '@/stores/message'
 
-const messagesStore = useMessageStore();
+  const messagesStore = useMessageStore()
 
-onMounted(async () => {
+  onMounted(async () => {
   //
-});
+  })
 </script>

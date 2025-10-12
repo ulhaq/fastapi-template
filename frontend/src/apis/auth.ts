@@ -1,53 +1,45 @@
-import axios from "@/apis/base";
+import type { Token } from '@/types/auth'
+import type { User } from '@/types/user'
+import axios from '@/apis/base'
 
 export default {
-  async getToken(email: string, password: string) {
+  async getToken (email: string, password: string): Promise<Token> {
     const response = await axios.post(
-      "/auth/token",
-      { username: email, password: password },
+      '/auth/token',
+      { username: email, password },
       {
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-      }
-    );
-    return response.data;
+      },
+    )
+    return response.data
   },
 
-  async refreshToken() {
-    const response = await axios.post("/auth/refresh");
-    return response.data;
+  async refreshToken (): Promise<Token> {
+    const response = await axios.post('/auth/refresh')
+    return response.data
   },
 
-  async logout() {
-    const response = await axios.post("/auth/logout");
-    return response.data;
+  async logout (): Promise<void> {
+    await axios.post('/auth/logout')
   },
 
-  async getAuthenticatedUser() {
-    const response = await axios.get("/users/me");
-    return response.data;
+  async getAuthenticatedUser (): Promise<User> {
+    const response = await axios.get('/users/me')
+    return response.data
   },
 
-  async register(name: string, email: string, password: string) {
-    const response = await axios.post("/auth/register", {
-      name: name,
-      email: email,
-      password: password,
-    });
-    return response.data;
+  async register (name: string, email: string, password: string): Promise<User> {
+    const response = await axios.post('/auth/register', { name, email, password })
+    return response.data
   },
 
-  async requestPasswordReset(email: string) {
-    await axios.post("/auth/reset-password", {
-      email: email,
-    });
+  async requestPasswordReset (email: string): Promise<void> {
+    await axios.post('/auth/reset-password', { email })
   },
 
-  async resetPassword(password: string, token: string) {
-    let response = await axios.post(`/auth/reset-password/${token}`, {
-      password: password,
-    });
-    return response.data;
+  async resetPassword (password: string, token: string): Promise<void> {
+    await axios.post(`/auth/reset-password/${token}`, { password })
   },
-};
+}

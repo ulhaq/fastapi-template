@@ -4,12 +4,12 @@
   </v-btn>
   <v-dialog v-model="open" max-width="768" persistent>
     <v-stepper
-      :items="[t('roles.title'), t('permissions.title')]"
       v-model="step"
-      hide-actions
       :editable="isEditing"
+      hide-actions
+      :items="[t('roles.title'), t('permissions.title')]"
     >
-      <template v-slot:item.1>
+      <template #item.1>
         <v-form ref="roleForm" @submit.prevent="submit">
           <v-card>
             <v-card-title>
@@ -20,19 +20,19 @@
               <v-row>
                 <v-col>
                   <v-text-field
-                    :label="t('common.name')"
                     v-model="roleStore.role.name"
+                    :label="t('common.name')"
                     :rules="[validation.required, validation.minLength(1)]"
-                  ></v-text-field>
+                  />
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
                   <v-text-field
-                    :label="t('common.description')"
                     v-model="roleStore.role.description"
+                    :label="t('common.description')"
                     :rules="[validation.required]"
-                  ></v-text-field>
+                  />
                 </v-col>
               </v-row>
             </v-card-text>
@@ -40,33 +40,33 @@
             <v-card-actions>
               <v-btn
                 color="error"
-                :text="t('common.cancel')"
                 size="large"
+                :text="t('common.cancel')"
                 variant="plain"
                 @click="closeForm"
-              ></v-btn>
-              <v-spacer></v-spacer>
+              />
+              <v-spacer />
               <v-btn
                 color="white"
+                :loading="roleStore.loading"
+                size="large"
                 :text="t('roles.form.saveAndNext')"
-                size="large"
                 variant="elevated"
-                :loading="roleStore.loading"
                 @click="addRoleAndNextStep"
-              ></v-btn>
+              />
               <v-btn
                 color="white"
-                :text="t('common.save')"
-                size="large"
-                variant="elevated"
-                type="submit"
                 :loading="roleStore.loading"
-              ></v-btn>
+                size="large"
+                :text="t('common.save')"
+                type="submit"
+                variant="elevated"
+              />
             </v-card-actions>
           </v-card>
         </v-form>
       </template>
-      <template v-slot:item.2>
+      <template #item.2>
         <v-card>
           <v-card-title>
             <span class="text-h6">{{
@@ -75,25 +75,30 @@
           </v-card-title>
 
           <v-card-text>
-            <add-permission-to-role-table v-model="selectedPermissions" />
+            <permission-table
+              v-model="selectedPermissions"
+              :headers="permissionHeaders"
+            >
+              <template #toolbar.action />
+            </permission-table>
           </v-card-text>
 
           <v-card-actions>
             <v-btn
               color="error"
-              :text="t('common.cancel')"
               size="large"
+              :text="t('common.cancel')"
               variant="plain"
               @click="closeForm"
-            ></v-btn>
-            <v-spacer></v-spacer>
+            />
+            <v-spacer />
             <v-btn
               color="white"
-              :text="t('roles.form.assignPermissionsToRole')"
               size="large"
+              :text="t('roles.form.assignPermissionsToRole')"
               variant="elevated"
               @click="assignPermissionsToRole"
-            ></v-btn>
+            />
           </v-card-actions>
         </v-card>
       </template>
@@ -102,109 +107,108 @@
 </template>
 
 <script setup>
-import { useI18n } from "vue-i18n";
-import { ref, computed, watch } from "vue";
-import { useRoleStore } from "@/stores/role";
-import { validation } from "@/plugins/validation";
+  import { computed, ref, watch } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import { validation } from '@/plugins/validation'
+  import { useRoleStore } from '@/stores/role'
 
-const { t } = useI18n();
+  const { t } = useI18n()
 
-const roleStore = useRoleStore();
+  const roleStore = useRoleStore()
 
-const roleForm = ref(null);
+  const permissionHeaders = computed(() => [
+    { title: t('common.name'), key: 'name' },
+    { title: t('common.description'), key: 'description' },
+  ])
 
-const step = ref(1);
-const open = ref(false);
-const selectedPermissions = ref([]);
+  const roleForm = ref(null)
 
-const roleId = ref(null);
+  const step = ref(1)
+  const open = ref(false)
+  const selectedPermissions = ref([])
 
-watch(
-  () => roleStore.role,
-  (val) => {
-    if (val.id) {
-      roleStore.setRole(val);
-      roleId.value = val.id;
-      selectedPermissions.value = val.permissions.map(
-        (permission) => permission.id
-      );
-      step.value = 1;
-      open.value = true;
+  const roleId = ref(null)
+
+  watch(
+    () => roleStore.role,
+    val => {
+      if (val.id && !open.value) {
+        roleStore.setRole({ ...val })
+        roleId.value = val.id
+        selectedPermissions.value = val.permissions.map(
+          permission => permission.id,
+        )
+        step.value = 1
+        open.value = true
+      }
+    },
+    { immediate: true },
+  )
+
+  watch(open, val => {
+    if (!val) {
+      roleStore.resetRole()
+      roleId.value = null
+      step.value = 1
+      selectedPermissions.value = []
     }
-  },
-  { immediate: true }
-);
+  })
 
-watch(open, (val) => {
-  if (!val) {
-    roleStore.resetRole();
-    roleId.value = null;
-    step.value = 1;
-    selectedPermissions.value = [];
+  const title = computed(() => {
+    return roleId.value ? t('roles.form.editTitle') : t('roles.form.addTitle')
+  })
+
+  const isEditing = computed(() => {
+    return roleId.value != null
+  })
+
+  function openForm () {
+    open.value = true
   }
-});
 
-const title = computed(() => {
-  return roleId.value ? t("roles.form.editTitle") : t("roles.form.addTitle");
-});
+  function closeForm () {
+    open.value = false
+    roleStore.loading = false
+  }
 
-const isEditing = computed(() => {
-  return roleId.value != null;
-});
+  async function submit () {
+    const { valid } = await roleForm.value.validate()
+    if (!valid) return
 
-const openForm = () => {
-  open.value = true;
-};
+    try {
+      await (isEditing.value
+        ? roleStore.updateRole(roleStore.role)
+        : roleStore.createRole(roleStore.role))
 
-const closeForm = () => {
-  open.value = false;
-  roleStore.loading = false;
-};
-
-const submit = async () => {
-  const { valid } = await roleForm.value.validate();
-  if (!valid) return;
-
-  try {
-    if (!isEditing.value) {
-      await roleStore.createRole(roleStore.role);
-    } else {
-      await roleStore.updateRole(roleStore.role);
+      closeForm()
+    } catch (error) {
+      console.error('Error during submit:', error)
     }
-
-    closeForm();
-  } catch (err) {
-    console.error("Error during submit:", err);
   }
-};
 
-const addRoleAndNextStep = async () => {
-  const { valid } = await roleForm.value.validate();
-  if (!valid) return;
+  async function addRoleAndNextStep () {
+    const { valid } = await roleForm.value.validate()
+    if (!valid) return
 
-  try {
-    let rs;
+    try {
+      const rs = await (isEditing.value
+        ? roleStore.updateRole(roleStore.role)
+        : roleStore.createRole(roleStore.role))
 
-    if (!isEditing.value) {
-      rs = await roleStore.createRole(roleStore.role);
-    } else {
-      rs = await roleStore.updateRole(roleStore.role);
+      roleId.value = rs.id
+      step.value = 2
+    } catch (error) {
+      console.error('Error during addRoleAndNextStep:', error)
     }
-
-    roleId.value = rs.id;
-    step.value = 2;
-  } catch (err) {
-    console.error("Error during addRoleAndNextStep:", err);
   }
-};
 
-const assignPermissionsToRole = async () => {
-  try {
-    await roleStore.managePermissions(roleId.value, selectedPermissions.value);
+  async function assignPermissionsToRole () {
+    try {
+      await roleStore.managePermissions(roleId.value, selectedPermissions.value)
 
-    closeForm();
-  } catch (err) {
-    console.error("Error during assignPermissionsToRole:", err);
+      closeForm()
+    } catch (error) {
+      console.error('Error during assignPermissionsToRole:', error)
+    }
   }
-};
 </script>

@@ -1,160 +1,152 @@
-import { defineStore } from "pinia";
-import { ref } from "vue";
-import { useI18n } from "vue-i18n";
-import { useMessageStore } from "@/stores/message";
-import roleApi from "@/apis/roles";
-import utils from "@/utils";
+import type { FetchOptions, PaginatedResponse } from '@/types/common'
+import type { Role } from '@/types/role'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import roleApi from '@/apis/roles'
+import { useMessageStore } from '@/stores/message'
+import utils from '@/utils'
 
-export const useRoleStore = defineStore("role", () => {
-  const { t } = useI18n();
-  const messageStore = useMessageStore();
+export const useRoleStore = defineStore('role', () => {
+  const { t } = useI18n()
+  const messageStore = useMessageStore()
 
-  const loading = ref(false);
+  const loading = ref(false)
 
-  const roles = ref({
+  const roles = ref<PaginatedResponse<Role>>({
     items: [],
     page_number: 1,
     page_size: 10,
     total: 0,
-  });
-  const role = ref({
-    id: "",
-    name: "",
-    description: "",
-    permissions: [],
-  });
+  })
 
-  async function fetchRoles(options: any) {
-    loading.value = true;
+  const role = ref<Role | Role>({
+    id: 0,
+    name: '',
+    description: '',
+    permission_ids: [],
+  })
 
-    roles.value = await roleApi.getAll({
-      page_number: options.page,
-      page_size: options.itemsPerPage,
-      sort: utils.createSorts(options.sortBy),
-      filters: utils.createFilters(options.filterBy, options.search),
-    });
-
-    loading.value = false;
-  }
-
-  async function createRole(role) {
-    loading.value = true;
-
+  async function fetchRoles (options: FetchOptions) {
+    loading.value = true
     try {
-      const rs = await roleApi.create({
-        name: role.name,
-        description: role.description,
-      });
-
-      roles.value.items = [rs, ...roles.value.items];
-
-      messageStore.add({
-        text: t("roles.form.addSuccess", { name: "Role" }),
-        color: "success",
-      });
-
-      return rs;
-    } catch (err) {
-      messageStore.add({
-        text: err.response?.data?.msg || t("errors.common"),
-        color: "error",
-      });
-
-      throw err;
+      roles.value = await roleApi.getAll({
+        page_number: options.page,
+        page_size: options.itemsPerPage,
+        sort: utils.createSorts(options.sortBy),
+        filters: utils.createFilters(options.filterBy, options.search),
+      })
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  async function updateRole(role) {
-    loading.value = true;
-
+  async function createRole (newRole: Role) {
+    loading.value = true
     try {
-      const rs = await roleApi.updateById(role.id, role);
+      const rs = await roleApi.create(newRole)
 
-      roles.value.items = roles.value.items.map((item) =>
-        item.id === role.id ? rs : item
-      );
+      roles.value.items = [rs, ...roles.value.items]
 
       messageStore.add({
-        text: t("roles.form.updateSuccess", { name: "Role" }),
-        color: "success",
-      });
+        text: t('roles.form.addSuccess'),
+        color: 'success',
+      })
 
-      return rs;
-    } catch (err) {
+      return rs
+    } catch (error: any) {
       messageStore.add({
-        text: err.response?.data?.msg || t("errors.common"),
-        color: "error",
-      });
-
-      throw err;
+        text: error.response?.data?.msg || t('errors.common'),
+        color: 'error',
+      })
+      throw error
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  async function managePermissions(id, permissionIds) {
+  async function updateRole (updatedRole: Role) {
+    loading.value = true
     try {
-      const rs = await roleApi.managePermissions(id, permissionIds);
+      const rs = await roleApi.updateById(updatedRole.id, updatedRole)
 
-      roles.value.items = roles.value.items.map((item) =>
-        item.id === id ? rs : item
-      );
-
-      messageStore.add({
-        text: t("roles.form.assignedPermissionsSuccess"),
-        color: "success",
-      });
-
-      return rs;
-    } catch (err) {
-      messageStore.add({
-        text: err?.response?.data?.msg || t("errors.common"),
-        color: "error",
-      });
-
-      throw err;
-    }
-  }
-
-  async function deleteRole(id: string | number) {
-    loading.value = true;
-
-    try {
-      await roleApi.deleteById(id);
-
-      roles.value.items = roles.value.items.filter((item) => item.id !== id);
-      roles.value.total -= 1;
+      roles.value.items = roles.value.items.map(item =>
+        item.id === updatedRole.id ? rs : item,
+      )
 
       messageStore.add({
-        text: t("roles.form.deleteSuccess", { name: "Role" }),
-        color: "success",
-      });
-    } catch (err) {
-      messageStore.add({
-        text: err.response?.data?.msg || t("errors.common"),
-        color: "error",
-      });
+        text: t('roles.form.updateSuccess'),
+        color: 'success',
+      })
 
-      throw err;
+      return rs
+    } catch (error: any) {
+      messageStore.add({
+        text: error.response?.data?.msg || t('errors.common'),
+        color: 'error',
+      })
+      throw error
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-  const setRole = (newRole) => {
-    role.value = newRole;
-  };
+  async function managePermissions (
+    roleId: string | number,
+    permissionIds: string[],
+  ) {
+    try {
+      const rs = await roleApi.managePermissions(roleId, permissionIds)
+
+      roles.value.items = roles.value.items.map(item =>
+        item.id === roleId ? rs : item,
+      )
+
+      messageStore.add({
+        text: t('roles.form.assignedPermissionsSuccess'),
+        color: 'success',
+      })
+
+      return rs
+    } catch (error: any) {
+      messageStore.add({
+        text: error?.response?.data?.msg || t('errors.common'),
+        color: 'error',
+      })
+      throw error
+    }
+  }
+
+  async function deleteRole (id: number) {
+    loading.value = true
+    try {
+      await roleApi.deleteById(id)
+
+      roles.value.items = roles.value.items.filter(item => item.id !== id)
+      roles.value.total = Math.max(0, roles.value.total - 1)
+
+      messageStore.add({
+        text: t('roles.form.deleteSuccess'),
+        color: 'success',
+      })
+    } catch (error: any) {
+      messageStore.add({
+        text: error.response?.data?.msg || t('errors.common'),
+        color: 'error',
+      })
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const setRole = (newRole: Role) => {
+    role.value = newRole
+  }
 
   const resetRole = () => {
-    role.value = {
-      id: "",
-      name: "",
-      description: "",
-      permissions: [],
-    };
-  };
+    role.value = { id: 0, name: '', description: '', permission_ids: [] }
+  }
 
   return {
     loading,
@@ -167,5 +159,5 @@ export const useRoleStore = defineStore("role", () => {
     deleteRole,
     setRole,
     resetRole,
-  };
-});
+  }
+})
