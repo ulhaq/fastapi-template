@@ -11,8 +11,10 @@ function createSorts (params?: SortParam[] | null): string | null {
     .join(',')
 }
 
-function createFilters (params?: Record<string, string>,
-  value?: string | null): string | null {
+function createFilters (
+  params?: Record<string, string>,
+  value?: string | null,
+): string | null {
   if (!params || value == null || value === '') {
     return null
   }
@@ -27,7 +29,18 @@ function createFilters (params?: Record<string, string>,
   return JSON.stringify(filters)
 }
 
+function highlightSearchTerm (searchTerm: string, text: string) {
+  if (!searchTerm) {
+    return text
+  }
+
+  const regex = new RegExp(`(?!<[^>]*?)(${searchTerm})(?![^<]*?>)`, 'gi')
+
+  return String(text).replace(regex, '<strong>$1</strong>')
+}
+
 export default {
   createSorts,
   createFilters,
+  highlightSearchTerm,
 }

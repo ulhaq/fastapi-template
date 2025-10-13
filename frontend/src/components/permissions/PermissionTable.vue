@@ -47,58 +47,58 @@
 </template>
 
 <script setup>
-import { isEmpty } from "lodash";
-import { computed, ref } from "vue";
-import { useI18n } from "vue-i18n";
-import DataTable from "@/components/DataTable.vue";
-import PermissionForm from "@/components/permissions/PermissionForm.vue";
-import { usePermissionStore } from "@/stores/permission";
+  import { isEmpty } from 'lodash'
+  import { computed, ref } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import DataTable from '@/components/DataTable.vue'
+  import PermissionForm from '@/components/permissions/PermissionForm.vue'
+  import { usePermissionStore } from '@/stores/permission'
 
-const componentProps = defineProps({
-  headers: {
-    type: Array,
-    default: () => [],
-  },
-});
+  const componentProps = defineProps({
+    headers: {
+      type: Array,
+      default: () => [],
+    },
+  })
 
-const permissionStore = usePermissionStore();
+  const permissionStore = usePermissionStore()
 
-const { t } = useI18n();
+  const { t } = useI18n()
 
-const headers = computed(() => {
-  return isEmpty(componentProps.headers)
-    ? [
-        { title: t("common.name"), key: "name" },
-        { title: t("common.description"), key: "description" },
-        { title: t("common.createdAt"), key: "created_at" },
-        { title: t("common.updatedAt"), key: "updated_at" },
-        { title: t("common.actions"), key: "actions", sortable: false },
+  const headers = computed(() => {
+    return isEmpty(componentProps.headers)
+      ? [
+        { title: t('common.name'), key: 'name' },
+        { title: t('common.description'), key: 'description' },
+        { title: t('common.createdAt'), key: 'created_at' },
+        { title: t('common.updatedAt'), key: 'updated_at' },
+        { title: t('common.actions'), key: 'actions', sortable: false },
       ]
-    : componentProps.headers;
-});
+      : componentProps.headers
+  })
 
-const deleteMenus = ref({});
-const selectedItems = ref([]);
-const options = ref({
-  page: 1,
-  itemsPerPage: 10,
-  sortBy: [{ key: "updated_at", order: "desc" }],
-  filterBy: { name: "co", description: "co" },
-});
+  const deleteMenus = ref({})
+  const selectedItems = ref([])
+  const options = ref({
+    page: 1,
+    itemsPerPage: 10,
+    sortBy: [{ key: 'updated_at', order: 'desc' }],
+    filterBy: { name: 'co', description: 'co' },
+  })
 
-async function fetchPermissions(newOptions) {
-  options.value = newOptions;
+  async function fetchPermissions (newOptions) {
+    options.value = newOptions
 
-  await permissionStore.fetchPermissions(newOptions);
-}
+    await permissionStore.fetchPermissions(newOptions)
+  }
 
-function editPermission(permission) {
-  permissionStore.permission = permission;
-}
+  function editPermission (permission) {
+    permissionStore.permission = permission
+  }
 
-async function confirmDelete(item) {
-  deleteMenus.value[item.id] = false;
+  async function confirmDelete (item) {
+    deleteMenus.value[item.id] = false
 
-  await permissionStore.deletePermission(item.id);
-}
+    await permissionStore.deletePermission(item.id)
+  }
 </script>

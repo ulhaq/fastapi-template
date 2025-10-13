@@ -38,7 +38,7 @@
           #[`item.${header.key}`]="{ item }"
         >
           <slot :item="item" :name="`item.${header.key}`">
-            {{ item[header.key] }}
+            <span v-html="utils.highlightSearchTerm(search, item[header.key])" />
           </slot>
         </template>
       </v-data-table-server>
@@ -48,6 +48,7 @@
 
 <script setup>
   import debounce from 'lodash/debounce'
+  import utils from '@/utils'
 
   const props = defineProps({
     headers: {
