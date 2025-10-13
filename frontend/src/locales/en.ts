@@ -66,6 +66,7 @@ export default {
     form: {
       addTitle: 'Add new role',
       editTitle: 'Edit role',
+      permissionAssignmentTitle: 'Assign permissions to {role}',
       saveAndNext: 'Save & assign permissions',
       assignPermissionsToRole: 'Assign permissions',
       addSuccess: 'Role was added successfully',

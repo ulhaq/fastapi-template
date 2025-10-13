@@ -66,6 +66,7 @@ export default {
     form: {
       addTitle: 'Tilføj ny rolle',
       editTitle: 'Rediger rolle',
+      permissionAssignmentTitle: 'Tildel tilladelser til {role}',
       saveAndNext: 'Gem og tildel tilladelser',
       assignPermissionsToRole: 'Tildel tilladelser',
       addSuccess: 'Rollen blev tilføjet succesfuldt',

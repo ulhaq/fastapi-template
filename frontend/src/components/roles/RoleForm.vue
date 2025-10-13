@@ -70,7 +70,7 @@
         <v-card>
           <v-card-title>
             <span class="text-h6">{{
-              t("roles.form.assignPermissionsToRole")
+              t("roles.form.permissionAssignmentTitle", {role: roleStore.role.name})
             }}</span>
           </v-card-title>
 
