@@ -33,14 +33,6 @@ class Filters(BaseModel):
     v: Annotated[list, Field()]
     op: ComparisonOperator = Field(default=ComparisonOperator.EQUALS)
 
-    @field_validator("op", mode="before")
-    @classmethod
-    def str_to_enum(cls, val: str) -> ComparisonOperator:
-        try:
-            return ComparisonOperator(val)
-        except ValueError as exc:
-            raise ValidationException(f"Unsupported filter operator: {val}") from exc
-
 
 class PageQueryParams(BaseModel):
     sort: Annotated[list[str], Field()]

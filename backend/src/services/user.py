@@ -58,7 +58,7 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
         await super().delete(identifier)
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
-        def authorize():
+        def authorize() -> None:
             auth_user = get_current_user()
 
             auth_user.authorize("manage_user_role")

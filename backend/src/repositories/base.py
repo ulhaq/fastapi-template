@@ -6,6 +6,7 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import UnaryExpression
 
 from src.core.database import Base
+from src.enums import ComparisonOperator
 from src.repositories import utils
 from src.repositories.abc import ResourceRepositoryABC
 
@@ -127,7 +128,12 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
             if not values:
                 continue
 
-            operator = filter_data["op"]
+            try:
+                operator = ComparisonOperator(filter_data["op"])
+            except ValueError as exc:
+                raise ValueError(
+                    f"Unsupported filter operator: {filter_data['op']}"
+                ) from exc
 
             field = getattr(self.model, field_name, None)
             if not field or not hasattr(field, "type"):
@@ -136,11 +142,11 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
             field_type = field.type.python_type
             if operator not in utils.FILTER_OPERATORS_BY_FIELD_TYPE.get(field_type, []):
                 raise ValueError(
-                    f"Operator '{operator}' not supported "
+                    f"Operator '{operator.value}' not supported "
                     f"for '{field_type.__name__}' type"
                 )
 
-            values = utils.cast_values_to_type(values, field_type, field_name)
+            values = utils.cast_values_to_type(values, field_type, field_name, operator)
 
             filter_expression = utils.get_filter_expression(operator, values, field)
             if filter_expression is not None:
