@@ -22,7 +22,7 @@ export default {
     createdAt: 'Oprettet den',
     updatedAt: 'Opdateret den',
     actions: 'Handlinger',
-    search: 'Søg',
+    search: 'Søg (Ctrl+K eller /)',
     close: 'Luk',
     cancel: 'Annuller',
     confirm: 'Bekræft',

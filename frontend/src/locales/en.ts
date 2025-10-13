@@ -22,7 +22,7 @@ export default {
     createdAt: 'Created at',
     updatedAt: 'Updated at',
     actions: 'Actions',
-    search: 'Search',
+    search: 'Search (Ctrl+K or /)',
     close: 'Close',
     cancel: 'Cancel',
     confirm: 'Confirm',
