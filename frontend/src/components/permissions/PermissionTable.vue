@@ -83,7 +83,7 @@
     page: 1,
     itemsPerPage: 10,
     sortBy: [{ key: 'updated_at', order: 'desc' }],
-    filterBy: { name: 'co', description: 'co' },
+    filterBy: { name: 'ico', description: 'ico', created_at: 'co', updated_at: 'co' },
   })
 
   async function fetchPermissions (newOptions) {
