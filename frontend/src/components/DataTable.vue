@@ -5,7 +5,7 @@
         <slot name="toolbar.search">
           <search-bar v-model="search" />
         </slot>
-        <v-spacer />
+        <v-spacer v-if="props.toolbarSpacer" />
         <slot name="toolbar.action" />
       </v-toolbar>
     </v-col>
@@ -51,6 +51,10 @@
   import utils from '@/utils'
 
   const props = defineProps({
+    toolbarSpacer: {
+      type: Boolean,
+      default: true,
+    },
     headers: {
       type: Array,
       required: true,

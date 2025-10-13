@@ -6,6 +6,7 @@
     :loading="permissionStore.loading"
     :options="options"
     show-select
+    :toolbar-spacer="toolbarSpacer"
     :total-items="permissionStore.permissions.total"
     @update:options="fetchPermissions"
   >
@@ -55,6 +56,10 @@
   import { usePermissionStore } from '@/stores/permission'
 
   const componentProps = defineProps({
+    toolbarSpacer: {
+      type: Boolean,
+      default: true,
+    },
     headers: {
       type: Array,
       default: () => [],

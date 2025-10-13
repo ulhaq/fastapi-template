@@ -78,6 +78,7 @@
             <permission-table
               v-model="selectedPermissions"
               :headers="permissionHeaders"
+              :toolbar-spacer="false"
             >
               <template #toolbar.action />
             </permission-table>
