@@ -82,11 +82,7 @@
     { name: 'index', text: t('menuBar.index'), icon: 'mdi-home' },
     { name: 'users', text: t('menuBar.users'), icon: 'mdi-account-group' },
     { name: 'roles', text: t('menuBar.roles'), icon: 'mdi-shield-account' },
-    {
-      name: 'permissions',
-      text: t('menuBar.permissions'),
-      icon: 'mdi-shield-star',
-    },
+    { name: 'permissions', text: t('menuBar.permissions'), icon: 'mdi-shield-star' },
   ])
 
   const drawer = ref(true)
