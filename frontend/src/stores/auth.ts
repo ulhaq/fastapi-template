@@ -10,7 +10,7 @@ import { useMessageStore } from '@/stores/message'
 
 export const useAuthStore = defineStore('auth', () => {
   const route = useRoute()
-  const messagesStore = useMessageStore()
+  const messageStore = useMessageStore()
 
   const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
@@ -44,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
       const redirect = route.query.redirect as string | undefined
       router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
     } catch (error: any) {
-      messagesStore.add({
+      messageStore.add({
         text: i18n.global.t(
           error?.status ? 'errors.invalidCredentials' : 'errors.loginFailed',
         ),
@@ -62,6 +62,24 @@ export const useAuthStore = defineStore('auth', () => {
       setAccessToken(res.access_token)
       await setUser()
       return res.access_token
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function requestPasswordReset (email: string) {
+    loading.value = true
+    try {
+      return await authApi.requestPasswordReset(email)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function resetPassword (password: string, token: string) {
+    loading.value = true
+    try {
+      return await authApi.resetPassword(password, token)
     } finally {
       loading.value = false
     }
@@ -89,6 +107,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     login,
     refreshToken,
+    requestPasswordReset,
+    resetPassword,
     logout,
     getUser,
   }

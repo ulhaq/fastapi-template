@@ -35,11 +35,13 @@ export default {
     return response.data
   },
 
-  async requestPasswordReset (email: string): Promise<void> {
-    await axios.post('/auth/reset-password', { email })
+  async requestPasswordReset (email: string): Promise<any> {
+    const response = await axios.post('/auth/reset-password', { email })
+    return response.data
   },
 
-  async resetPassword (password: string, token: string): Promise<void> {
-    await axios.post(`/auth/reset-password/${token}`, { password })
+  async resetPassword (password: string, token: string): Promise<any> {
+    const response = await axios.post(`/auth/reset-password/${token}`, { password })
+    return response.data
   },
 }

@@ -5,7 +5,7 @@
         t("reset.form.requestTitle")
       }}</v-card-title>
       <v-card-text>
-        <v-form v-model="valid" class="pb-4" @submit.prevent="request">
+        <v-form ref="requestForm" class="pb-4" @submit.prevent="request">
           <v-text-field
             v-model="email"
             :label="t('common.email')"
@@ -13,7 +13,7 @@
             type="email"
           />
           <v-btn block class="mb-4" color="primary" type="submit">
-            {{ t("reset.form.submit") }}
+            {{ t("common.submit") }}
           </v-btn>
           <v-card-actions>
             <v-btn class="mt-4" :to="{ name: 'register' }">{{
@@ -32,13 +32,7 @@
         t("reset.form.resetTitle")
       }}</v-card-title>
       <v-card-text>
-        <v-form v-model="valid" class="pb-4" @submit.prevent="reset">
-          <v-text-field
-            v-model="email"
-            :label="t('common.email')"
-            :rules="[validation.required, validation.email]"
-            type="email"
-          />
+        <v-form ref="resetForm" class="pb-4" @submit.prevent="reset">
           <v-text-field
             v-model="password"
             :label="t('common.password')"
@@ -46,7 +40,7 @@
             type="password"
           />
           <v-btn block class="mb-4" color="primary" type="submit">
-            {{ t("reset.form.submit") }}
+            {{ t("reset.form.update") }}
           </v-btn>
         </v-form>
       </v-card-text>
@@ -58,8 +52,8 @@
   import { computed, ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { useRoute } from 'vue-router'
-  import authApi from '@/apis/auth'
   import { validation } from '@/plugins/validation'
+  import router from '@/router'
   import { useAuthStore } from '@/stores/auth'
   import { useMessageStore } from '@/stores/message'
 
@@ -71,21 +65,34 @@
 
   const email = ref('')
   const password = ref('')
-  const valid = ref(false)
+  const requestForm = ref(false)
+  const resetForm = ref(false)
 
   const newPassword = computed(() => {
     return route.params.token
   })
 
-  function request () {
-    authApi.requestPasswordReset(email.value)
+  async function request () {
+    const { valid } = await requestForm.value.validate()
+    if (!valid) return
+
+    authStore.requestPasswordReset(email.value).then(() => {
+      email.value = null
+
+      messageStore.add({ text: t('reset.form.requestSuccess'), color: 'success' })
+    })
   }
 
   async function reset () {
-    try {
-      await authApi.resetPassword(password.value, route.params.token)
+    const { valid } = await resetForm.value.validate()
+    if (!valid) return
 
-      authStore.login(email.value, password.value)
+    try {
+      await authStore.resetPassword(password.value, route.params.token)
+
+      messageStore.add({ text: t('reset.form.resetSuccess'), color: 'success' })
+
+      router.push({ name: 'login' })
     } catch (error) {
       let msg
       if (error?.response?.data?.msg) {

@@ -27,6 +27,7 @@ export default {
     cancel: 'Annuller',
     confirm: 'Bekræft',
     save: 'Gem',
+    submit: 'Indsend',
   },
   menuBar: {
     index: 'Hjem',
@@ -52,7 +53,9 @@ export default {
     form: {
       requestTtitle: 'Anmod om nulstilling af adgangskode',
       resetTitle: 'Vælg en ny adgangskode',
-      submit: 'Indsend',
+      update: 'Opdater adgangskode',
+      requestSuccess: 'Hvis der findes en konto med denne e-mail, er der sendt et link til nulstilling af adgangskoden',
+      resetSuccess: 'Din adgangskode er blevet nulstillet',
       newAccount: 'Ny konto',
       login: 'Login',
     },

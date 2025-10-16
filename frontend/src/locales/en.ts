@@ -27,6 +27,7 @@ export default {
     cancel: 'Cancel',
     confirm: 'Confirm',
     save: 'Save',
+    submit: 'Submit',
   },
   menuBar: {
     index: 'Home',
@@ -52,7 +53,9 @@ export default {
     form: {
       requestTitle: 'Request password reset',
       resetTitle: 'Choose a new password',
-      submit: 'Submit',
+      update: 'Update password',
+      requestSuccess: 'If an account with that email exists, a password reset link has been sent',
+      resetSuccess: 'Your password has been reset successfully',
       newAccount: 'New account',
       login: 'Login',
     },

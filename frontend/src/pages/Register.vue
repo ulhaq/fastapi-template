@@ -5,7 +5,7 @@
         t("register.form.title")
       }}</v-card-title>
       <v-card-text>
-        <v-form v-model="valid" class="pb-4" @submit.prevent="submit">
+        <v-form ref="registerForm" class="pb-4" @submit.prevent="submit">
           <v-text-field
             v-model="name"
             :label="t('common.name')"
@@ -54,9 +54,12 @@
   const name = ref('')
   const email = ref('')
   const password = ref('')
-  const valid = ref(false)
+  const registerForm = ref(null)
 
   async function submit () {
+    const { valid } = await registerForm.value.validate()
+    if (!valid) return
+
     try {
       const res = await authApi.register(name.value, email.value, password.value)
 
