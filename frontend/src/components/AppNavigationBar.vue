@@ -2,7 +2,7 @@
   <v-navigation-drawer
     v-model="drawer"
     class="bg-blue-grey-lighten-5 border-e-0 ps-4"
-    :location="$vuetify.display.mobile ? 'left' : undefined"
+    :location="mobile ? 'right' : undefined"
   >
     <v-sheet class="bg-blue-grey-lighten-5 pt-4 pb-8 pl-4">
       <v-img
@@ -60,11 +60,13 @@
   </v-app-bar>
 </template>
 <script setup>
-  import { ref, watch } from 'vue'
+  import { ref } from 'vue'
   import { useI18n } from 'vue-i18n'
-  import { useLocale } from 'vuetify'
+  import { useDisplay, useLocale } from 'vuetify'
   import { availableLocales } from '@/locales/index'
   import { useAuthStore } from '@/stores/auth'
+
+  const { mobile } = useDisplay()
 
   const { current } = useLocale()
 
@@ -83,11 +85,10 @@
     { name: 'permissions', text: t('menuBar.permissions'), icon: 'mdi-shield-star' },
   ])
 
-  const drawer = ref(false)
-  const group = ref(null)
+  const drawer = ref(true)
 
-  watch(group, () => {
-    drawer.value = true
+  onMounted(() => {
+    drawer.value = mobile.value ? false : true
   })
 
   function logout () {
