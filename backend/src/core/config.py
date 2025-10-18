@@ -1,4 +1,4 @@
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,6 +58,14 @@ class Settings(BaseSettings):
 
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False
+
+    @model_validator(mode="after")
+    def validate_allow_origins_and_credentials(self):
+        if self.allow_credentials is True and "*" in self.allow_origins:
+            raise ValueError(
+                "ALLOW_ORIGINS must not contain '*' when ALLOW_CREDENTIALS is True"
+            )
+        return self
 
 
 settings = Settings()  # type: ignore[call-arg]
