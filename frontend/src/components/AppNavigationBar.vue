@@ -83,7 +83,7 @@
     { name: 'permissions', text: t('menuBar.permissions'), icon: 'mdi-shield-star' },
   ])
 
-  const drawer = ref(true)
+  const drawer = ref(false)
   const group = ref(null)
 
   watch(group, () => {
