@@ -2,8 +2,14 @@ import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axio
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
+const apiUrl = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`
+
+if (!import.meta.env.VITE_API_URL) {
+  console.warn('No VITE_API_URL found, using fallback URL:', apiUrl)
+}
+
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: apiUrl,
   headers: {
     'Content-Type': 'application/json',
   },
