@@ -6,7 +6,8 @@ from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.core.config import settings
-from src.core.exceptions import ErrorResponse, InternalServerError
+from src.core.exceptions import BaseErrorResponse, ErrorResponse
+from src.enums import ErrorCode
 
 log = logging.getLogger(__name__)
 
@@ -45,25 +46,34 @@ class ErrorHandlingMiddleware:
         response_started: bool,
         exc: Exception,
     ) -> None:
-        query_string = scope.get("query_string")
+        query_string = (
+            "?" + scope.get("query_string", b"").decode("utf-8")
+            if scope.get("query_string")
+            else ""
+        )
         log.error(
             "%s %s%s -> %s",
             scope.get("method"),
             scope.get("path"),
-            "?" + query_string.decode("utf-8") if query_string else "",
+            query_string,
             exc,
             exc_info=settings.log_exc_info,
         )
 
-        detail = None
-        if settings.app_debug:
-            detail = exc
+        error_content: BaseErrorResponse | ErrorResponse
+        if not settings.app_debug:
+            error_content = BaseErrorResponse.from_exception(
+                Request(scope), error_code=ErrorCode.SERVER_ERROR
+            )
+        else:
+            error_content = ErrorResponse.from_exception(
+                Request(scope), error_code=ErrorCode.SERVER_ERROR, msg=str(exc)
+            )
 
         response = JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=jsonable_encoder(
-                ErrorResponse(Request(scope), InternalServerError(detail))
-            ),
+            content=jsonable_encoder(error_content),
         )
+
         if not response_started:
             await response(scope, receive, send)

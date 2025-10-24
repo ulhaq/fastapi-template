@@ -9,6 +9,7 @@ from src.core.config import settings
 from src.core.database import get_db
 from src.core.exceptions import NotAuthenticatedException
 from src.core.security import Auth, current_user, oauth2_scheme
+from src.enums import ErrorCode
 from src.models.user import User
 
 
@@ -30,7 +31,9 @@ async def authenticate(
         email = payload.get("email")
     except ExpiredSignatureError as exc:
         raise NotAuthenticatedException(
-            detail="Token expired", headers={"WWW-Authenticate": "Bearer"}
+            "Token expired",
+            error_code=ErrorCode.TOKEN_EXPIRED,
+            headers={"WWW-Authenticate": "Bearer"},
         ) from exc
     except InvalidTokenError as exc:
         raise credentials_exception from exc

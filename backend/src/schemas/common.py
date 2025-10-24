@@ -1,9 +1,8 @@
 from datetime import datetime
 from typing import Annotated, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from src.core.exceptions import ValidationException
 from src.repositories.utils import ComparisonOperator
 
 

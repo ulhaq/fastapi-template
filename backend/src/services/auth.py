@@ -20,6 +20,7 @@ from src.core.security import (
     sign,
     unsign,
 )
+from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.user import EmailIn, NewPasswordIn, UserIn, UserOut
 from src.services.base import BaseService
@@ -37,7 +38,8 @@ class AuthService(BaseService):
     ) -> UserOut:
         if await self.repos.user.get_by_email(user_in.email):
             raise AlreadyExistsException(
-                detail=f"Account already exists. [email={user_in.email}]"
+                f"Account already exists. [email={user_in.email}]",
+                error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
             )
 
         user_in.password = hash_password(user_in.password)
@@ -80,11 +82,12 @@ class AuthService(BaseService):
     async def refresh_access_token(
         self, refresh_token: str | None, response: Response
     ) -> Token:
-        credentials_exception = NotAuthenticatedException(
-            headers={"WWW-Authenticate": "Bearer"}
-        )
         if not refresh_token:
-            raise credentials_exception
+            raise NotAuthenticatedException(
+                "Refresh token invalid",
+                error_code=ErrorCode.TOKEN_INVALID,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
         try:
             payload = decode(
@@ -96,10 +99,20 @@ class AuthService(BaseService):
             user_id = payload.get("sub")
         except ExpiredSignatureError as exc:
             raise NotAuthenticatedException(
-                detail="Token expired", headers={"WWW-Authenticate": "Bearer"}
+                "Token expired",
+                error_code=ErrorCode.TOKEN_EXPIRED,
+                headers={"WWW-Authenticate": "Bearer"},
             ) from exc
         except InvalidTokenError as exc:
-            raise credentials_exception from exc
+            raise NotAuthenticatedException(
+                "Token invalid",
+                error_code=ErrorCode.TOKEN_INVALID,
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+
+        credentials_exception = NotAuthenticatedException(
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
         if not user_id:
             raise credentials_exception

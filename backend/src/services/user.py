@@ -5,6 +5,7 @@ from fastapi import BackgroundTasks, Depends
 from src.core.config import settings
 from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
 from src.core.security import get_current_user, hash_password, sign
+from src.enums import ErrorCode
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.user import UserRepository
@@ -27,7 +28,8 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
         async def validate() -> None:
             if await self.repo.get_by_email(schema_in.email):
                 raise AlreadyExistsException(
-                    detail=f"User already exists. [email={schema_in.email}]"
+                    f"User already exists. [email={schema_in.email}]",
+                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
                 )
 
         get_current_user().authorize("create_user")
@@ -65,7 +67,7 @@ class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
 
             if auth_user.id == identifier:
                 raise PermissionDeniedException(
-                    detail="You are not allowed to manage your own roles"
+                    "You are not allowed to manage your own roles"
                 )
 
         authorize()

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from src.core.config import settings
 from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
+from src.enums import ErrorCode
 from src.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -77,9 +78,13 @@ def unsign(token: str, salt: SignSalt, max_age: int = 10 * 60) -> Any:
         s = URLSafeTimedSerializer(secret_key=settings.app_secret, salt=salt)
         return s.loads(token, max_age=max_age)
     except SignatureExpired as exc:
-        raise NotAuthenticatedException("Signature expired") from exc
+        raise NotAuthenticatedException(
+            "Signature expired", error_code=ErrorCode.SIGNATURE_EXPIRED
+        ) from exc
     except BadSignature as exc:
-        raise NotAuthenticatedException("Signature invalid") from exc
+        raise NotAuthenticatedException(
+            "Signature invalid", error_code=ErrorCode.SIGNATURE_INVALID
+        ) from exc
 
 
 def hash_password(password: str) -> str:

@@ -4,8 +4,8 @@ from fastapi import Depends, Query, Request
 from fastapi.encoders import jsonable_encoder
 from pydantic import Json
 
-from src import enums
 from src.core.exceptions import ValidationException
+from src.enums import ComparisonOperator, ErrorCode
 from src.schemas.common import Filters
 
 COMMON_SORTING_FIELDS = ["id", "name", "created_at", "updated_at"]
@@ -47,8 +47,9 @@ def sort_query() -> Callable[..., list[str]]:
 
         if invalid_fields:
             raise ValidationException(
-                detail=f"Invalid sort value(s): {', '.join(invalid_fields)}. "
+                f"Invalid sort value(s): {', '.join(invalid_fields)}. "
                 f"Allowed: {', '.join(valid_fields)}",
+                error_code=ErrorCode.PARAMETER_INVALID,
             )
 
         return sort_fields
@@ -70,7 +71,7 @@ def filters_query() -> Callable[..., dict[str, dict]]:
                 "- `v` is a list of values\n"
                 "- `op` is the operator\n\n"
                 "Available operators are: "
-                + ", ".join(f"`{op.value}`" for op in enums.ComparisonOperator)
+                + ", ".join(f"`{op.value}`" for op in ComparisonOperator)
             ),
         ),
     ) -> dict[str, dict]:
@@ -83,8 +84,9 @@ def filters_query() -> Callable[..., dict[str, dict]]:
 
         if invalid_fields:
             raise ValidationException(
-                detail=f"Invalid filtering field(s): {', '.join(invalid_fields)}. "
+                f"Invalid filtering field(s): {', '.join(invalid_fields)}. "
                 f"Allowed: {', '.join(valid_fields)}",
+                error_code=ErrorCode.PARAMETER_INVALID,
             )
 
         return jsonable_encoder(filters)

@@ -32,7 +32,7 @@ class PermissionService(
         async def validate() -> None:
             if await self.repo.get_one_by_name(schema_in.name):
                 raise AlreadyExistsException(
-                    detail=f"Permission already exists. [name={schema_in.name}]"
+                    f"Permission already exists. [name={schema_in.name}]"
                 )
 
         get_current_user().authorize("create_permission")
@@ -47,7 +47,7 @@ class PermissionService(
 
             if existing_permission and existing_permission.id != identifier:
                 raise AlreadyExistsException(
-                    detail=f"Permission already exists. [name={schema_in.name}]"
+                    f"Permission already exists. [name={schema_in.name}]"
                 )
 
         get_current_user().authorize("update_permission")
