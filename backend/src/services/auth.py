@@ -67,7 +67,10 @@ class AuthService(BaseService):
         )
 
         if not user:
-            raise NotAuthenticatedException(headers={"WWW-Authenticate": "Bearer"})
+            raise NotAuthenticatedException(
+                error_code=ErrorCode.LOGIN_FAILED,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
         access_token = create_access_token(user)
         refresh_token = create_refresh_token(user)

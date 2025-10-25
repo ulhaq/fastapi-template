@@ -90,7 +90,7 @@ async def handle_validation_exception(
                         error_code=error["type"],
                         field=error["loc"],
                         msg=error["msg"],
-                        ctx=error["ctx"],
+                        ctx=error["ctx"] if "ctx" in error else [],
                     )
                     for error in exc.errors()
                 ],

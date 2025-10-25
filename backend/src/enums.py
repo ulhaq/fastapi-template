@@ -21,6 +21,7 @@ class ErrorCode(Enum):
     SERVER_ERROR = ("server_error", "An internal server error occurred")
     VALIDATION_ERROR = ("validation_error", "A validation error occurred")
     UNAUTHORIZED = ("unauthorized", "You are not authorized to perform this action")
+    LOGIN_FAILED = ("login_failed", "Invalid email or password")
     PERMISSION_DENIED = (
         "permission_denied",
         "You do not have permission to access this resource",
