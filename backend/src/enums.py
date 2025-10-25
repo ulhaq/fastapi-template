@@ -20,11 +20,11 @@ class ComparisonOperator(Enum):
 class ErrorCode(Enum):
     SERVER_ERROR = ("server_error", "An internal server error occurred")
     VALIDATION_ERROR = ("validation_error", "A validation error occurred")
-    UNAUTHORIZED = ("unauthorized", "You are not authorized to perform this action")
+    UNAUTHORIZED = ("unauthorized", "You are not authenticated")
     LOGIN_FAILED = ("login_failed", "Invalid email or password")
     PERMISSION_DENIED = (
         "permission_denied",
-        "You do not have permission to access this resource",
+        "You are not authorized to perform this action",
     )
     TOKEN_EXPIRED = ("token_expired", "The authentication token has expired")
     TOKEN_INVALID = ("token_invalid", "The authentication token is invalid")
