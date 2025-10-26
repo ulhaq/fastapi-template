@@ -9,9 +9,17 @@ from src.core.database import Base
 from src.enums import ComparisonOperator
 from src.repositories import utils
 from src.repositories.abc import ResourceRepositoryABC
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]):  # pylint: disable=invalid-name
+    model: type[ModelType]
+    db: AsyncSession
+
+    def __init__(self, model: type[ModelType], db: AsyncSession) -> None:
+        self.model = model
+        self.db = db
+
     async def get_one(self, identifier: int) -> ModelType:
         return await self.db.get_one(self.model, identifier)
 

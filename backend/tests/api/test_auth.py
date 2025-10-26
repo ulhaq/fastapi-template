@@ -130,8 +130,8 @@ def test_cannot_refresh_access_token_with_invalid_token(client: TestClient) -> N
     )
     assert response.status_code == 401
     rs = response.json()
-    assert rs["type"] == "NotAuthenticatedException"
-    assert rs["msg"] == "Not authenticated"
+    assert rs["error_code"] == "token_invalid"
+    assert rs["msg"] == "Token invalid"
 
 
 def test_cannot_refresh_access_token_with_expired_token(client: TestClient) -> None:
@@ -149,7 +149,7 @@ def test_cannot_refresh_access_token_with_expired_token(client: TestClient) -> N
         )
         assert response.status_code == 401
         rs = response.json()
-        assert rs["type"] == "NotAuthenticatedException"
+        assert rs["error_code"] == "token_expired"
         assert rs["msg"] == "Token expired"
 
 
@@ -161,7 +161,7 @@ def test_cannot_reset_password_with_invalid_token(client: TestClient) -> None:
     )
     assert response.status_code == 401
     rs = response.json()
-    assert rs["type"] == "NotAuthenticatedException"
+    assert rs["error_code"] == "signature_invalid"
     assert rs["msg"] == "Signature invalid"
 
 
@@ -180,7 +180,7 @@ def test_cannot_reset_password_with_expired_token(
         )
         assert response.status_code == 401
         rs = response.json()
-        assert rs["type"] == "NotAuthenticatedException"
+        assert rs["error_code"] == "signature_expired"
         assert rs["msg"] == "Signature expired"
 
 
@@ -193,7 +193,7 @@ def test_cannot_register_an_account_with_already_existing_email(
     )
     assert response.status_code == 409
     rs = response.json()
-    assert rs["type"] == "AlreadyExistsException"
+    assert rs["error_code"] == "email_already_exists"
     assert rs["msg"] == "Account already exists. [email=admin@example.org]"
 
 
@@ -205,5 +205,5 @@ def test_cannot_get_access_token_with_wrong_credentials(client: TestClient) -> N
     )
     assert response.status_code == 401
     rs = response.json()
-    assert rs["type"] == "NotAuthenticatedException"
+    assert rs["error_code"] == "login_failed"
     assert rs["msg"] == "Not authenticated"
