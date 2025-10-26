@@ -35,6 +35,16 @@
           </v-btn>
         </v-form>
       </v-card-text>
+
+      <v-card-actions>
+        <v-btn :to="{ name: 'login' }">{{
+          t("register.form.login")
+        }}</v-btn>
+        <v-spacer />
+        <v-btn :to="{ name: 'reset' }">{{
+          t("register.form.resetPassword")
+        }}</v-btn>
+      </v-card-actions>
     </v-card>
   </v-container>
 </template>
@@ -42,12 +52,14 @@
 <script setup>
   import { ref } from 'vue'
   import { useI18n } from 'vue-i18n'
-  import authApi from '@/apis/auth'
+  import { useRouter } from 'vue-router'
+  import { useErrorHandler } from '@/composables/errorHandler'
   import { validation } from '@/plugins/validation'
   import { useAuthStore } from '@/stores/auth'
   import { useMessageStore } from '@/stores/message'
 
   const { t } = useI18n()
+  const router = useRouter()
   const authStore = useAuthStore()
   const messageStore = useMessageStore()
 
@@ -57,29 +69,18 @@
   const registerForm = ref(null)
 
   async function submit () {
+    messageStore.clear()
     const { valid } = await registerForm.value.validate()
     if (!valid) return
 
     try {
-      const res = await authApi.register(name.value, email.value, password.value)
+      await authStore.register(name.value, email.value, password.value)
 
-      console.log(res)
-      authStore.login(email.value, password.value)
+      await authStore.login(email.value, password.value)
+
+      router.push({ name: 'index' })
     } catch (error) {
-      let msg
-      console.log(error)
-
-      if (error?.response?.data?.msg) {
-        msg = error.response.data.msg
-      } else if (error?.response?.data?.detail?.[0]) {
-        const loc = error.response.data.detail[0].loc
-        const locPart = Array.isArray(loc) ? loc.at(-1) : ''
-        const detailMsg = error.response.data.detail[0].msg || ''
-        msg = `${locPart} ${detailMsg}`.toLowerCase()
-      } else {
-        msg = error.response.data.msg
-      }
-      messageStore.add({ text: msg, color: 'error' })
+      useErrorHandler(error.response.data)
     }
   }
 

@@ -48,7 +48,6 @@
               <v-spacer />
               <v-btn
                 color="white"
-                :loading="permissionStore.loading"
                 size="large"
                 :text="t('common.save')"
                 type="submit"
@@ -59,17 +58,21 @@
         </v-form>
       </template>
     </v-stepper>
+
+    <loading v-model="permissionStore.loading" />
   </v-dialog>
 </template>
 
 <script setup>
   import { computed, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import { useErrorHandler } from '@/composables/errorHandler'
   import { validation } from '@/plugins/validation'
+  import { useMessageStore } from '@/stores/message'
   import { usePermissionStore } from '@/stores/permission'
 
   const { t } = useI18n()
-
+  const messageStore = useMessageStore()
   const permissionStore = usePermissionStore()
 
   const permissionForm = ref(null)
@@ -120,15 +123,24 @@
   }
 
   async function submit () {
+    messageStore.clear()
     const { valid } = await permissionForm.value.validate()
     if (!valid) return
 
     try {
-      await (isEditing.value ? permissionStore.updatePermission(permissionStore.permission) : permissionStore.createPermission(permissionStore.permission))
+      if (isEditing.value) {
+        await permissionStore.updatePermission(permissionStore.permission)
+
+        messageStore.add({ text: t('permissions.form.updateSuccess'), type: 'success' })
+      } else {
+        await permissionStore.createPermission(permissionStore.permission)
+
+        messageStore.add({ text: t('permissions.form.addSuccess'), type: 'success' })
+      }
 
       closeForm()
     } catch (error) {
-      console.error('Error during submit:', error)
+      useErrorHandler(error.response.data)
     }
   }
 </script>

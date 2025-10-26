@@ -35,7 +35,7 @@
             <v-btn variant="text" @click="deleteMenus[item.id] = false">{{
               t("common.cancel")
             }}</v-btn>
-            <v-btn color="red" variant="text" @click="confirmDelete(item)">{{
+            <v-btn color="red" :loading="roleStore.loading" variant="text" @click="confirmDelete(item)">{{
               t("common.confirm")
             }}</v-btn>
           </v-card-actions>
@@ -50,11 +50,13 @@
   import { useI18n } from 'vue-i18n'
   import DataTable from '@/components/DataTable.vue'
   import RoleForm from '@/components/roles/RoleForm.vue'
+  import { useErrorHandler } from '@/composables/errorHandler'
+  import { useMessageStore } from '@/stores/message'
   import { useRoleStore } from '@/stores/role'
 
-  const roleStore = useRoleStore()
-
   const { t } = useI18n()
+  const messageStore = useMessageStore()
+  const roleStore = useRoleStore()
 
   const headers = computed(() => [
     { title: t('common.name'), key: 'name' },
@@ -76,7 +78,11 @@
   async function fetchRoles (newOptions) {
     options.value = newOptions
 
-    await roleStore.fetchRoles(newOptions)
+    try {
+      await roleStore.fetchRoles(newOptions)
+    } catch (error) {
+      useErrorHandler(error.response.data)
+    }
   }
 
   function editRole (role) {
@@ -84,8 +90,14 @@
   }
 
   async function confirmDelete (item) {
-    deleteMenus.value[item.id] = false
+    try {
+      await roleStore.deleteRole(item.id)
 
-    await roleStore.deleteRole(item.id)
+      deleteMenus.value[item.id] = false
+
+      messageStore.add({ text: t('roles.form.deleteSuccess'), type: 'success' })
+    } catch (error) {
+      useErrorHandler(error.response.data)
+    }
   }
 </script>

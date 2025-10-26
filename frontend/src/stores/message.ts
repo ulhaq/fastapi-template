@@ -8,17 +8,29 @@ export const useMessageStore = defineStore('message', () => {
   function add (message: Message) {
     const msg = {
       ...message,
-      timeout: message.timeout ?? 3000,
+      timeout: message.timeout ?? 5000,
     }
-    queue.value.push(msg)
 
-    setTimeout(() => {
-      const index = queue.value.indexOf(msg)
-      if (index !== -1) {
-        queue.value.splice(index, 1)
-      }
-    }, msg.timeout)
+    if (!exists(msg)) {
+      queue.value = [...queue.value, msg]
+    }
+
+    if (msg.timeout > 0) {
+      setTimeout(() => remove(msg), msg.timeout)
+    }
   }
 
-  return { queue, add }
+  function remove (message: Message) {
+    queue.value = queue.value.filter(msg => msg.text !== message.text)
+  }
+
+  function clear () {
+    queue.value = []
+  }
+
+  function exists (message: Message) {
+    return queue.value.some(msg => msg.text === message.text)
+  }
+
+  return { queue, add, clear, remove }
 })

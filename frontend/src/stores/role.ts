@@ -2,15 +2,10 @@ import type { FetchOptions, PaginatedResponse } from '@/types/common'
 import type { Role } from '@/types/role'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import roleApi from '@/apis/roles'
-import { useMessageStore } from '@/stores/message'
 import utils from '@/utils'
 
 export const useRoleStore = defineStore('role', () => {
-  const { t } = useI18n()
-  const messageStore = useMessageStore()
-
   const loading = ref(false)
 
   const roles = ref<PaginatedResponse<Role>>({
@@ -48,18 +43,7 @@ export const useRoleStore = defineStore('role', () => {
 
       roles.value.items = [rs, ...roles.value.items]
 
-      messageStore.add({
-        text: t('roles.form.addSuccess'),
-        color: 'success',
-      })
-
       return rs
-    } catch (error: any) {
-      messageStore.add({
-        text: error.response?.data?.msg || t('errors.common'),
-        color: 'error',
-      })
-      throw error
     } finally {
       loading.value = false
     }
@@ -74,18 +58,7 @@ export const useRoleStore = defineStore('role', () => {
         item.id === updatedRole.id ? rs : item,
       )
 
-      messageStore.add({
-        text: t('roles.form.updateSuccess'),
-        color: 'success',
-      })
-
       return rs
-    } catch (error: any) {
-      messageStore.add({
-        text: error.response?.data?.msg || t('errors.common'),
-        color: 'error',
-      })
-      throw error
     } finally {
       loading.value = false
     }
@@ -95,6 +68,7 @@ export const useRoleStore = defineStore('role', () => {
     roleId: string | number,
     permissionIds: string[],
   ) {
+    loading.value = true
     try {
       const rs = await roleApi.managePermissions(roleId, permissionIds)
 
@@ -102,18 +76,9 @@ export const useRoleStore = defineStore('role', () => {
         item.id === roleId ? rs : item,
       )
 
-      messageStore.add({
-        text: t('roles.form.assignedPermissionsSuccess'),
-        color: 'success',
-      })
-
       return rs
-    } catch (error: any) {
-      messageStore.add({
-        text: error?.response?.data?.msg || t('errors.common'),
-        color: 'error',
-      })
-      throw error
+    } finally {
+      loading.value = false
     }
   }
 
@@ -124,17 +89,6 @@ export const useRoleStore = defineStore('role', () => {
 
       roles.value.items = roles.value.items.filter(item => item.id !== id)
       roles.value.total = Math.max(0, roles.value.total - 1)
-
-      messageStore.add({
-        text: t('roles.form.deleteSuccess'),
-        color: 'success',
-      })
-    } catch (error: any) {
-      messageStore.add({
-        text: error.response?.data?.msg || t('errors.common'),
-        color: 'error',
-      })
-      throw error
     } finally {
       loading.value = false
     }

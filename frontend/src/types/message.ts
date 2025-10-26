@@ -1,5 +1,6 @@
 export interface Message {
+  id: number
   text: string
-  color?: 'success' | 'error' | 'info' | 'warning'
+  type: 'success' | 'error' | 'info' | 'warning'
   timeout?: number
 }

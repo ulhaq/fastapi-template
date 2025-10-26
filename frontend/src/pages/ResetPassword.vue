@@ -51,13 +51,14 @@
 <script setup>
   import { computed, ref } from 'vue'
   import { useI18n } from 'vue-i18n'
-  import { useRoute } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
+  import { useErrorHandler } from '@/composables/errorHandler'
   import { validation } from '@/plugins/validation'
-  import router from '@/router'
   import { useAuthStore } from '@/stores/auth'
   import { useMessageStore } from '@/stores/message'
 
   const route = useRoute()
+  const router = useRouter()
   const authStore = useAuthStore()
   const messageStore = useMessageStore()
 
@@ -76,36 +77,30 @@
     const { valid } = await requestForm.value.validate()
     if (!valid) return
 
-    authStore.requestPasswordReset(email.value).then(() => {
-      email.value = null
+    try {
+      await authStore.requestPasswordReset(email.value).then(() => {
+        email.value = null
 
-      messageStore.add({ text: t('reset.form.requestSuccess'), color: 'success' })
-    })
+        messageStore.add({ text: t('reset.form.requestSuccess'), type: 'success' })
+      })
+    } catch (error) {
+      useErrorHandler(error.response.data)
+    }
   }
 
   async function reset () {
+    messageStore.clear()
     const { valid } = await resetForm.value.validate()
     if (!valid) return
 
     try {
       await authStore.resetPassword(password.value, route.params.token)
 
-      messageStore.add({ text: t('reset.form.resetSuccess'), color: 'success' })
+      messageStore.add({ text: t('reset.form.resetSuccess'), type: 'success' })
 
       router.push({ name: 'login' })
     } catch (error) {
-      let msg
-      if (error?.response?.data?.msg) {
-        msg = error.response.data.msg
-      } else if (error?.response?.data?.detail?.[0]) {
-        const loc = error.response.data.detail[0].loc
-        const locPart = Array.isArray(loc) ? loc.at(-1) : ''
-        const detailMsg = error.response.data.detail[0].msg || ''
-        msg = `${locPart} ${detailMsg}`.toLowerCase()
-      } else {
-        msg = error.response.data.msg
-      }
-      messageStore.add({ text: msg, color: 'error' })
+      useErrorHandler(error.response.data)
     }
   }
 

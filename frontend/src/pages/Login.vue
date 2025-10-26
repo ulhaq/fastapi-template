@@ -59,21 +59,35 @@
 <script setup>
   import { ref } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import { useRoute } from 'vue-router'
+  import { useErrorHandler } from '@/composables/errorHandler'
   import { validation } from '@/plugins/validation'
   import { useAuthStore } from '@/stores/auth'
+  import { useMessageStore } from '@/stores/message'
 
   const { t } = useI18n()
+  const route = useRoute()
+  const router = useRouter()
   const authStore = useAuthStore()
+  const messageStore = useMessageStore()
 
   const email = ref('')
   const password = ref('')
   const loginForm = ref(null)
 
   async function submit () {
+    messageStore.clear()
     const { valid } = await loginForm.value.validate()
     if (!valid) return
 
-    authStore.login(email.value, password.value)
+    try {
+      await authStore.login(email.value, password.value)
+
+      const redirect = route.query.redirect
+      router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
+    } catch (error) {
+      useErrorHandler(error.response.data)
+    }
   }
 
   onMounted(async () => {

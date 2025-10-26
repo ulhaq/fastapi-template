@@ -1,21 +1,32 @@
 <template>
   <v-app class="bg-blue-grey-lighten-5">
-    <div
-      class="position-fixed d-flex flex-column "
-      :style="{ top: '10px', right: '10px', 'z-index': 9999}"
+    <v-sheet
+      v-if="messageStore.queue.length > 0"
+      class="d-flex flex-column"
+      color="transparent"
+      max-height="300"
+      position="fixed"
+      rounded
+      :style="{
+        zIndex: 9999,
+        top: '10px',
+        right: '10px',
+        overflowY: 'auto',
+      }"
+      width="400"
     >
       <v-alert
         v-for="msg in messageStore.queue"
         :key="msg.text"
-        class="pa-4 mb-2"
+        class="pa-4 mb-2 flex-shrink-0"
         closable
         :icon="false"
-        :style="{ width: '400px' }"
         :text="msg.text"
-        :type="msg.color"
+        :type="msg.type"
         variant="elevated"
+        @click:close="messageStore.remove(msg)"
       />
-    </div>
+    </v-sheet>
 
     <router-view />
   </v-app>

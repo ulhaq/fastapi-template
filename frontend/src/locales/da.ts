@@ -11,8 +11,22 @@ export default {
   },
   errors: {
     common: 'Noget gik galt',
-    invalidCredentials: 'Legitimationsoplysningerne er ugyldige',
-    loginFailed: 'Login mislykkedes',
+    api: {
+      login_failed: 'Ugyldig email or adgangskode',
+      signature_expired: 'Linket er udløbet',
+      signature_invalid: 'Linket er ugyldigt',
+      resource_already_exists: 'Den findes allerede',
+      resource_not_found: 'Den findes ikke',
+      email_already_exists: 'Den angivne e-mail findes allerede',
+      value_error: '{field} er ugyldig',
+      string_too_short: '{field} skal være mindst {min_length} tegn',
+    },
+    fields: {
+      'body,name': '@:common.name',
+      'body,email': '@:common.email',
+      'body,password': '@:common.password',
+      'body,description': '@:common.description',
+    },
   },
   common: {
     name: 'Navn',
@@ -47,14 +61,16 @@ export default {
     form: {
       title: 'Opret en konto',
       submit: 'Opret konto',
+      login: 'Login',
+      resetPassword: 'Nulstil adgangskode',
     },
   },
   reset: {
     form: {
-      requestTtitle: 'Anmod om nulstilling af adgangskode',
+      requestTitle: 'Nulstil din adgangskode',
       resetTitle: 'Vælg en ny adgangskode',
       update: 'Opdater adgangskode',
-      requestSuccess: 'Hvis der findes en konto med denne e-mail, er der sendt et link til nulstilling af adgangskoden',
+      requestSuccess: 'Hvis der findes en konto med denne e-mail, er der sendt et link for nulstilling af adgangskoden',
       resetSuccess: 'Din adgangskode er blevet nulstillet',
       newAccount: 'Ny konto',
       login: 'Login',
@@ -72,10 +88,10 @@ export default {
       permissionAssignmentTitle: 'Tildel tilladelser til {role}',
       saveAndNext: 'Gem og tildel tilladelser',
       assignPermissionsToRole: 'Tildel tilladelser',
-      addSuccess: 'Rollen blev tilføjet succesfuldt',
-      updateSuccess: 'Rollen blev opdateret succesfuldt',
-      deleteSuccess: 'Rollen blev slettet succesfuldt',
-      assignedPermissionsSuccess: 'Tilladelser blev tildelt rollen succesfuldt',
+      addSuccess: 'Rollen er blev tilføjet',
+      updateSuccess: 'Rollen er blev opdateret',
+      deleteSuccess: 'Rollen er blev slettet',
+      assignedPermissionsSuccess: 'Tilladelser er blev tildelt rollen',
     },
     permissionForm: {
       title: 'Administrér tilladelser',
@@ -88,9 +104,9 @@ export default {
     form: {
       addTitle: 'Tilføj ny tilladelse',
       editTitle: 'Rediger tilladelse',
-      addSuccess: 'Tilladelsen blev tilføjet succesfuldt',
-      updateSuccess: 'Tilladelsen blev opdateret succesfuldt',
-      deleteSuccess: 'Tilladelsen blev slettet succesfuldt',
+      addSuccess: 'Tilladelsen er blev tilføjet',
+      updateSuccess: 'Tilladelsen er blev opdateret',
+      deleteSuccess: 'Tilladelsen er blev slettet',
     },
   },
 }

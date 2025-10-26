@@ -13,6 +13,7 @@ declare module 'vue' {
     AppNavigationBar: typeof import('./components/AppNavigationBar.vue')['default']
     DataTable: typeof import('./components/DataTable.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
+    Loading: typeof import('./components/Loading.vue')['default']
     PermissionForm: typeof import('./components/permissions/PermissionForm.vue')['default']
     PermissionTable: typeof import('./components/permissions/PermissionTable.vue')['default']
     RoleForm: typeof import('./components/roles/RoleForm.vue')['default']

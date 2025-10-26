@@ -37,7 +37,7 @@
             <v-btn variant="text" @click="deleteMenus[item.id] = false">{{
               t("common.cancel")
             }}</v-btn>
-            <v-btn color="red" variant="text" @click="confirmDelete(item)">{{
+            <v-btn color="red" :loading="permissionStore.loading" variant="text" @click="confirmDelete(item)">{{
               t("common.confirm")
             }}</v-btn>
           </v-card-actions>
@@ -53,6 +53,8 @@
   import { useI18n } from 'vue-i18n'
   import DataTable from '@/components/DataTable.vue'
   import PermissionForm from '@/components/permissions/PermissionForm.vue'
+  import { useErrorHandler } from '@/composables/errorHandler'
+  import { useMessageStore } from '@/stores/message'
   import { usePermissionStore } from '@/stores/permission'
 
   const componentProps = defineProps({
@@ -66,9 +68,9 @@
     },
   })
 
-  const permissionStore = usePermissionStore()
-
   const { t } = useI18n()
+  const messageStore = useMessageStore()
+  const permissionStore = usePermissionStore()
 
   const headers = computed(() => {
     return isEmpty(componentProps.headers)
@@ -94,7 +96,11 @@
   async function fetchPermissions (newOptions) {
     options.value = newOptions
 
-    await permissionStore.fetchPermissions(newOptions)
+    try {
+      await permissionStore.fetchPermissions(newOptions)
+    } catch (error) {
+      useErrorHandler(error.response.data)
+    }
   }
 
   function editPermission (permission) {
@@ -102,8 +108,14 @@
   }
 
   async function confirmDelete (item) {
-    deleteMenus.value[item.id] = false
+    try {
+      await permissionStore.deletePermission(item.id)
 
-    await permissionStore.deletePermission(item.id)
+      deleteMenus.value[item.id] = false
+
+      messageStore.add({ text: t('permissions.form.deleteSuccess'), type: 'success' })
+    } catch (error) {
+      useErrorHandler(error.response.data)
+    }
   }
 </script>

@@ -11,8 +11,22 @@ export default {
   },
   errors: {
     common: 'Something went wrong',
-    invalidCredentials: 'Credentials are invalid',
-    loginFailed: 'Login failed',
+    api: {
+      login_failed: 'Invalid email or password',
+      signature_expired: 'The link has expired',
+      signature_invalid: 'The link is invalid',
+      resource_already_exists: 'It already exists',
+      resource_not_found: 'It doesn\'t exist',
+      email_already_exists: 'The provided email already exists',
+      value_error: '{field} is invalid',
+      string_too_short: '{field} must be at least {min_length} character(s)',
+    },
+    fields: {
+      'body,name': '@:common.name',
+      'body,email': '@:common.email',
+      'body,password': '@:common.password',
+      'body,description': '@:common.description',
+    },
   },
   common: {
     name: 'Name',
@@ -47,11 +61,13 @@ export default {
     form: {
       title: 'Create an account',
       submit: 'Create account',
+      login: 'Login',
+      resetPassword: 'Reset password',
     },
   },
   reset: {
     form: {
-      requestTitle: 'Request password reset',
+      requestTitle: 'Reset your password',
       resetTitle: 'Choose a new password',
       update: 'Update password',
       requestSuccess: 'If an account with that email exists, a password reset link has been sent',
@@ -72,11 +88,11 @@ export default {
       permissionAssignmentTitle: 'Assign permissions to {role}',
       saveAndNext: 'Save & assign permissions',
       assignPermissionsToRole: 'Assign permissions',
-      addSuccess: 'Role was added successfully',
-      updateSuccess: 'Role was updated successfully',
-      deleteSuccess: 'Role was deleted successfully',
+      addSuccess: 'Role has been added',
+      updateSuccess: 'Role has been updated',
+      deleteSuccess: 'Role has been deleted',
       assignedPermissionsSuccess:
-        'Permissions assigned to the role successfully',
+        'Permissions have been assigned to the role',
     },
     permissionForm: {
       title: 'Manage permissions',
@@ -89,9 +105,9 @@ export default {
     form: {
       addTitle: 'Add new Permission',
       editTitle: 'Edit Permission',
-      addSuccess: 'Permission was added successfully',
-      updateSuccess: 'Permission was updated successfully',
-      deleteSuccess: 'Permission was deleted successfully',
+      addSuccess: 'Permission has been added',
+      updateSuccess: 'Permission has been updated',
+      deleteSuccess: 'Permission has been deleted',
     },
   },
 }

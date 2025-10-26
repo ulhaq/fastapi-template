@@ -2,15 +2,10 @@ import type { FetchOptions, PaginatedResponse } from '@/types/common'
 import type { Permission } from '@/types/permission'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import permissionApi from '@/apis/permissions'
-import { useMessageStore } from '@/stores/message'
 import utils from '@/utils'
 
 export const usePermissionStore = defineStore('permission', () => {
-  const { t } = useI18n()
-  const messageStore = useMessageStore()
-
   const loading = ref(false)
 
   const permissions = ref<PaginatedResponse<Permission>>({
@@ -47,18 +42,7 @@ export const usePermissionStore = defineStore('permission', () => {
 
       permissions.value.items = [rs, ...permissions.value.items]
 
-      messageStore.add({
-        text: t('permissions.form.addSuccess'),
-        color: 'success',
-      })
-
       return rs
-    } catch (error: any) {
-      messageStore.add({
-        text: error.response?.data?.msg || t('errors.common'),
-        color: 'error',
-      })
-      throw error
     } finally {
       loading.value = false
     }
@@ -76,18 +60,7 @@ export const usePermissionStore = defineStore('permission', () => {
         item.id === updatedPermission.id ? rs : item,
       )
 
-      messageStore.add({
-        text: t('permissions.form.updateSuccess'),
-        color: 'success',
-      })
-
       return rs
-    } catch (error: any) {
-      messageStore.add({
-        text: error.response?.data?.msg || t('errors.common'),
-        color: 'error',
-      })
-      throw error
     } finally {
       loading.value = false
     }
@@ -102,17 +75,6 @@ export const usePermissionStore = defineStore('permission', () => {
         item => item.id !== id,
       )
       permissions.value.total = Math.max(0, permissions.value.total - 1)
-
-      messageStore.add({
-        text: t('permissions.form.deleteSuccess'),
-        color: 'success',
-      })
-    } catch (error: any) {
-      messageStore.add({
-        text: error.response?.data?.msg || t('errors.common'),
-        color: 'error',
-      })
-      throw error
     } finally {
       loading.value = false
     }

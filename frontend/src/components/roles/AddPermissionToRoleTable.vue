@@ -37,8 +37,12 @@
   })
 
   async function fetchPermissions (newOptions) {
-    options.value = newOptions
+    try {
+      options.value = newOptions
 
-    await permissionStore.fetchPermissions(newOptions)
+      await permissionStore.fetchPermissions(newOptions)
+    } catch (error) {
+      useErrorHandler(error.response.data)
+    }
   }
 </script>

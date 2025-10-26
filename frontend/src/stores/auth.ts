@@ -1,16 +1,12 @@
 import type { User } from '@/types/user'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import authApi from '@/apis/auth'
 import axios from '@/apis/base'
-import i18n from '@/plugins/i18n'
-import router from '@/router'
-import { useMessageStore } from '@/stores/message'
 
 export const useAuthStore = defineStore('auth', () => {
-  const route = useRoute()
-  const messageStore = useMessageStore()
+  const router = useRouter()
 
   const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
@@ -40,16 +36,6 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await authApi.getToken(email, password)
       setAccessToken(res.access_token)
       await setUser()
-
-      const redirect = route.query.redirect as string | undefined
-      router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
-    } catch (error: any) {
-      messageStore.add({
-        text: i18n.global.t(
-          error?.status ? 'errors.invalidCredentials' : 'errors.loginFailed',
-        ),
-        color: 'error',
-      })
     } finally {
       loading.value = false
     }
@@ -92,6 +78,15 @@ export const useAuthStore = defineStore('auth', () => {
     router.push({ name: 'login' })
   }
 
+  async function register (name: string, email: string, password: string) {
+    loading.value = true
+    try {
+      return await authApi.register(name, email, password)
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function setUser () {
     user.value = await authApi.getAuthenticatedUser()
   }
@@ -110,6 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
     requestPasswordReset,
     resetPassword,
     logout,
+    register,
     getUser,
   }
 })

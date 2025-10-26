@@ -48,7 +48,6 @@
               <v-spacer />
               <v-btn
                 color="white"
-                :loading="roleStore.loading"
                 size="large"
                 :text="t('roles.form.saveAndNext')"
                 variant="elevated"
@@ -56,7 +55,6 @@
               />
               <v-btn
                 color="white"
-                :loading="roleStore.loading"
                 size="large"
                 :text="t('common.save')"
                 type="submit"
@@ -104,17 +102,21 @@
         </v-card>
       </template>
     </v-stepper>
+
+    <loading v-model="roleStore.loading" />
   </v-dialog>
 </template>
 
 <script setup>
   import { computed, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import { useErrorHandler } from '@/composables/errorHandler'
   import { validation } from '@/plugins/validation'
+  import { useMessageStore } from '@/stores/message'
   import { useRoleStore } from '@/stores/role'
 
   const { t } = useI18n()
-
+  const messageStore = useMessageStore()
   const roleStore = useRoleStore()
 
   const permissionHeaders = computed(() => [
@@ -173,43 +175,62 @@
   }
 
   async function submit () {
+    messageStore.clear()
     const { valid } = await roleForm.value.validate()
     if (!valid) return
 
     try {
-      await (isEditing.value
-        ? roleStore.updateRole(roleStore.role)
-        : roleStore.createRole(roleStore.role))
+      if (isEditing.value) {
+        await roleStore.updateRole(roleStore.role)
+
+        messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
+      } else {
+        await roleStore.createRole(roleStore.role)
+
+        messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
+      }
 
       closeForm()
     } catch (error) {
-      console.error('Error during submit:', error)
+      useErrorHandler(error.response.data)
     }
   }
 
   async function addRoleAndNextStep () {
+    messageStore.clear()
     const { valid } = await roleForm.value.validate()
     if (!valid) return
 
     try {
-      const rs = await (isEditing.value
-        ? roleStore.updateRole(roleStore.role)
-        : roleStore.createRole(roleStore.role))
+      let rs
+
+      if (isEditing.value) {
+        rs = await roleStore.updateRole(roleStore.role)
+
+        messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
+      } else {
+        rs = await roleStore.createRole(roleStore.role)
+
+        messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
+      }
 
       roleId.value = rs.id
       step.value = 2
     } catch (error) {
-      console.error('Error during addRoleAndNextStep:', error)
+      useErrorHandler(error.response.data)
     }
   }
 
   async function assignPermissionsToRole () {
+    messageStore.clear()
     try {
       await roleStore.managePermissions(roleId.value, selectedPermissions.value)
 
+      messageStore.add({ text: t('roles.form.assignedPermissionsSuccess'), type: 'success' })
+
       closeForm()
     } catch (error) {
-      console.error('Error during assignPermissionsToRole:', error)
+      useErrorHandler(error.response.data)
     }
   }
 </script>
