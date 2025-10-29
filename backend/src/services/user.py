@@ -4,23 +4,54 @@ from fastapi import BackgroundTasks, Depends
 
 from src.core.config import settings
 from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
-from src.core.security import get_current_user, hash_password, sign
+from src.core.security import authenticate_user, get_current_user, hash_password, sign
 from src.enums import ErrorCode
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.user import UserRepository
-from src.schemas.user import UserIn, UserOut, UserRoleIn
+from src.schemas.user import ChangePasswordIn, UserBase, UserIn, UserOut, UserRoleIn
 from src.services.base import ResourceService
 from src.services.utils import send_email
 
 
-class UserService(ResourceService[UserRepository, User, UserIn, UserOut]):
+class UserService(
+    ResourceService[UserRepository, User, UserBase | UserIn | ChangePasswordIn, UserOut]
+):
     def __init__(self, repos: Annotated[RepositoryManager, Depends()]):
         self.repo = repos.user
         super().__init__(repos)
 
     async def get_authenticated_user(self) -> UserOut:
         return UserOut.model_validate(await self.get(get_current_user().id))
+
+    async def update_profile(self, schema_in: UserBase) -> UserOut:
+        async def validate() -> None:
+            user = await self.repo.get_by_email(schema_in.email)
+            if user and user.email != auth.email:
+                raise AlreadyExistsException(
+                    f"User already exists. [email={schema_in.email}]",
+                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+                )
+
+        auth = get_current_user()
+
+        return UserOut.model_validate(
+            await super().update(auth.id, schema_in, validate)
+        )
+
+    async def change_password(self, schema_in: ChangePasswordIn) -> UserOut:
+        auth = get_current_user()
+
+        user = authenticate_user(
+            schema_in, await self.repos.user.get_by_email(auth.email)
+        )
+
+        if not user:
+            raise PermissionDeniedException("Incorrect password")
+
+        schema_in.password = hash_password(schema_in.new_password)
+
+        return UserOut.model_validate(await super().update(auth.id, schema_in))
 
     async def create_user(
         self, schema_in: UserIn, bg_tasks: BackgroundTasks

@@ -57,23 +57,6 @@ class ClientException(HTTPException):
         self.error_code = error_code
 
 
-class ValidationException(ClientException):
-    def __init__(
-        self,
-        detail: Any = "Validation failed",
-        /,
-        *,
-        error_code: ErrorCode = ErrorCode.VALIDATION_ERROR,
-        headers: dict | None = None,
-    ) -> None:
-        super().__init__(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail,
-            error_code=error_code,
-            headers=headers,
-        )
-
-
 class NotAuthenticatedException(ClientException):
     def __init__(
         self,
@@ -127,4 +110,21 @@ class AlreadyExistsException(ClientException):
     ) -> None:
         super().__init__(
             status.HTTP_409_CONFLICT, detail, error_code=error_code, headers=headers
+        )
+
+
+class ValidationException(ClientException):
+    def __init__(
+        self,
+        detail: Any = "Validation failed",
+        /,
+        *,
+        error_code: ErrorCode = ErrorCode.VALIDATION_ERROR,
+        headers: dict | None = None,
+    ) -> None:
+        super().__init__(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail,
+            error_code=error_code,
+            headers=headers,
         )

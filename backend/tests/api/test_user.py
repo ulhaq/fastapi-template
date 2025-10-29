@@ -141,6 +141,72 @@ def test_create_a_user(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
 
+def test_update_authenticated_user_profile(
+    admin_authenticated: TestClient, client: TestClient
+) -> None:
+    response = admin_authenticated.put(
+        "/users/me",
+        json={"name": "John Doe", "email": "new@testing.com"},
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "John Doe"
+    assert rs["email"] == "new@testing.com"
+
+    response = client.post(
+        "/auth/token",
+        data={"username": "new@testing.com", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    rs = response.json()
+    access_token = rs["access_token"]
+
+    response = client.get(
+        "/users/me", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "John Doe"
+    assert rs["email"] == "new@testing.com"
+
+
+def test_change_authenticated_user_password(
+    admin_authenticated: TestClient, client: TestClient
+) -> None:
+    response = admin_authenticated.put(
+        "/users/me/change-password",
+        json={
+            "password": "password",
+            "new_password": "new password",
+            "confirm_password": "new password",
+        },
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "Admin"
+    assert rs["email"] == "admin@example.org"
+
+    response = client.post(
+        "/auth/token",
+        data={"username": "admin@example.org", "password": "new password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    rs = response.json()
+    access_token = rs["access_token"]
+
+    response = client.get(
+        "/users/me", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "Admin"
+    assert rs["email"] == "admin@example.org"
+
+
 def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
         "/users/2/roles",

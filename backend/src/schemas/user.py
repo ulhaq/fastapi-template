@@ -1,7 +1,15 @@
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
+from src.core.exceptions import ValidationException
 from src.schemas.common import Timestamp
 from src.schemas.role import RoleOut
 from src.schemas.utils import sort_by_id
@@ -31,6 +39,18 @@ class EmailIn(BaseModel):
 
 class NewPasswordIn(BaseModel):
     password: Annotated[str, Field(min_length=6)]
+
+
+class ChangePasswordIn(NewPasswordIn):
+    password: Annotated[str, Field()]
+    new_password: Annotated[str, Field(min_length=6)]
+    confirm_password: Annotated[str, Field()]
+
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> Self:
+        if self.new_password != self.confirm_password:
+            raise ValidationException("Passwords do not match")
+        return self
 
 
 class UserRoleIn(BaseModel):

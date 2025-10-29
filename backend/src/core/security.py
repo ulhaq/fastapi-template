@@ -12,6 +12,7 @@ from src.core.config import settings
 from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
 from src.enums import ErrorCode
 from src.models.user import User
+from src.schemas.user import ChangePasswordIn
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -126,7 +127,7 @@ def create_refresh_token(user: User) -> str:
 
 
 def authenticate_user(
-    auth_data: OAuth2PasswordRequestForm, user: User | None
+    auth_data: OAuth2PasswordRequestForm | ChangePasswordIn, user: User | None
 ) -> User | None:
     if user and verify_password(auth_data.password, user.password):
         return user

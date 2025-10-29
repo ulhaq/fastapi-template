@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Path
 
 from src.core.dependencies import authenticate
-from src.schemas.user import UserIn, UserOut, UserRoleIn
+from src.schemas.user import ChangePasswordIn, UserBase, UserIn, UserOut, UserRoleIn
 from src.services.user import UserService
 
 router = APIRouter()
@@ -12,6 +12,22 @@ router = APIRouter()
 @router.get("/users/me", dependencies=[Depends(authenticate)], status_code=200)
 async def get_authenticated_user(service: Annotated[UserService, Depends()]) -> UserOut:
     return await service.get_authenticated_user()
+
+
+@router.put("/users/me", dependencies=[Depends(authenticate)], status_code=200)
+async def update_profile_of_authenticated_user(
+    service: Annotated[UserService, Depends()], user_base: UserBase
+) -> UserOut:
+    return await service.update_profile(user_base)
+
+
+@router.put(
+    "/users/me/change-password", dependencies=[Depends(authenticate)], status_code=200
+)
+async def change_password_of_authenticated_user(
+    service: Annotated[UserService, Depends()], change_password_in: ChangePasswordIn
+) -> UserOut:
+    return await service.change_password(change_password_in)
 
 
 @router.post("/users", dependencies=[Depends(authenticate)], status_code=201)
