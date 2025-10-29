@@ -24,13 +24,13 @@ export const useMessageStore = defineStore('message', () => {
     queue.value = queue.value.filter(msg => msg.text !== message.text)
   }
 
-  function clear () {
-    queue.value = []
+  function clearErrors () {
+    queue.value = queue.value.filter(msg => msg.type != 'error')
   }
 
   function exists (message: Message) {
     return queue.value.some(msg => msg.text === message.text)
   }
 
-  return { queue, add, clear, remove }
+  return { queue, add, clearErrors, remove }
 })

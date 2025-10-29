@@ -123,7 +123,7 @@
   }
 
   async function submit () {
-    messageStore.clear()
+    messageStore.clearErrors()
     const { valid } = await permissionForm.value.validate()
     if (!valid) return
 

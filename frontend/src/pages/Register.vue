@@ -69,7 +69,7 @@
   const registerForm = ref(null)
 
   async function submit () {
-    messageStore.clear()
+    messageStore.clearErrors()
     const { valid } = await registerForm.value.validate()
     if (!valid) return
 

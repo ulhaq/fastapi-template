@@ -76,7 +76,7 @@
   const loginForm = ref(null)
 
   async function submit () {
-    messageStore.clear()
+    messageStore.clearErrors()
     const { valid } = await loginForm.value.validate()
     if (!valid) return
 

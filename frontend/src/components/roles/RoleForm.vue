@@ -175,7 +175,7 @@
   }
 
   async function submit () {
-    messageStore.clear()
+    messageStore.clearErrors()
     const { valid } = await roleForm.value.validate()
     if (!valid) return
 
@@ -197,7 +197,7 @@
   }
 
   async function addRoleAndNextStep () {
-    messageStore.clear()
+    messageStore.clearErrors()
     const { valid } = await roleForm.value.validate()
     if (!valid) return
 
@@ -222,7 +222,7 @@
   }
 
   async function assignPermissionsToRole () {
-    messageStore.clear()
+    messageStore.clearErrors()
     try {
       await roleStore.managePermissions(roleId.value, selectedPermissions.value)
 

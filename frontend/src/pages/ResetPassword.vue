@@ -89,7 +89,7 @@
   }
 
   async function reset () {
-    messageStore.clear()
+    messageStore.clearErrors()
     const { valid } = await resetForm.value.validate()
     if (!valid) return
 
