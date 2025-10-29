@@ -2,16 +2,23 @@ from abc import ABC, abstractmethod
 from typing import Any, Sequence
 
 from sqlalchemy import BinaryExpression
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import Base
 
 # pylint: disable=invalid-name,too-few-public-methods
 
 
-class RepositoryABC(ABC): ...
+class RepositoryABC[ModelType: Base](ABC):
+    model: type[ModelType]
+    db: AsyncSession
+
+    def __init__(self, model: type[ModelType], db: AsyncSession) -> None:
+        self.model = model
+        self.db = db
 
 
-class ResourceRepositoryABC[ModelType: Base](RepositoryABC, ABC):
+class ResourceRepositoryABC[ModelType: Base](RepositoryABC[ModelType], ABC):
     @abstractmethod
     async def get_one(self, identifier: int) -> ModelType: ...
 

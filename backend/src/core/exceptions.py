@@ -67,7 +67,10 @@ class ValidationException(ClientException):
         headers: dict | None = None,
     ) -> None:
         super().__init__(
-            status.HTTP_400_BAD_REQUEST, detail, error_code=error_code, headers=headers
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail,
+            error_code=error_code,
+            headers=headers,
         )
 
 
