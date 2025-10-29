@@ -175,9 +175,9 @@
   }
 
   async function submit () {
-    messageStore.clearErrors()
     const { valid } = await roleForm.value.validate()
     if (!valid) return
+    messageStore.clearErrors()
 
     try {
       if (isEditing.value) {
@@ -197,9 +197,9 @@
   }
 
   async function addRoleAndNextStep () {
-    messageStore.clearErrors()
     const { valid } = await roleForm.value.validate()
     if (!valid) return
+    messageStore.clearErrors()
 
     try {
       let rs

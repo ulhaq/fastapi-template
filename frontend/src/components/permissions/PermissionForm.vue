@@ -123,9 +123,9 @@
   }
 
   async function submit () {
-    messageStore.clearErrors()
     const { valid } = await permissionForm.value.validate()
     if (!valid) return
+    messageStore.clearErrors()
 
     try {
       if (isEditing.value) {

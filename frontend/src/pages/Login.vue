@@ -76,9 +76,9 @@
   const loginForm = ref(null)
 
   async function submit () {
-    messageStore.clearErrors()
     const { valid } = await loginForm.value.validate()
     if (!valid) return
+    messageStore.clearErrors()
 
     try {
       await authStore.login(email.value, password.value)

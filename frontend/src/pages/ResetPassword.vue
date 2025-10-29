@@ -89,9 +89,9 @@
   }
 
   async function reset () {
-    messageStore.clearErrors()
     const { valid } = await resetForm.value.validate()
     if (!valid) return
+    messageStore.clearErrors()
 
     try {
       await authStore.resetPassword(password.value, route.params.token)
