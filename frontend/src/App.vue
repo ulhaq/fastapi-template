@@ -31,9 +31,7 @@
       </div>
     </v-sheet>
 
-    <v-container>
-      <router-view />
-    </v-container>
+    <router-view />
   </v-app>
 </template>
 
