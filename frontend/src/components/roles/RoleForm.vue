@@ -22,7 +22,7 @@
                   <v-text-field
                     v-model="roleStore.role.name"
                     :label="t('common.name')"
-                    :rules="[validation.required, validation.minLength(1)]"
+                    :rules="[rules.required(), rules.minLength(1)]"
                   />
                 </v-col>
               </v-row>
@@ -31,7 +31,7 @@
                   <v-text-field
                     v-model="roleStore.role.description"
                     :label="t('common.description')"
-                    :rules="[validation.required]"
+                    :rules="[rules.required()]"
                   />
                 </v-col>
               </v-row>
@@ -110,12 +110,13 @@
 <script setup>
   import { computed, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import { useRules } from 'vuetify/labs/rules'
   import { useErrorHandler } from '@/composables/errorHandler'
-  import { validation } from '@/plugins/validation'
   import { useMessageStore } from '@/stores/message'
   import { useRoleStore } from '@/stores/role'
 
   const { t } = useI18n()
+  const rules = useRules()
   const messageStore = useMessageStore()
   const roleStore = useRoleStore()
 

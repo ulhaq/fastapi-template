@@ -2,7 +2,7 @@
   <v-navigation-drawer
     v-model="drawer"
     class="bg-blue-grey-lighten-5 border-e-0 ps-4"
-    :location="mobile ? 'right' : undefined"
+    :location="mobile ? 'left' : undefined"
   >
     <v-sheet class="bg-blue-grey-lighten-5 pt-4 pb-8 pl-4">
       <v-img
@@ -34,13 +34,6 @@
 
     <v-spacer />
 
-    <v-btn
-      v-for="lang in availableLocales"
-      :key="lang.key"
-      @click="changeLocale(lang.key)"
-    >
-      {{ lang.title }}
-    </v-btn>
     <v-menu>
       <template #activator="{ props }">
         <v-btn icon v-bind="props">
@@ -49,10 +42,26 @@
       </template>
 
       <v-list>
-        <v-list-item @click="goToProfile">
-          <v-list-item-title>Profile</v-list-item-title>
+        <v-list-item prepend-icon="mdi-cog" :to="{ name: 'settings' }">
+          <v-list-item-title>{{ t('menuBar.settings') }}</v-list-item-title>
         </v-list-item>
-        <v-list-item @click="logout">
+
+        <v-list-item prepend-icon="mdi-web" @click.prevent="">
+          <v-list-item-title>{{ t('menuBar.languages') }}</v-list-item-title>
+          <v-menu activator="parent" location="left top">
+            <v-list>
+              <v-list-item
+                v-for="lang in availableLocales"
+                :key="lang.key"
+                @click="changeLocale(lang.key)"
+              >
+                <v-list-item-title>{{ lang.title }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </v-list-item>
+
+        <v-list-item prepend-icon="mdi-logout" @click="logout">
           <v-list-item-title>Logout</v-list-item-title>
         </v-list-item>
       </v-list>

@@ -14,12 +14,15 @@ declare module 'vue' {
     DataTable: typeof import('./components/DataTable.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     Loading: typeof import('./components/Loading.vue')['default']
+    NewPasswordForm: typeof import('./components/settings/NewPasswordForm.vue')['default']
     PermissionForm: typeof import('./components/permissions/PermissionForm.vue')['default']
     PermissionTable: typeof import('./components/permissions/PermissionTable.vue')['default']
+    ProfileForm: typeof import('./components/settings/ProfileForm.vue')['default']
     RoleForm: typeof import('./components/roles/RoleForm.vue')['default']
     RoleTable: typeof import('./components/roles/RoleTable.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SearchBar: typeof import('./components/SearchBar.vue')['default']
+    SettingsForm: typeof import('./components/settings/SettingsForm.vue')['default']
   }
 }

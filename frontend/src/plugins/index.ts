@@ -7,6 +7,7 @@
 import type { App } from 'vue'
 import { useRoute } from 'vue-router'
 import i18n from '@/plugins/i18n'
+import validation from '@/plugins/validation'
 import vuetify from '@/plugins/vuetify'
 import router from '@/router'
 import pinia from '@/stores'
@@ -38,5 +39,5 @@ router.afterEach(to => {
 })
 
 export function registerPlugins (app: App) {
-  app.use(vuetify).use(router).use(pinia).use(i18n)
+  app.use(router).use(vuetify).use(validation).use(pinia).use(i18n)
 }

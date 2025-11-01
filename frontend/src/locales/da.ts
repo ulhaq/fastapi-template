@@ -5,21 +5,20 @@ export default {
     ...da,
   },
   rules: {
-    required: 'Dette felt er påkrævet',
-    email: 'E-mailen er ugyldig',
-    min: 'Mindst {length} tegn er påkrævet',
+    matchesField: 'Dette felt og {targetLabel} skal være ens',
+    confirmPassword: 'Adgangskoderne stemmer ikke overens',
   },
   errors: {
     common: 'Noget gik galt',
     api: {
-      login_failed: 'Ugyldig email or adgangskode',
+      login_failed: 'Ugyldig email eller adgangskode',
       signature_expired: 'Linket er udløbet',
       signature_invalid: 'Linket er ugyldigt',
       resource_already_exists: 'Den findes allerede',
       resource_not_found: 'Den findes ikke',
-      email_already_exists: 'Den angivne e-mail findes allerede',
+      email_already_exists: 'Den angivne email er allerede i brug',
       value_error: '{field} er ugyldig',
-      string_too_short: '{field} skal være mindst {min_length} tegn',
+      string_too_short: '{field} skal mindst være {min_length} tegn',
     },
     fields: {
       'body,name': '@:common.name',
@@ -39,6 +38,7 @@ export default {
     search: 'Søg (Ctrl+K eller /)',
     close: 'Luk',
     cancel: 'Annuller',
+    clear: 'Ryd',
     confirm: 'Bekræft',
     save: 'Gem',
     submit: 'Indsend',
@@ -48,6 +48,8 @@ export default {
     users: 'Brugere',
     roles: 'Roller',
     permissions: 'Tilladelser',
+    settings: 'Indstillinger',
+    languages: 'Sprog',
   },
   login: {
     form: {
@@ -70,10 +72,30 @@ export default {
       requestTitle: 'Nulstil din adgangskode',
       resetTitle: 'Vælg en ny adgangskode',
       update: 'Opdater adgangskode',
-      requestSuccess: 'Hvis der findes en konto med denne e-mail, er der sendt et link for nulstilling af adgangskoden',
-      resetSuccess: 'Din adgangskode er blevet nulstillet',
+      requestSuccess: 'Hvis en konto med denne email findes, er et nulstillingslink sendt',
+      resetSuccess: 'Din adgangskode er nulstillet',
       newAccount: 'Ny konto',
       login: 'Login',
+    },
+  },
+  settings: {
+    title: 'Indstillinger',
+    tab1: {
+      name: 'Profil',
+      profileForm: {
+        title: 'Profil',
+        profileSuccess: 'Profil opdateret',
+      },
+    },
+    tab2: {
+      name: 'Sikkerhed',
+      passwordForm: {
+        title: 'Ny adgangskode',
+        currentPassword: 'Nuværende adgangskode',
+        newPassword: 'Ny adgangskode',
+        confirmPassword: 'Bekræft adgangskode',
+        passwordSuccess: 'Adgangskode ændret',
+      },
     },
   },
   users: {
@@ -88,10 +110,10 @@ export default {
       permissionAssignmentTitle: 'Tildel tilladelser til {role}',
       saveAndNext: 'Gem og tildel tilladelser',
       assignPermissionsToRole: 'Tildel tilladelser',
-      addSuccess: 'Rollen er blev tilføjet',
-      updateSuccess: 'Rollen er blev opdateret',
-      deleteSuccess: 'Rollen er blev slettet',
-      assignedPermissionsSuccess: 'Tilladelser er blev tildelt rollen',
+      addSuccess: 'Rollen er tilføjet',
+      updateSuccess: 'Rollen er opdateret',
+      deleteSuccess: 'Rollen er slettet',
+      assignedPermissionsSuccess: 'Tilladelserne er tildelt rollen',
     },
     permissionForm: {
       title: 'Administrér tilladelser',
@@ -104,9 +126,9 @@ export default {
     form: {
       addTitle: 'Tilføj ny tilladelse',
       editTitle: 'Rediger tilladelse',
-      addSuccess: 'Tilladelsen er blev tilføjet',
-      updateSuccess: 'Tilladelsen er blev opdateret',
-      deleteSuccess: 'Tilladelsen er blev slettet',
+      addSuccess: 'Tilladelsen er tilføjet',
+      updateSuccess: 'Tilladelsen er opdateret',
+      deleteSuccess: 'Tilladelsen er slettet',
     },
   },
 }

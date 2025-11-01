@@ -1,25 +1,11 @@
+import { createRulesPlugin } from 'vuetify/labs/rules'
 import i18n from '@/plugins/i18n'
+import vuetify from '@/plugins/vuetify'
 
-export const validation = {
-  required (v: any) {
-    let result = true
-
-    if (v === undefined || v === null) {
-      result = false
-    } else if (Array.isArray(v) && v.length === 0) {
-      result = false
-    } else {
-      result = String(v).trim().length > 0
-    }
-    return result || i18n.global.t('rules.required')
+export default createRulesPlugin({ aliases: {
+  matchesField: (targetValue: any, targetLabel: any, err?: any) => {
+    return (v: any) => v === targetValue || err || i18n.global.t('rules.matchesField', {
+      targetLabel,
+    })
   },
-  email (v: string) {
-    if (!v) {
-      return true
-    }
-
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || i18n.global.t('rules.email')
-  },
-  minLength: (length: number) => (v: string) =>
-    (v && v.length >= length) || i18n.global.t('rules.min', { length }),
-}
+} }, vuetify.locale)

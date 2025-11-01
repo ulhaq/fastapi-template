@@ -12,7 +12,7 @@
               <v-text-field
                 v-model="email"
                 :label="t('common.email')"
-                :rules="[validation.required, validation.email]"
+                :rules="[rules.required(), rules.email()]"
                 type="email"
               />
             </v-col>
@@ -22,7 +22,7 @@
               <v-text-field
                 v-model="password"
                 :label="t('common.password')"
-                :rules="[validation.required, validation.minLength(6)]"
+                :rules="[rules.required(), rules.minLength(6)]"
                 type="password"
               />
             </v-col>
@@ -60,12 +60,13 @@
   import { ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { useRoute } from 'vue-router'
+  import { useRules } from 'vuetify/labs/rules'
   import { useErrorHandler } from '@/composables/errorHandler'
-  import { validation } from '@/plugins/validation'
   import { useAuthStore } from '@/stores/auth'
   import { useMessageStore } from '@/stores/message'
 
   const { t } = useI18n()
+  const rules = useRules()
   const route = useRoute()
   const router = useRouter()
   const authStore = useAuthStore()

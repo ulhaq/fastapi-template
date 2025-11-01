@@ -13,7 +13,6 @@
         right: '10px',
         overflowY: 'auto',
       }"
-      width="400"
     >
       <v-alert
         v-for="msg in messageStore.queue"
@@ -26,14 +25,23 @@
         variant="elevated"
         @click:close="messageStore.remove(msg)"
       />
+
+      <div v-if="messageStore.queue.length > 2" class="text-center">
+        <v-btn size="small" variant="tonal" @click="messageStore.clear">{{ t('common.clear') }}</v-btn>
+      </div>
     </v-sheet>
 
-    <router-view />
+    <v-container>
+      <router-view />
+    </v-container>
   </v-app>
 </template>
 
 <script lang="ts" setup>
+  import { useI18n } from 'vue-i18n'
   import { useMessageStore } from '@/stores/message'
+
+  const { t } = useI18n()
 
   const messageStore = useMessageStore()
 

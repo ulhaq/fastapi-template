@@ -11,7 +11,7 @@ export const useMessageStore = defineStore('message', () => {
       timeout: message.timeout ?? 5000,
     }
 
-    if (!exists(msg)) {
+    if (!exists(msg) || msg.type === 'success') {
       queue.value = [...queue.value, msg]
     }
 
@@ -24,6 +24,10 @@ export const useMessageStore = defineStore('message', () => {
     queue.value = queue.value.filter(msg => msg.text !== message.text)
   }
 
+  function clear () {
+    queue.value = []
+  }
+
   function clearErrors () {
     queue.value = queue.value.filter(msg => msg.type != 'error')
   }
@@ -32,5 +36,5 @@ export const useMessageStore = defineStore('message', () => {
     return queue.value.some(msg => msg.text === message.text)
   }
 
-  return { queue, add, clearErrors, remove }
+  return { queue, add, clear, clearErrors, remove }
 })

@@ -5,9 +5,8 @@ export default {
     ...en,
   },
   rules: {
-    required: 'This field is required',
-    email: 'Email is invalid',
-    min: 'Minimum {length} characters are required',
+    matchesField: 'This field and {targetLabel} must be same',
+    confirmPassword: 'Passwords do not match',
   },
   errors: {
     common: 'Something went wrong',
@@ -17,7 +16,7 @@ export default {
       signature_invalid: 'The link is invalid',
       resource_already_exists: 'It already exists',
       resource_not_found: 'It doesn\'t exist',
-      email_already_exists: 'The provided email already exists',
+      email_already_exists: 'The provided email is already taken',
       value_error: '{field} is invalid',
       string_too_short: '{field} must be at least {min_length} character(s)',
     },
@@ -39,6 +38,7 @@ export default {
     search: 'Search (Ctrl+K or /)',
     close: 'Close',
     cancel: 'Cancel',
+    clear: 'Clear',
     confirm: 'Confirm',
     save: 'Save',
     submit: 'Submit',
@@ -48,6 +48,8 @@ export default {
     users: 'Users',
     roles: 'Roles',
     permissions: 'Permissions',
+    settings: 'Settings',
+    languages: 'Languages',
   },
   login: {
     form: {
@@ -74,6 +76,26 @@ export default {
       resetSuccess: 'Your password has been reset successfully',
       newAccount: 'New account',
       login: 'Login',
+    },
+  },
+  settings: {
+    title: 'Settings',
+    tab1: {
+      name: 'Profile',
+      profileForm: {
+        title: 'Profile',
+        profileSuccess: 'Profile updated',
+      },
+    },
+    tab2: {
+      name: 'Security',
+      passwordForm: {
+        title: 'New Password',
+        currentPassword: 'Current Password',
+        newPassword: 'New Password',
+        confirmPassword: 'Confirm Password',
+        passwordSuccess: 'Password changed',
+      },
     },
   },
   users: {

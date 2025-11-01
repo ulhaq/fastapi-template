@@ -14,6 +14,7 @@ import Permissions from '@/pages/Permissions.vue'
 import Register from '@/pages/Register.vue'
 import ResetPassword from '@/pages/ResetPassword.vue'
 import Roles from '@/pages/Roles.vue'
+import Settings from '@/pages/Settings.vue'
 import Users from '@/pages/Users.vue'
 
 const routes = [
@@ -61,6 +62,15 @@ const routes = [
     component: Index,
     meta: {
       title: 'Home',
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/settings/:tab?',
+    name: 'settings',
+    component: Settings,
+    meta: {
+      title: 'Settings',
       requiresAuth: true,
     },
   },
