@@ -33,7 +33,7 @@ class ErrorResponse(BaseErrorResponse):
 class ValidationErrorResponse(BaseErrorResponse):
     class ValidationDetail(BaseModel):
         error_code: Annotated[str, Field()]
-        field: Annotated[list[str], Field()]
+        field: Annotated[list[str | int], Field()]
         msg: Annotated[str, Field()]
         ctx: Annotated[Any, Field()]
 
