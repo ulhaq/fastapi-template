@@ -14,6 +14,8 @@ declare module 'vue' {
     DataTable: typeof import('./components/DataTable.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     Loading: typeof import('./components/Loading.vue')['default']
+    Message: typeof import('./components/messagePanel/Message.vue')['default']
+    MessagePanel: typeof import('./components/messagePanel/MessagePanel.vue')['default']
     NewPasswordForm: typeof import('./components/settings/NewPasswordForm.vue')['default']
     PermissionForm: typeof import('./components/permissions/PermissionForm.vue')['default']
     PermissionTable: typeof import('./components/permissions/PermissionTable.vue')['default']

@@ -99,7 +99,7 @@
     try {
       await permissionStore.fetchPermissions(newOptions)
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 
@@ -115,7 +115,7 @@
 
       messageStore.add({ text: t('permissions.form.deleteSuccess'), type: 'success' })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 </script>

@@ -1,26 +1,29 @@
-import type { APIErrorResponse } from '@/types/error'
 import i18n from '@/plugins/i18n'
 import { useMessageStore } from '@/stores/message'
 
-const errorsWithExtendedTimeout = new Set([
+const errorsWithTimeout = new Set([
+  'server_error',
+  'login_failed',
   'unauthorized',
   'permission_denied',
   'token_expired',
   'token_invalid',
   'signature_expired',
   'signature_invalid',
+  'resource_not_found',
+  'resource_already_exists',
 ])
 
-export function useErrorHandler (data: APIErrorResponse, context?: any): void {
+export function useErrorHandler (errorResponse: any, context?: any): void {
   const messageStore = useMessageStore()
   const { te, t } = i18n.global
 
   const addError = (text: string, timeout?: number) => {
-    messageStore.add({ text, type: 'error', timeout: timeout || 3000 })
+    messageStore.add({ text, type: 'error', timeout })
   }
 
   const resolveTimeOut = (code?: string) => {
-    return (code && errorsWithExtendedTimeout.has(code)) ? 5000 : 0
+    return (code && errorsWithTimeout.has(code)) ? 5000 : 0
   }
 
   const resolveErrorMessage = (code?: string, fallback?: string, ctx: Record<string, any> = {}) => {
@@ -29,26 +32,63 @@ export function useErrorHandler (data: APIErrorResponse, context?: any): void {
     if (code && te(key)) {
       return t(key, ctx)
     } else if (code && te(key, i18n.global.fallbackLocale.value)) {
-      return i18n.global.t(key, ctx, i18n.global.fallbackLocale.value)
+      return t(key, ctx, i18n.global.fallbackLocale.value)
     }
 
     return fallback || t('errors.common')
   }
 
-  if (data.msg) {
+  const resolveFieldLabel = (field: Array<string | number>) => {
+    if (!Array.isArray(field) || field.length === 0) {
+      return undefined
+    }
+
+    if (te(`errors.fields.${field.join(',')}`, i18n.global.fallbackLocale.value)) {
+      return t(`errors.fields.${field.join(',')}`, i18n.global.fallbackLocale.value)
+    }
+
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz'
+    const ctx: Record<string, number> = {}
+    let placeholderIndex = 0
+
+    const keyParts = field.map(part => {
+      if (typeof part === 'number' || !Number.isNaN(Number(part))) {
+        const key = alphabet[placeholderIndex++]
+        ctx[key] = Number(part)
+        return key
+      }
+      return part
+    })
+
+    const i18nKey = `errors.fields.${keyParts.join(',')}`
+
+    if (te(i18nKey, i18n.global.fallbackLocale.value)) {
+      return t(i18nKey, ctx, i18n.global.fallbackLocale.value)
+    }
+
+    const fallbackField = field
+      .map(part => (typeof part === 'number' ? `[${part}]` : part))
+      .join('.')
+
+    return fallbackField
+  }
+
+  if (errorResponse.response.data.msg) {
     addError(
-      resolveErrorMessage(data.error_code, data.msg, context),
-      resolveTimeOut(data.error_code),
+      resolveErrorMessage(
+        errorResponse.response.data.error_code,
+        errorResponse.response.data.msg,
+        context,
+      ),
+      resolveTimeOut(errorResponse.response.data.error_code),
     )
     return
   }
 
-  if (Array.isArray(data.errors) && data.errors.length > 0) {
-    for (const err of data.errors) {
+  if (Array.isArray(errorResponse.response.data.errors) && errorResponse.response.data.errors.length > 0) {
+    for (const err of errorResponse.response.data.errors) {
       const ctx = {
-        field: err.field?.length
-          ? t(`errors.fields.${err.field.join(',')}`)
-          : undefined,
+        field: resolveFieldLabel(err.field),
         ...err.ctx,
         ...context,
       }

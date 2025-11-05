@@ -193,7 +193,7 @@
 
       closeForm()
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 
@@ -218,7 +218,7 @@
       roleId.value = rs.id
       step.value = 2
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 
@@ -231,7 +231,7 @@
 
       closeForm()
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 </script>

@@ -19,6 +19,8 @@ export default {
       email_already_exists: 'The provided email is already taken',
       value_error: '{field} is invalid',
       string_too_short: '{field} must be at least {min_length} character(s)',
+      int_parsing: '{field} is invalid',
+      list_type: '{field} must be a list',
     },
     fields: {
       'body,name': '@:common.name',
@@ -39,9 +41,15 @@ export default {
     close: 'Close',
     cancel: 'Cancel',
     clear: 'Clear',
+    clearAll: 'Clear All',
     confirm: 'Confirm',
     save: 'Save',
     submit: 'Submit',
+  },
+  messagePanel: {
+    title: 'Message Panel',
+    show: 'Shoe Message Panel',
+    hide: 'Hide Message Panel',
   },
   menuBar: {
     index: 'Home',

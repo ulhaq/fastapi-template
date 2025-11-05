@@ -97,7 +97,7 @@
 
       messageStore.add({ text: t('settings.tab2.passwordForm.passwordSuccess'), type: 'success' })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     } finally {
       passwordLoading.value = false
     }

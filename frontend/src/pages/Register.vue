@@ -81,7 +81,7 @@
 
       router.push({ name: 'index' })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 

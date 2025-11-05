@@ -18,6 +18,8 @@ export default {
       resource_not_found: 'Den findes ikke',
       email_already_exists: 'Den angivne email er allerede i brug',
       value_error: '{field} er ugyldig',
+      int_parsing: '{field} er ugyldig',
+      list_type: '{field} skal være en liste',
       string_too_short: '{field} skal mindst være {min_length} tegn',
     },
     fields: {
@@ -39,9 +41,15 @@ export default {
     close: 'Luk',
     cancel: 'Annuller',
     clear: 'Ryd',
+    clearAll: 'Ryd Alle',
     confirm: 'Bekræft',
     save: 'Gem',
     submit: 'Indsend',
+  },
+  messagePanel: {
+    title: 'Beskedpanel',
+    show: 'Vis beskedpanel',
+    hide: 'Skjul beskedpanel',
   },
   menuBar: {
     index: 'Hjem',

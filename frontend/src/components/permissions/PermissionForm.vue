@@ -141,7 +141,7 @@
 
       closeForm()
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 </script>

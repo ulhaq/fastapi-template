@@ -84,7 +84,7 @@
         messageStore.add({ text: t('reset.form.requestSuccess'), type: 'success' })
       })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 
@@ -100,7 +100,7 @@
 
       router.push({ name: 'login' })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 

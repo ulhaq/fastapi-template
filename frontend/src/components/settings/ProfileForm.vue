@@ -86,7 +86,7 @@
 
       messageStore.add({ text: t('settings.tab1.profileForm.profileSuccess'), type: 'success' })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     } finally {
       profileLoading.value = false
     }

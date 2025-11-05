@@ -87,7 +87,7 @@
       const redirect = route.query.redirect
       router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 

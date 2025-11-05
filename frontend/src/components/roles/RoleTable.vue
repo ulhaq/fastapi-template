@@ -81,7 +81,7 @@
     try {
       await roleStore.fetchRoles(newOptions)
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 
@@ -97,7 +97,7 @@
 
       messageStore.add({ text: t('roles.form.deleteSuccess'), type: 'success' })
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 </script>

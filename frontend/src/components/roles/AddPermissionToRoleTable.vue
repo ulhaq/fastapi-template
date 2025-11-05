@@ -42,7 +42,7 @@
 
       await permissionStore.fetchPermissions(newOptions)
     } catch (error) {
-      useErrorHandler(error.response.data)
+      useErrorHandler(error)
     }
   }
 </script>

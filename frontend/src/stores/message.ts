@@ -5,14 +5,15 @@ import { ref } from 'vue'
 export const useMessageStore = defineStore('message', () => {
   const queue = ref<Message[]>([])
 
-  function add (message: Message) {
+  function add (message: Omit<Message, 'time'>) {
     const msg = {
       ...message,
+      time: Date.now(),
       timeout: message.timeout ?? 5000,
     }
 
     if (!exists(msg) || msg.type === 'success') {
-      queue.value = [...queue.value, msg]
+      queue.value = [msg, ...queue.value]
     }
 
     if (msg.timeout > 0) {
@@ -21,7 +22,7 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   function remove (message: Message) {
-    queue.value = queue.value.filter(msg => msg.text !== message.text)
+    queue.value = queue.value.filter(msg => msg.time !== message.time || msg.text !== message.text)
   }
 
   function clear () {
