@@ -5,7 +5,7 @@ import userApi from '@/apis/users'
 export const useUserStore = defineStore('user', () => {
   const loading = ref(false)
 
-  async function updateProfile (name: string, email: string) {
+  async function updateProfile(name: string, email: string) {
     loading.value = true
     try {
       return await userApi.updateProfile(name, email)
@@ -14,10 +14,18 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function changePassword (password: string, newPassword: string, confirmPassword: string) {
+  async function changePassword(
+    password: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) {
     loading.value = true
     try {
-      return await userApi.changePassword(password, newPassword, confirmPassword)
+      return await userApi.changePassword(
+        password,
+        newPassword,
+        confirmPassword,
+      )
     } finally {
       loading.value = false
     }

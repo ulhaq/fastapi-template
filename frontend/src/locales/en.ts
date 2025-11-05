@@ -15,7 +15,7 @@ export default {
       signature_expired: 'The link has expired',
       signature_invalid: 'The link is invalid',
       resource_already_exists: 'It already exists',
-      resource_not_found: 'It doesn\'t exist',
+      resource_not_found: "It doesn't exist",
       email_already_exists: 'The provided email is already taken',
       value_error: '{field} is invalid',
       string_too_short: '{field} must be at least {min_length} character(s)',
@@ -80,7 +80,8 @@ export default {
       requestTitle: 'Reset your password',
       resetTitle: 'Choose a new password',
       update: 'Update password',
-      requestSuccess: 'If an account with that email exists, a password reset link has been sent',
+      requestSuccess:
+        'If an account with that email exists, a password reset link has been sent',
       resetSuccess: 'Your password has been reset successfully',
       newAccount: 'New account',
       login: 'Login',
@@ -121,8 +122,7 @@ export default {
       addSuccess: 'Role has been added',
       updateSuccess: 'Role has been updated',
       deleteSuccess: 'Role has been deleted',
-      assignedPermissionsSuccess:
-        'Permissions have been assigned to the role',
+      assignedPermissionsSuccess: 'Permissions have been assigned to the role',
     },
     permissionForm: {
       title: 'Manage permissions',

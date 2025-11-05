@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-row>
-      <v-col class="text-h4">{{ t("roles.title") }}</v-col>
+      <v-col class="text-h4">{{ t('roles.title') }}</v-col>
     </v-row>
     <v-row>
       <v-col>
@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-  import { useI18n } from 'vue-i18n'
+import { useI18n } from 'vue-i18n'
 
-  const { t } = useI18n()
+const { t } = useI18n()
 </script>

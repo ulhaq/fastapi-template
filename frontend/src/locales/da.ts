@@ -80,7 +80,8 @@ export default {
       requestTitle: 'Nulstil din adgangskode',
       resetTitle: 'Vælg en ny adgangskode',
       update: 'Opdater adgangskode',
-      requestSuccess: 'Hvis en konto med denne email findes, er et nulstillingslink sendt',
+      requestSuccess:
+        'Hvis en konto med denne email findes, er et nulstillingslink sendt',
       resetSuccess: 'Din adgangskode er nulstillet',
       newAccount: 'Ny konto',
       login: 'Login',

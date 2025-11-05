@@ -69,38 +69,42 @@
   </v-app-bar>
 </template>
 <script setup>
-  import { ref } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import { useDisplay, useLocale } from 'vuetify'
-  import { availableLocales } from '@/locales/index'
-  import { useAuthStore } from '@/stores/auth'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useDisplay, useLocale } from 'vuetify'
+import { availableLocales } from '@/locales/index'
+import { useAuthStore } from '@/stores/auth'
 
-  const { mobile } = useDisplay()
+const { mobile } = useDisplay()
 
-  const { current } = useLocale()
+const { current } = useLocale()
 
-  const { t } = useI18n()
-  const authStore = useAuthStore()
+const { t } = useI18n()
+const authStore = useAuthStore()
 
-  function changeLocale (locale) {
-    current.value = locale
-    localStorage.setItem('locale', locale)
-  }
+function changeLocale(locale) {
+  current.value = locale
+  localStorage.setItem('locale', locale)
+}
 
-  const items = computed(() => [
-    { name: 'index', text: t('menuBar.index'), icon: 'mdi-home' },
-    { name: 'users', text: t('menuBar.users'), icon: 'mdi-account-group' },
-    { name: 'roles', text: t('menuBar.roles'), icon: 'mdi-shield-account' },
-    { name: 'permissions', text: t('menuBar.permissions'), icon: 'mdi-shield-star' },
-  ])
+const items = computed(() => [
+  { name: 'index', text: t('menuBar.index'), icon: 'mdi-home' },
+  { name: 'users', text: t('menuBar.users'), icon: 'mdi-account-group' },
+  { name: 'roles', text: t('menuBar.roles'), icon: 'mdi-shield-account' },
+  {
+    name: 'permissions',
+    text: t('menuBar.permissions'),
+    icon: 'mdi-shield-star',
+  },
+])
 
-  const drawer = ref(true)
+const drawer = ref(true)
 
-  onMounted(() => {
-    drawer.value = mobile.value ? false : true
-  })
+onMounted(() => {
+  drawer.value = mobile.value ? false : true
+})
 
-  function logout () {
-    authStore.logout()
-  }
+function logout() {
+  authStore.logout()
+}
 </script>

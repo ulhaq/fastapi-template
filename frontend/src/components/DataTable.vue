@@ -38,7 +38,9 @@
           #[`item.${header.key}`]="{ item }"
         >
           <slot :item="item" :name="`item.${header.key}`">
-            <span v-html="utils.highlightSearchTerm(search, item[header.key])" />
+            <span
+              v-html="utils.highlightSearchTerm(search, item[header.key])"
+            />
           </slot>
         </template>
       </v-data-table-server>
@@ -47,62 +49,62 @@
 </template>
 
 <script setup>
-  import debounce from 'lodash/debounce'
-  import utils from '@/utils'
+import debounce from 'lodash/debounce'
+import utils from '@/utils'
 
-  const props = defineProps({
-    toolbarSpacer: {
-      type: Boolean,
-      default: true,
-    },
-    headers: {
-      type: Array,
-      required: true,
-    },
-    items: {
-      type: Array,
-      required: true,
-    },
-    totalItems: {
-      type: Number,
-      required: true,
-    },
-    itemValue: {
-      type: String,
-      required: false,
-    },
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    options: {
-      type: Object,
-      required: true,
-    },
-    showSelect: {
-      type: Boolean,
-      default: false,
-    },
+const props = defineProps({
+  toolbarSpacer: {
+    type: Boolean,
+    default: true,
+  },
+  headers: {
+    type: Array,
+    required: true,
+  },
+  items: {
+    type: Array,
+    required: true,
+  },
+  totalItems: {
+    type: Number,
+    required: true,
+  },
+  itemValue: {
+    type: String,
+    required: false,
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  options: {
+    type: Object,
+    required: true,
+  },
+  showSelect: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['update:options'])
+
+const modelValue = defineModel()
+
+const search = ref('')
+
+function emitOptions(newOptions) {
+  emit('update:options', {
+    ...props.options,
+    ...newOptions,
+    search: search.value,
   })
+}
 
-  const emit = defineEmits(['update:options'])
-
-  const modelValue = defineModel()
-
-  const search = ref('')
-
-  function emitOptions (newOptions) {
-    emit('update:options', {
-      ...props.options,
-      ...newOptions,
-      search: search.value,
-    })
-  }
-
-  watch(
-    search,
-    debounce(() => {
-      emitOptions({ ...props.options, page: 1 })
-    }, 300),
-  )
+watch(
+  search,
+  debounce(() => {
+    emitOptions({ ...props.options, page: 1 })
+  }, 300),
+)
 </script>

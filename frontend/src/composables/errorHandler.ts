@@ -14,7 +14,7 @@ const errorsWithTimeout = new Set([
   'resource_already_exists',
 ])
 
-export function useErrorHandler (errorResponse: any, context?: any): void {
+export function useErrorHandler(errorResponse: any, context?: any): void {
   const messageStore = useMessageStore()
   const { te, t } = i18n.global
 
@@ -23,10 +23,14 @@ export function useErrorHandler (errorResponse: any, context?: any): void {
   }
 
   const resolveTimeOut = (code?: string) => {
-    return (code && errorsWithTimeout.has(code)) ? 5000 : 0
+    return code && errorsWithTimeout.has(code) ? 5000 : 0
   }
 
-  const resolveErrorMessage = (code?: string, fallback?: string, ctx: Record<string, any> = {}) => {
+  const resolveErrorMessage = (
+    code?: string,
+    fallback?: string,
+    ctx: Record<string, any> = {},
+  ) => {
     const key = code ? `errors.api.${code}` : ''
 
     if (code && te(key)) {
@@ -43,15 +47,20 @@ export function useErrorHandler (errorResponse: any, context?: any): void {
       return undefined
     }
 
-    if (te(`errors.fields.${field.join(',')}`, i18n.global.fallbackLocale.value)) {
-      return t(`errors.fields.${field.join(',')}`, i18n.global.fallbackLocale.value)
+    if (
+      te(`errors.fields.${field.join(',')}`, i18n.global.fallbackLocale.value)
+    ) {
+      return t(
+        `errors.fields.${field.join(',')}`,
+        i18n.global.fallbackLocale.value,
+      )
     }
 
     const alphabet = 'abcdefghijklmnopqrstuvwxyz'
     const ctx: Record<string, number> = {}
     let placeholderIndex = 0
 
-    const keyParts = field.map(part => {
+    const keyParts = field.map((part) => {
       if (typeof part === 'number' || !Number.isNaN(Number(part))) {
         const key = alphabet[placeholderIndex++]
         ctx[key] = Number(part)
@@ -67,7 +76,7 @@ export function useErrorHandler (errorResponse: any, context?: any): void {
     }
 
     const fallbackField = field
-      .map(part => (typeof part === 'number' ? `[${part}]` : part))
+      .map((part) => (typeof part === 'number' ? `[${part}]` : part))
       .join('.')
 
     return fallbackField
@@ -85,7 +94,10 @@ export function useErrorHandler (errorResponse: any, context?: any): void {
     return
   }
 
-  if (Array.isArray(errorResponse.response.data.errors) && errorResponse.response.data.errors.length > 0) {
+  if (
+    Array.isArray(errorResponse.response.data.errors) &&
+    errorResponse.response.data.errors.length > 0
+  ) {
     for (const err of errorResponse.response.data.errors) {
       const ctx = {
         field: resolveFieldLabel(err.field),

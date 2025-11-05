@@ -1,7 +1,7 @@
 import type { SortParam } from '@/types/common'
 import { isEmpty } from 'lodash'
 
-function createSorts (params?: SortParam[] | null): string | null {
+function createSorts(params?: SortParam[] | null): string | null {
   if (isEmpty(params) || !params) {
     return null
   }
@@ -11,7 +11,7 @@ function createSorts (params?: SortParam[] | null): string | null {
     .join(',')
 }
 
-function createFilters (
+function createFilters(
   params?: Record<string, string>,
   value?: string | null,
 ): string | null {
@@ -29,7 +29,7 @@ function createFilters (
   return JSON.stringify(filters)
 }
 
-function highlightSearchTerm (searchTerm: string, text: string) {
+function highlightSearchTerm(searchTerm: string, text: string) {
   if (!searchTerm) {
     return text
   }

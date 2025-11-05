@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!accessToken.value)
 
-  watch(accessToken, token => {
+  watch(accessToken, (token) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     } else {
@@ -22,15 +22,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   })
 
-  function setAccessToken (token: string) {
+  function setAccessToken(token: string) {
     accessToken.value = token
   }
 
-  function unsetAccessToken () {
+  function unsetAccessToken() {
     accessToken.value = null
   }
 
-  async function login (email: string, password: string) {
+  async function login(email: string, password: string) {
     loading.value = true
     try {
       const res = await authApi.getToken(email, password)
@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function refreshToken () {
+  async function refreshToken() {
     loading.value = true
     try {
       const res = await authApi.refreshToken()
@@ -53,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function requestPasswordReset (email: string) {
+  async function requestPasswordReset(email: string) {
     loading.value = true
     try {
       return await authApi.requestPasswordReset(email)
@@ -62,7 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function resetPassword (password: string, token: string) {
+  async function resetPassword(password: string, token: string) {
     loading.value = true
     try {
       return await authApi.resetPassword(password, token)
@@ -71,14 +71,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function logout () {
+  async function logout() {
     await authApi.logout()
     unsetAccessToken()
     user.value = null
     router.push({ name: 'login' })
   }
 
-  async function register (name: string, email: string, password: string) {
+  async function register(name: string, email: string, password: string) {
     loading.value = true
     try {
       return await authApi.register(name, email, password)
@@ -87,11 +87,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function setUser () {
+  async function setUser() {
     user.value = await authApi.getAuthenticatedUser()
   }
 
-  async function getUser () {
+  async function getUser() {
     return user.value
   }
 

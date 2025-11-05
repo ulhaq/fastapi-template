@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-row>
-      <v-col class="text-h4">{{ t("settings.title") }}</v-col>
+      <v-col class="text-h4">{{ t('settings.title') }}</v-col>
     </v-row>
 
     <v-row>
@@ -41,24 +41,24 @@
 </template>
 
 <script setup>
-  import { computed, ref, watch } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import { useRoute } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 
-  const { t } = useI18n()
-  const route = useRoute()
+const { t } = useI18n()
+const route = useRoute()
 
-  const tabs = computed(() => [
-    { text: t('settings.tab1.name'), name: 'profile', icon: 'mdi-account' },
-    { text: t('settings.tab2.name'), name: 'security', icon: 'mdi-lock' },
-  ])
+const tabs = computed(() => [
+  { text: t('settings.tab1.name'), name: 'profile', icon: 'mdi-account' },
+  { text: t('settings.tab2.name'), name: 'security', icon: 'mdi-lock' },
+])
 
-  const tab = ref(route.params.tab || tabs.value[0].name)
+const tab = ref(route.params.tab || tabs.value[0].name)
 
-  watch(
-    () => route.params.tab,
-    newVal => {
-      tab.value = newVal || tabs.value[0].name
-    },
-  )
+watch(
+  () => route.params.tab,
+  (newVal) => {
+    tab.value = newVal || tabs.value[0].name
+  },
+)
 </script>

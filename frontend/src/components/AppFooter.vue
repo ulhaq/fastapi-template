@@ -1,5 +1,8 @@
 <template>
-  <v-footer class="d-flex align-center justify-center ga-2 flex-wrap flex-grow-1 py-3" color="surface-light">
+  <v-footer
+    class="d-flex align-center justify-center ga-2 flex-wrap flex-grow-1 py-3"
+    color="surface-light"
+  >
     <router-link
       v-for="link in links"
       :key="link.name"
@@ -16,11 +19,9 @@
 </template>
 
 <script setup>
-  import { useI18n } from 'vue-i18n'
+import { useI18n } from 'vue-i18n'
 
-  const { t } = useI18n()
+const { t } = useI18n()
 
-  const links = computed(() => [
-    { name: 'index', text: t('menuBar.index') },
-  ])
+const links = computed(() => [{ name: 'index', text: t('menuBar.index') }])
 </script>

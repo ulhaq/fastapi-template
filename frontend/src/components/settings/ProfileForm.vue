@@ -1,10 +1,16 @@
 <template>
   <v-row>
     <v-col>
-      <v-form ref="profileRef" class="position-relative" @submit.prevent="updateProfile">
+      <v-form
+        ref="profileRef"
+        class="position-relative"
+        @submit.prevent="updateProfile"
+      >
         <v-card>
           <v-card-title>
-            <span class="text-h5">{{ t('settings.tab1.profileForm.title') }}</span>
+            <span class="text-h5">{{
+              t('settings.tab1.profileForm.title')
+            }}</span>
           </v-card-title>
 
           <v-card-text>
@@ -46,49 +52,52 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import { useRules } from 'vuetify/labs/rules'
-  import { useErrorHandler } from '@/composables/errorHandler'
-  import { useAuthStore } from '@/stores/auth'
-  import { useMessageStore } from '@/stores/message'
-  import { useUserStore } from '@/stores/user'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRules } from 'vuetify/labs/rules'
+import { useErrorHandler } from '@/composables/errorHandler'
+import { useAuthStore } from '@/stores/auth'
+import { useMessageStore } from '@/stores/message'
+import { useUserStore } from '@/stores/user'
 
-  const { t } = useI18n()
-  const rules = useRules()
-  const authStore = useAuthStore()
-  const messageStore = useMessageStore()
-  const userStore = useUserStore()
+const { t } = useI18n()
+const rules = useRules()
+const authStore = useAuthStore()
+const messageStore = useMessageStore()
+const userStore = useUserStore()
 
-  const profileRef = ref(null)
+const profileRef = ref(null)
 
-  const profileLoading = ref(false)
+const profileLoading = ref(false)
 
-  const name = ref(null)
-  const email = ref(null)
+const name = ref(null)
+const email = ref(null)
 
-  onMounted(() => {
-    name.value = authStore.user.name
-    email.value = authStore.user.email
-  })
+onMounted(() => {
+  name.value = authStore.user.name
+  email.value = authStore.user.email
+})
 
-  async function updateProfile () {
-    const { valid } = await profileRef.value.validate()
-    if (!valid) return
-    messageStore.clearErrors()
+async function updateProfile() {
+  const { valid } = await profileRef.value.validate()
+  if (!valid) return
+  messageStore.clearErrors()
 
-    profileLoading.value = true
+  profileLoading.value = true
 
-    try {
-      await userStore.updateProfile(name.value, email.value)
+  try {
+    await userStore.updateProfile(name.value, email.value)
 
-      await authStore.setUser()
+    await authStore.setUser()
 
-      messageStore.add({ text: t('settings.tab1.profileForm.profileSuccess'), type: 'success' })
-    } catch (error) {
-      useErrorHandler(error)
-    } finally {
-      profileLoading.value = false
-    }
+    messageStore.add({
+      text: t('settings.tab1.profileForm.profileSuccess'),
+      type: 'success',
+    })
+  } catch (error) {
+    useErrorHandler(error)
+  } finally {
+    profileLoading.value = false
   }
+}
 </script>

@@ -13,36 +13,36 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import DataTable from '@/components/DataTable.vue'
-  import { usePermissionStore } from '@/stores/permission'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import DataTable from '@/components/DataTable.vue'
+import { usePermissionStore } from '@/stores/permission'
 
-  const { t } = useI18n()
+const { t } = useI18n()
 
-  const permissionStore = usePermissionStore()
+const permissionStore = usePermissionStore()
 
-  const modelValue = defineModel()
+const modelValue = defineModel()
 
-  const headers = computed(() => [
-    { title: t('common.name'), key: 'name' },
-    { title: t('common.description'), key: 'description' },
-  ])
+const headers = computed(() => [
+  { title: t('common.name'), key: 'name' },
+  { title: t('common.description'), key: 'description' },
+])
 
-  const options = ref({
-    page: 1,
-    itemsPerPage: 10,
-    sortBy: [{ key: 'updated_at', order: 'desc' }],
-    filterBy: { name: 'co', description: 'co' },
-  })
+const options = ref({
+  page: 1,
+  itemsPerPage: 10,
+  sortBy: [{ key: 'updated_at', order: 'desc' }],
+  filterBy: { name: 'co', description: 'co' },
+})
 
-  async function fetchPermissions (newOptions) {
-    try {
-      options.value = newOptions
+async function fetchPermissions(newOptions) {
+  try {
+    options.value = newOptions
 
-      await permissionStore.fetchPermissions(newOptions)
-    } catch (error) {
-      useErrorHandler(error)
-    }
+    await permissionStore.fetchPermissions(newOptions)
+  } catch (error) {
+    useErrorHandler(error)
   }
+}
 </script>

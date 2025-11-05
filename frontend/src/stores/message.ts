@@ -5,7 +5,7 @@ import { ref } from 'vue'
 export const useMessageStore = defineStore('message', () => {
   const queue = ref<Message[]>([])
 
-  function add (message: Omit<Message, 'time'>) {
+  function add(message: Omit<Message, 'time'>) {
     const msg = {
       ...message,
       time: Date.now(),
@@ -21,20 +21,22 @@ export const useMessageStore = defineStore('message', () => {
     }
   }
 
-  function remove (message: Message) {
-    queue.value = queue.value.filter(msg => msg.time !== message.time || msg.text !== message.text)
+  function remove(message: Message) {
+    queue.value = queue.value.filter(
+      (msg) => msg.time !== message.time || msg.text !== message.text,
+    )
   }
 
-  function clear () {
+  function clear() {
     queue.value = []
   }
 
-  function clearErrors () {
-    queue.value = queue.value.filter(msg => msg.type != 'error')
+  function clearErrors() {
+    queue.value = queue.value.filter((msg) => msg.type != 'error')
   }
 
-  function exists (message: Message) {
-    return queue.value.some(msg => msg.text === message.text)
+  function exists(message: Message) {
+    return queue.value.some((msg) => msg.text === message.text)
   }
 
   return { queue, add, clear, clearErrors, remove }

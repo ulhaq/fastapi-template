@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts" setup>
-  onMounted(async () => {
+onMounted(async () => {
   //
-  })
+})
 </script>

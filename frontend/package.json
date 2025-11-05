@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
+    "format": "prettier . --write",
     "lint": "eslint . --fix"
   },
   "dependencies": {
@@ -31,6 +32,7 @@
     "eslint-config-vuetify": "^4.0.0",
     "npm-run-all2": "^7.0.2",
     "pinia": "^3.0.1",
+    "prettier": "3.6.2",
     "sass-embedded": "^1.86.3",
     "typescript": "~5.8.2",
     "unplugin-auto-import": "^19.1.1",

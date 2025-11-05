@@ -3,7 +3,7 @@
     <v-form ref="loginForm" class="pb-4" @submit.prevent="submit">
       <v-card class="pa-6" elevation="8" width="450">
         <v-card-title class="text-h5 text-center mb-6">{{
-          t("login.form.title")
+          t('login.form.title')
         }}</v-card-title>
 
         <v-card-text>
@@ -36,7 +36,7 @@
                 :loading="authStore.loading"
                 type="submit"
               >
-                {{ t("login.form.submit") }}
+                {{ t('login.form.submit') }}
               </v-btn>
             </v-col>
           </v-row>
@@ -44,11 +44,11 @@
 
         <v-card-actions>
           <v-btn :to="{ name: 'register' }">{{
-            t("login.form.newAccount")
+            t('login.form.newAccount')
           }}</v-btn>
           <v-spacer />
           <v-btn :to="{ name: 'reset' }">{{
-            t("login.form.resetPassword")
+            t('login.form.resetPassword')
           }}</v-btn>
         </v-card-actions>
       </v-card>
@@ -57,41 +57,41 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import { useRoute } from 'vue-router'
-  import { useRules } from 'vuetify/labs/rules'
-  import { useErrorHandler } from '@/composables/errorHandler'
-  import { useAuthStore } from '@/stores/auth'
-  import { useMessageStore } from '@/stores/message'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
+import { useRules } from 'vuetify/labs/rules'
+import { useErrorHandler } from '@/composables/errorHandler'
+import { useAuthStore } from '@/stores/auth'
+import { useMessageStore } from '@/stores/message'
 
-  const { t } = useI18n()
-  const rules = useRules()
-  const route = useRoute()
-  const router = useRouter()
-  const authStore = useAuthStore()
-  const messageStore = useMessageStore()
+const { t } = useI18n()
+const rules = useRules()
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const messageStore = useMessageStore()
 
-  const email = ref('')
-  const password = ref('')
-  const loginForm = ref(null)
+const email = ref('')
+const password = ref('')
+const loginForm = ref(null)
 
-  async function submit () {
-    const { valid } = await loginForm.value.validate()
-    if (!valid) return
-    messageStore.clearErrors()
+async function submit() {
+  const { valid } = await loginForm.value.validate()
+  if (!valid) return
+  messageStore.clearErrors()
 
-    try {
-      await authStore.login(email.value, password.value)
+  try {
+    await authStore.login(email.value, password.value)
 
-      const redirect = route.query.redirect
-      router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
-    } catch (error) {
-      useErrorHandler(error)
-    }
+    const redirect = route.query.redirect
+    router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
+  } catch (error) {
+    useErrorHandler(error)
   }
+}
 
-  onMounted(async () => {
+onMounted(async () => {
   //
-  })
+})
 </script>

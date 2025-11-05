@@ -1,6 +1,6 @@
 <template>
   <v-btn color="white" size="large" variant="elevated" @click="openForm">
-    {{ t("roles.add") }}
+    {{ t('roles.add') }}
   </v-btn>
   <v-dialog v-model="open" max-width="768" persistent>
     <v-stepper
@@ -68,7 +68,9 @@
         <v-card>
           <v-card-title>
             <span class="text-h6">{{
-              t("roles.form.permissionAssignmentTitle", {role: roleStore.role.name})
+              t('roles.form.permissionAssignmentTitle', {
+                role: roleStore.role.name,
+              })
             }}</span>
           </v-card-title>
 
@@ -108,130 +110,139 @@
 </template>
 
 <script setup>
-  import { computed, ref, watch } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import { useRules } from 'vuetify/labs/rules'
-  import { useErrorHandler } from '@/composables/errorHandler'
-  import { useMessageStore } from '@/stores/message'
-  import { useRoleStore } from '@/stores/role'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRules } from 'vuetify/labs/rules'
+import { useErrorHandler } from '@/composables/errorHandler'
+import { useMessageStore } from '@/stores/message'
+import { useRoleStore } from '@/stores/role'
 
-  const { t } = useI18n()
-  const rules = useRules()
-  const messageStore = useMessageStore()
-  const roleStore = useRoleStore()
+const { t } = useI18n()
+const rules = useRules()
+const messageStore = useMessageStore()
+const roleStore = useRoleStore()
 
-  const permissionHeaders = computed(() => [
-    { title: t('common.name'), key: 'name' },
-    { title: t('common.description'), key: 'description' },
-  ])
+const permissionHeaders = computed(() => [
+  { title: t('common.name'), key: 'name' },
+  { title: t('common.description'), key: 'description' },
+])
 
-  const roleForm = ref(null)
+const roleForm = ref(null)
 
-  const step = ref(1)
-  const open = ref(false)
-  const selectedPermissions = ref([])
+const step = ref(1)
+const open = ref(false)
+const selectedPermissions = ref([])
 
-  const roleId = ref(null)
+const roleId = ref(null)
 
-  watch(
-    () => roleStore.role,
-    val => {
-      if (val.id && !open.value) {
-        roleStore.setRole({ ...val })
-        roleId.value = val.id
-        selectedPermissions.value = val.permissions.map(
-          permission => permission.id,
-        )
-        step.value = 1
-        open.value = true
-      }
-    },
-    { immediate: true },
-  )
-
-  watch(open, val => {
-    if (!val) {
-      roleStore.resetRole()
-      roleId.value = null
+watch(
+  () => roleStore.role,
+  (val) => {
+    if (val.id && !open.value) {
+      roleStore.setRole({ ...val })
+      roleId.value = val.id
+      selectedPermissions.value = val.permissions.map(
+        (permission) => permission.id,
+      )
       step.value = 1
-      selectedPermissions.value = []
+      open.value = true
     }
-  })
+  },
+  { immediate: true },
+)
 
-  const title = computed(() => {
-    return roleId.value ? t('roles.form.editTitle') : t('roles.form.addTitle')
-  })
-
-  const isEditing = computed(() => {
-    return roleId.value != null
-  })
-
-  function openForm () {
-    open.value = true
+watch(open, (val) => {
+  if (!val) {
+    roleStore.resetRole()
+    roleId.value = null
+    step.value = 1
+    selectedPermissions.value = []
   }
+})
 
-  function closeForm () {
-    open.value = false
-    roleStore.loading = false
-  }
+const title = computed(() => {
+  return roleId.value ? t('roles.form.editTitle') : t('roles.form.addTitle')
+})
 
-  async function submit () {
-    const { valid } = await roleForm.value.validate()
-    if (!valid) return
-    messageStore.clearErrors()
+const isEditing = computed(() => {
+  return roleId.value != null
+})
 
-    try {
-      if (isEditing.value) {
-        await roleStore.updateRole(roleStore.role)
+function openForm() {
+  open.value = true
+}
 
-        messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
-      } else {
-        await roleStore.createRole(roleStore.role)
+function closeForm() {
+  open.value = false
+  roleStore.loading = false
+}
 
-        messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
-      }
+async function submit() {
+  const { valid } = await roleForm.value.validate()
+  if (!valid) return
+  messageStore.clearErrors()
 
-      closeForm()
-    } catch (error) {
-      useErrorHandler(error)
+  try {
+    if (isEditing.value) {
+      await roleStore.updateRole(roleStore.role)
+
+      messageStore.add({
+        text: t('roles.form.updateSuccess'),
+        type: 'success',
+      })
+    } else {
+      await roleStore.createRole(roleStore.role)
+
+      messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
     }
+
+    closeForm()
+  } catch (error) {
+    useErrorHandler(error)
   }
+}
 
-  async function addRoleAndNextStep () {
-    const { valid } = await roleForm.value.validate()
-    if (!valid) return
-    messageStore.clearErrors()
+async function addRoleAndNextStep() {
+  const { valid } = await roleForm.value.validate()
+  if (!valid) return
+  messageStore.clearErrors()
 
-    try {
-      let rs
+  try {
+    let rs
 
-      if (isEditing.value) {
-        rs = await roleStore.updateRole(roleStore.role)
+    if (isEditing.value) {
+      rs = await roleStore.updateRole(roleStore.role)
 
-        messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
-      } else {
-        rs = await roleStore.createRole(roleStore.role)
+      messageStore.add({
+        text: t('roles.form.updateSuccess'),
+        type: 'success',
+      })
+    } else {
+      rs = await roleStore.createRole(roleStore.role)
 
-        messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
-      }
-
-      roleId.value = rs.id
-      step.value = 2
-    } catch (error) {
-      useErrorHandler(error)
+      messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
     }
+
+    roleId.value = rs.id
+    step.value = 2
+  } catch (error) {
+    useErrorHandler(error)
   }
+}
 
-  async function assignPermissionsToRole () {
-    messageStore.clearErrors()
-    try {
-      await roleStore.managePermissions(roleId.value, selectedPermissions.value)
+async function assignPermissionsToRole() {
+  messageStore.clearErrors()
+  try {
+    await roleStore.managePermissions(roleId.value, selectedPermissions.value)
 
-      messageStore.add({ text: t('roles.form.assignedPermissionsSuccess'), type: 'success' })
+    messageStore.add({
+      text: t('roles.form.assignedPermissionsSuccess'),
+      type: 'success',
+    })
 
-      closeForm()
-    } catch (error) {
-      useErrorHandler(error)
-    }
+    closeForm()
+  } catch (error) {
+    useErrorHandler(error)
   }
+}
 </script>

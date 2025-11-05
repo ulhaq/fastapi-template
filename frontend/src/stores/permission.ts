@@ -21,7 +21,7 @@ export const usePermissionStore = defineStore('permission', () => {
     description: '',
   })
 
-  async function fetchPermissions (options: FetchOptions) {
+  async function fetchPermissions(options: FetchOptions) {
     loading.value = true
     try {
       permissions.value = await permissionApi.getAll({
@@ -35,7 +35,7 @@ export const usePermissionStore = defineStore('permission', () => {
     }
   }
 
-  async function createPermission (newPermission: Permission) {
+  async function createPermission(newPermission: Permission) {
     loading.value = true
     try {
       const rs = await permissionApi.create(newPermission)
@@ -48,7 +48,7 @@ export const usePermissionStore = defineStore('permission', () => {
     }
   }
 
-  async function updatePermission (updatedPermission: Permission) {
+  async function updatePermission(updatedPermission: Permission) {
     loading.value = true
     try {
       const rs = await permissionApi.updateById(
@@ -56,7 +56,7 @@ export const usePermissionStore = defineStore('permission', () => {
         updatedPermission,
       )
 
-      permissions.value.items = permissions.value.items.map(item =>
+      permissions.value.items = permissions.value.items.map((item) =>
         item.id === updatedPermission.id ? rs : item,
       )
 
@@ -66,13 +66,13 @@ export const usePermissionStore = defineStore('permission', () => {
     }
   }
 
-  async function deletePermission (id: number) {
+  async function deletePermission(id: number) {
     loading.value = true
     try {
       await permissionApi.deleteById(id)
 
       permissions.value.items = permissions.value.items.filter(
-        item => item.id !== id,
+        (item) => item.id !== id,
       )
       permissions.value.total = Math.max(0, permissions.value.total - 1)
     } finally {

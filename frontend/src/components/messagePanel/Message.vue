@@ -8,12 +8,8 @@
     variant="elevated"
     @click:close="messageStore.remove(props.message)"
   >
-
     <template #close>
-      <v-progress-circular
-        v-if="props.message.timeout"
-        :model-value="progress"
-      >
+      <v-progress-circular v-if="props.message.timeout" :model-value="progress">
         <v-btn
           color="white"
           icon="mdi-close"
@@ -35,31 +31,33 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import { useMessageStore } from '@/stores/message'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useMessageStore } from '@/stores/message'
 
-  const { t } = useI18n()
+const { t } = useI18n()
 
-  const props = defineProps({
-    message: {
-      type: Object,
-      required: true,
-    },
-  })
+const props = defineProps({
+  message: {
+    type: Object,
+    required: true,
+  },
+})
 
-  const messageStore = useMessageStore()
+const messageStore = useMessageStore()
 
-  const progress = ref(0)
+const progress = ref(0)
 
-  let interval = null
+let interval = null
 
-  onMounted(() => {
-    interval = setInterval(() => {
-      progress.value = Math.min(((Date.now() - props.message.time) / props.message.timeout) * 100, 100)
-    }, 100)
-  })
+onMounted(() => {
+  interval = setInterval(() => {
+    progress.value = Math.min(
+      ((Date.now() - props.message.time) / props.message.timeout) * 100,
+      100,
+    )
+  }, 100)
+})
 
-  onBeforeUnmount(() => clearInterval(interval))
-
+onBeforeUnmount(() => clearInterval(interval))
 </script>

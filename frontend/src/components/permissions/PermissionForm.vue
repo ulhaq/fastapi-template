@@ -1,6 +1,6 @@
 <template>
   <v-btn color="white" size="large" variant="elevated" @click="openForm">
-    {{ t("permissions.add") }}
+    {{ t('permissions.add') }}
   </v-btn>
   <v-dialog v-model="open" max-width="768" persistent>
     <v-stepper
@@ -64,84 +64,90 @@
 </template>
 
 <script setup>
-  import { computed, ref, watch } from 'vue'
-  import { useI18n } from 'vue-i18n'
-  import { useRules } from 'vuetify/labs/rules'
-  import { useErrorHandler } from '@/composables/errorHandler'
-  import { useMessageStore } from '@/stores/message'
-  import { usePermissionStore } from '@/stores/permission'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRules } from 'vuetify/labs/rules'
+import { useErrorHandler } from '@/composables/errorHandler'
+import { useMessageStore } from '@/stores/message'
+import { usePermissionStore } from '@/stores/permission'
 
-  const { t } = useI18n()
-  const rules = useRules()
-  const messageStore = useMessageStore()
-  const permissionStore = usePermissionStore()
+const { t } = useI18n()
+const rules = useRules()
+const messageStore = useMessageStore()
+const permissionStore = usePermissionStore()
 
-  const permissionForm = ref(null)
+const permissionForm = ref(null)
 
-  const step = ref(1)
-  const open = ref(false)
+const step = ref(1)
+const open = ref(false)
 
-  const permissionId = ref(null)
+const permissionId = ref(null)
 
-  watch(
-    () => permissionStore.permission,
-    val => {
-      if (val.id && !open.value) {
-        permissionStore.setPermission({ ...val })
-        permissionId.value = val.id
-        step.value = 1
-        open.value = true
-      }
-    },
-    { immediate: true },
-  )
-
-  watch(open, val => {
-    if (!val) {
-      permissionStore.resetPermission()
-      permissionId.value = null
+watch(
+  () => permissionStore.permission,
+  (val) => {
+    if (val.id && !open.value) {
+      permissionStore.setPermission({ ...val })
+      permissionId.value = val.id
       step.value = 1
+      open.value = true
     }
-  })
+  },
+  { immediate: true },
+)
 
-  const title = computed(() => {
-    return permissionId.value
-      ? t('permissions.form.editTitle')
-      : t('permissions.form.addTitle')
-  })
-
-  const isEditing = computed(() => {
-    return permissionId.value != null
-  })
-
-  function openForm () {
-    open.value = true
+watch(open, (val) => {
+  if (!val) {
+    permissionStore.resetPermission()
+    permissionId.value = null
+    step.value = 1
   }
+})
 
-  function closeForm () {
-    open.value = false
-    permissionStore.loading = false
-  }
+const title = computed(() => {
+  return permissionId.value
+    ? t('permissions.form.editTitle')
+    : t('permissions.form.addTitle')
+})
 
-  async function submit () {
-    const { valid } = await permissionForm.value.validate()
-    if (!valid) return
-    messageStore.clearErrors()
+const isEditing = computed(() => {
+  return permissionId.value != null
+})
 
-    try {
-      if (isEditing.value) {
-        await permissionStore.updatePermission(permissionStore.permission)
+function openForm() {
+  open.value = true
+}
 
-        messageStore.add({ text: t('permissions.form.updateSuccess'), type: 'success' })
-      } else {
-        await permissionStore.createPermission(permissionStore.permission)
+function closeForm() {
+  open.value = false
+  permissionStore.loading = false
+}
 
-        messageStore.add({ text: t('permissions.form.addSuccess'), type: 'success' })
-      }
+async function submit() {
+  const { valid } = await permissionForm.value.validate()
+  if (!valid) return
+  messageStore.clearErrors()
 
-      closeForm()
-    } catch (error) {
-      useErrorHandler(error)
+  try {
+    if (isEditing.value) {
+      await permissionStore.updatePermission(permissionStore.permission)
+
+      messageStore.add({
+        text: t('permissions.form.updateSuccess'),
+        type: 'success',
+      })
+    } else {
+      await permissionStore.createPermission(permissionStore.permission)
+
+      messageStore.add({
+        text: t('permissions.form.addSuccess'),
+        type: 'success',
+      })
     }
+
+    closeForm()
+  } catch (error) {
+    useErrorHandler(error)
   }
+}
 </script>

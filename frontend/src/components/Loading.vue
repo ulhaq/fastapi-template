@@ -5,14 +5,10 @@
     contained
     persistent
   >
-    <v-progress-circular
-      color="primary"
-      indeterminate
-      size="64"
-    />
+    <v-progress-circular color="primary" indeterminate size="64" />
   </v-overlay>
 </template>
 
 <script setup>
-  const modelValue = defineModel()
+const modelValue = defineModel()
 </script>

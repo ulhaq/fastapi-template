@@ -22,7 +22,7 @@ export const useRoleStore = defineStore('role', () => {
     permission_ids: [],
   })
 
-  async function fetchRoles (options: FetchOptions) {
+  async function fetchRoles(options: FetchOptions) {
     loading.value = true
     try {
       roles.value = await roleApi.getAll({
@@ -36,7 +36,7 @@ export const useRoleStore = defineStore('role', () => {
     }
   }
 
-  async function createRole (newRole: Role) {
+  async function createRole(newRole: Role) {
     loading.value = true
     try {
       const rs = await roleApi.create(newRole)
@@ -49,12 +49,12 @@ export const useRoleStore = defineStore('role', () => {
     }
   }
 
-  async function updateRole (updatedRole: Role) {
+  async function updateRole(updatedRole: Role) {
     loading.value = true
     try {
       const rs = await roleApi.updateById(updatedRole.id, updatedRole)
 
-      roles.value.items = roles.value.items.map(item =>
+      roles.value.items = roles.value.items.map((item) =>
         item.id === updatedRole.id ? rs : item,
       )
 
@@ -64,7 +64,7 @@ export const useRoleStore = defineStore('role', () => {
     }
   }
 
-  async function managePermissions (
+  async function managePermissions(
     roleId: string | number,
     permissionIds: string[],
   ) {
@@ -72,7 +72,7 @@ export const useRoleStore = defineStore('role', () => {
     try {
       const rs = await roleApi.managePermissions(roleId, permissionIds)
 
-      roles.value.items = roles.value.items.map(item =>
+      roles.value.items = roles.value.items.map((item) =>
         item.id === roleId ? rs : item,
       )
 
@@ -82,12 +82,12 @@ export const useRoleStore = defineStore('role', () => {
     }
   }
 
-  async function deleteRole (id: number) {
+  async function deleteRole(id: number) {
     loading.value = true
     try {
       await roleApi.deleteById(id)
 
-      roles.value.items = roles.value.items.filter(item => item.id !== id)
+      roles.value.items = roles.value.items.filter((item) => item.id !== id)
       roles.value.total = Math.max(0, roles.value.total - 1)
     } finally {
       loading.value = false

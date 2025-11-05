@@ -13,7 +13,7 @@ import router from '@/router'
 import pinia from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 
-router.beforeEach(async to => {
+router.beforeEach(async (to) => {
   const route = useRoute()
   const authStore = useAuthStore()
 
@@ -33,11 +33,11 @@ router.beforeEach(async to => {
   }
 })
 
-router.afterEach(to => {
+router.afterEach((to) => {
   const defaultTitle = 'My App'
   document.title = to.meta.title || defaultTitle
 })
 
-export function registerPlugins (app: App) {
+export function registerPlugins(app: App) {
   app.use(router).use(vuetify).use(validation).use(pinia).use(i18n)
 }
