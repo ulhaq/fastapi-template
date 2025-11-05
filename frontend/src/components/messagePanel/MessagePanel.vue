@@ -9,7 +9,7 @@
       location="top right"
       position="fixed"
       size="small"
-      style="z-index: 9999"
+      style="z-index: 9999; top:10px; right:10px"
       :title="t('messagePanel.show')"
       @click="toggleMessagePanel"
     />
