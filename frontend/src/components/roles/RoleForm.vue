@@ -1,5 +1,5 @@
 <template>
-  <v-btn color="white" size="large" variant="elevated" @click="openForm">
+  <v-btn color="white" variant="elevated" @click="openForm">
     {{ t('roles.add') }}
   </v-btn>
   <v-dialog v-model="open" max-width="768" persistent>
@@ -40,7 +40,6 @@
             <v-card-actions>
               <v-btn
                 color="error"
-                size="large"
                 :text="t('common.cancel')"
                 variant="plain"
                 @click="closeForm"
@@ -48,14 +47,12 @@
               <v-spacer />
               <v-btn
                 color="white"
-                size="large"
                 :text="t('roles.form.saveAndNext')"
                 variant="elevated"
                 @click="addRoleAndNextStep"
               />
               <v-btn
                 color="white"
-                size="large"
                 :text="t('common.save')"
                 type="submit"
                 variant="elevated"
@@ -87,7 +84,6 @@
           <v-card-actions>
             <v-btn
               color="error"
-              size="large"
               :text="t('common.cancel')"
               variant="plain"
               @click="closeForm"
@@ -95,7 +91,6 @@
             <v-spacer />
             <v-btn
               color="white"
-              size="large"
               :text="t('roles.form.assignPermissionsToRole')"
               variant="elevated"
               @click="assignPermissionsToRole"

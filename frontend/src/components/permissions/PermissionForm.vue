@@ -1,5 +1,5 @@
 <template>
-  <v-btn color="white" size="large" variant="elevated" @click="openForm">
+  <v-btn color="white" variant="elevated" @click="openForm">
     {{ t('permissions.add') }}
   </v-btn>
   <v-dialog v-model="open" max-width="768" persistent>
@@ -40,7 +40,6 @@
             <v-card-actions>
               <v-btn
                 color="error"
-                size="large"
                 :text="t('common.cancel')"
                 variant="plain"
                 @click="closeForm"
@@ -48,7 +47,6 @@
               <v-spacer />
               <v-btn
                 color="white"
-                size="large"
                 :text="t('common.save')"
                 type="submit"
                 variant="elevated"

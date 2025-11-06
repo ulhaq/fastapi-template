@@ -1,7 +1,7 @@
 <template>
   <v-row>
     <v-col>
-      <v-toolbar color="transparent">
+      <v-toolbar color="transparent" density="compact">
         <slot name="toolbar.search">
           <search-bar v-model="search" />
         </slot>
@@ -22,6 +22,7 @@
         :items-per-page-options="[10, 25, 50, 100]"
         :loading="loading"
         multi-sort
+        density="comfortable"
         :page="options.page"
         :show-select="showSelect"
         :sort-by="options.sortBy"

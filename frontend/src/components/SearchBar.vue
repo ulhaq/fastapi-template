@@ -5,7 +5,7 @@
     append-inner-icon="mdi-magnify"
     class="elevation-0"
     clearable
-    density="comfortable"
+    density="compact"
     hide-details
     persistent-placeholder
     :placeholder="t('common.search')"

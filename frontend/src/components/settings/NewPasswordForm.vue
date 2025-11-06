@@ -58,7 +58,6 @@
             <v-spacer />
             <v-btn
               color="primary"
-              size="large"
               :text="t('common.save')"
               type="submit"
               variant="elevated"
