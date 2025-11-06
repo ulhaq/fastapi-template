@@ -9,7 +9,7 @@
       location="top right"
       position="fixed"
       size="small"
-      style="z-index: 9999; top:10px; right:10px"
+      style="z-index: 9999; top: 5px; right: 5px"
       :title="t('messagePanel.show')"
       @click="toggleMessagePanel"
     />
@@ -19,12 +19,12 @@
       elevation="24"
       location="top right"
       max-height="75%"
-      min-width="25%"
+      min-width="20%"
       position="fixed"
       rounded
       :style="{ zIndex: 9999 }"
     >
-      <v-card-title v-if="authStore.isAuthenticated" class="d-flex">
+      <v-card-title v-if="authStore.isAuthenticated" class="d-flex pa-1 ms-2">
         {{ t('messagePanel.title') }}
         <v-spacer />
         <v-btn
@@ -39,9 +39,9 @@
       <v-card-text class="pa-0" style="overflow-y: auto">
         <v-slide-x-reverse-transition group>
           <message
-            v-for="msg in messageStore.queue"
+            v-for="[idx, msg] in messageStore.queue.entries()"
             :key="`${msg.time}-${msg.text}`"
-            :class="{ 'mb-2': messageStore.queue.length > 1 }"
+            :class="{ 'mb-2': idx < messageStore.queue.length - 1 }"
             :message="msg"
           />
         </v-slide-x-reverse-transition>

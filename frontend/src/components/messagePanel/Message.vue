@@ -1,11 +1,9 @@
 <template>
   <v-alert
-    border="start"
-    class="flex-shrink-0"
     :icon="false"
     :text="props.message.text"
     :type="props.message.type"
-    variant="elevated"
+    rounded="0"
     @click:close="messageStore.remove(props.message)"
   >
     <template #close>

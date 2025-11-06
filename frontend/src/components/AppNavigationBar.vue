@@ -36,7 +36,7 @@
 
     <v-menu>
       <template #activator="{ props }">
-        <v-btn icon v-bind="props">
+        <v-btn icon v-bind="props" elevation="1">
           <v-icon size="40">mdi-account-circle</v-icon>
         </v-btn>
       </template>
