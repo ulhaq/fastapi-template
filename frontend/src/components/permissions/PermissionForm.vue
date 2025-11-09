@@ -38,13 +38,13 @@
             </v-card-text>
 
             <v-card-actions>
+              <v-spacer />
               <v-btn
                 color="error"
                 :text="t('common.cancel')"
                 variant="plain"
                 @click="closeForm"
               />
-              <v-spacer />
               <v-btn
                 color="white"
                 :text="t('common.save')"

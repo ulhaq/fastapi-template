@@ -38,16 +38,16 @@
             </v-card-text>
 
             <v-card-actions>
+              <v-spacer />
               <v-btn
                 color="error"
                 :text="t('common.cancel')"
                 variant="plain"
                 @click="closeForm"
               />
-              <v-spacer />
               <v-btn
                 color="white"
-                :text="t('roles.form.saveAndNext')"
+                :text="t('common.saveAndNext')"
                 variant="elevated"
                 @click="addRoleAndNextStep"
               />
@@ -82,16 +82,16 @@
           </v-card-text>
 
           <v-card-actions>
+            <v-spacer />
             <v-btn
               color="error"
-              :text="t('common.cancel')"
+              :text="t('common.close')"
               variant="plain"
               @click="closeForm"
             />
-            <v-spacer />
             <v-btn
               color="white"
-              :text="t('roles.form.assignPermissionsToRole')"
+              :text="assignPermissionBtnText"
               variant="elevated"
               @click="assignPermissionsToRole"
             />
@@ -163,6 +163,20 @@ const isEditing = computed(() => {
   return roleId.value != null
 })
 
+const assignPermissionBtnText = computed(() => {
+  if (
+    selectedPermissions.value.length > 0 ||
+    (selectedPermissions.value.length == 0 &&
+      (roleStore.role.permissions?.length == 0 ||
+        roleStore.role.permission_ids?.length == 0))
+  ) {
+    return t('roles.form.assignPermissionsToRole', {
+      number: selectedPermissions.value.length || '',
+    })
+  }
+  return t('roles.form.removeAllPermissions')
+})
+
 function openForm() {
   open.value = true
 }
@@ -228,12 +242,23 @@ async function addRoleAndNextStep() {
 async function assignPermissionsToRole() {
   messageStore.clearErrors()
   try {
-    await roleStore.managePermissions(roleId.value, selectedPermissions.value)
-
-    messageStore.add({
-      text: t('roles.form.assignedPermissionsSuccess'),
-      type: 'success',
-    })
+    const rs = await roleStore.managePermissions(
+      roleId.value,
+      selectedPermissions.value,
+    )
+    if (rs.permissions.length > 0) {
+      messageStore.add({
+        text: t('roles.form.assignedPermissionsSuccess', {
+          number: selectedPermissions.value.length,
+        }),
+        type: 'success',
+      })
+    } else {
+      messageStore.add({
+        text: t('roles.form.unassignedPermissionsSuccess'),
+        type: 'success',
+      })
+    }
 
     closeForm()
   } catch (error) {
