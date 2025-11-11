@@ -101,6 +101,7 @@ export function useErrorHandler(errorResponse: any, context?: any): void {
     for (const err of errorResponse.response.data.errors) {
       const ctx = {
         field: resolveFieldLabel(err.field),
+        msg: err.msg,
         ...err.ctx,
         ...context,
       }
