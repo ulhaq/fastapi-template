@@ -29,8 +29,10 @@ class UserRepository(SQLResourceRepository[User], UserRepositoryABC):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
-    async def add_roles(self, user: User, *role_ids: int) -> None:
-        await self.add_relationship(user, Role, "roles", *role_ids)
+    async def add_roles(self, user: User, *role_ids: int, commit: bool = True) -> None:
+        await self.add_relationship(user, Role, "roles", *role_ids, commit=commit)
 
-    async def remove_roles(self, user: User, *role_ids: int) -> None:
-        await self.remove_relationship(user, "roles", *role_ids)
+    async def remove_roles(
+        self, user: User, *role_ids: int, commit: bool = True
+    ) -> None:
+        await self.remove_relationship(user, "roles", *role_ids, commit=commit)

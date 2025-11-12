@@ -13,5 +13,5 @@ class Base(DeclarativeBase): ...  # pylint: disable=too-few-public-methods
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
-    async with AsyncSessionLocal() as db:
+    async with AsyncSessionLocal(expire_on_commit=True) as db:
         yield db

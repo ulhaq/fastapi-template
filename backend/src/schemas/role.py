@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Annotated
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from src.schemas.common import NameDescriptionOut, Timestamp
 from src.schemas.utils import sort_by_id
@@ -13,9 +14,9 @@ class RoleBase(BaseModel):
 
 class RoleOut(RoleBase, Timestamp):
     id: int
-    permissions: list[NameDescriptionOut] = Field(default_factory=list)
-
-    _sort = field_validator("permissions")(sort_by_id)
+    permissions: Annotated[list[NameDescriptionOut], AfterValidator(sort_by_id)] = (
+        Field(default_factory=list)
+    )
 
 
 class RoleIn(RoleBase): ...

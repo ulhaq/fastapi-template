@@ -1,11 +1,11 @@
 from typing import Annotated, Self
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     EmailStr,
     Field,
-    field_validator,
     model_validator,
 )
 
@@ -24,13 +24,14 @@ class UserBase(BaseModel):
 
 class UserOut(UserBase, Timestamp):
     id: int
-    roles: list[RoleOut] = Field(default_factory=list)
-
-    _sort = field_validator("roles")(sort_by_id)
+    roles: Annotated[list[RoleOut], AfterValidator(sort_by_id)] = Field(
+        default_factory=list
+    )
 
 
 class UserIn(UserBase):
     password: Annotated[str, Field(min_length=6)]
+    company_id: Annotated[int, Field()]
 
 
 class EmailIn(BaseModel):

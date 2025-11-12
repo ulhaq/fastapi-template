@@ -24,19 +24,22 @@ class ResourceService[
 ](BaseService):
     repo: ResourceRepositoryType
 
-    async def get(self, identifier: int) -> BaseType:
-        if rs := await self.repo.get(identifier):
+    async def get(self, identifier: int, include_deleted: bool = False) -> BaseType:
+        if rs := await self.repo.get(identifier, include_deleted=include_deleted):
             return rs
 
         raise NotFoundException(
             f"{self.repo.model.__name__} not found. [{identifier=}]"
         )
 
-    async def get_all(self) -> Sequence[BaseType]:
-        return await self.repo.get_all()
+    async def get_all(self, include_deleted: bool = False) -> Sequence[BaseType]:
+        return await self.repo.get_all(include_deleted=include_deleted)
 
     async def paginate(
-        self, schema_out: type[SchemaOutType], page_query_params: PageQueryParams
+        self,
+        schema_out: type[SchemaOutType],
+        page_query_params: PageQueryParams,
+        include_deleted: bool = False,
     ) -> PaginatedResponse[SchemaOutType]:
         try:
             items, total = await self.repo.paginate(
@@ -44,6 +47,7 @@ class ResourceService[
                 filters=page_query_params.filters,
                 page_size=page_query_params.page_size,
                 page_number=page_query_params.page_number,
+                include_deleted=include_deleted,
             )
             return PaginatedResponse(
                 items=[schema_out.model_validate(item) for item in items],
@@ -84,12 +88,17 @@ class ResourceService[
         self,
         identifier: int,
         validation_callback: Callable[[], Awaitable] | None = None,
+        include_deleted: bool = False,
     ) -> None:
         if model := await self.repo.get(identifier):
             if validation_callback:
                 await validation_callback()
 
-            await self.repo.delete(model)
+            if include_deleted is False:
+                await self.repo.delete(model)
+            else:
+                await self.repo.force_delete(model)
+
             return
 
         raise NotFoundException(

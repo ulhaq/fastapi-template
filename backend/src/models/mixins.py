@@ -16,15 +16,4 @@ class TimestampMixin:
         onupdate=datetime.now(timezone.utc),
         nullable=False,
     )
-
-
-class TimestampMi:
-    created_at: Mapped[DateTime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc), nullable=False
-    )
-    updated_at: Mapped[DateTime] = mapped_column(
-        DateTime,
-        default=datetime.now(timezone.utc),
-        onupdate=datetime.now(timezone.utc),
-        nullable=False,
-    )
+    deleted_at: Mapped[DateTime] = mapped_column(DateTime, default=None, nullable=True)

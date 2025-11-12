@@ -8,6 +8,7 @@ from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from src.routers import company
 from src.core.config import settings
 from src.core.exceptions import ClientException, ErrorResponse, ValidationErrorResponse
 from src.core.logging import LOGGING_CONFIG
@@ -101,6 +102,7 @@ async def handle_validation_exception(
 
 
 app.include_router(auth.router, tags=["Authentication"])
+app.include_router(company.router, tags=["Companies"])
 app.include_router(user.router, tags=["Users"])
 app.include_router(role.router, tags=["Roles"])
 app.include_router(permission.router, tags=["Permissions"])

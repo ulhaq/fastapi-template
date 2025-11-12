@@ -18,12 +18,17 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn, RoleOut]):
         super().__init__(repos)
 
     async def paginate(
-        self, schema_out: type[RoleOut], page_query_params: PageQueryParams
+        self,
+        schema_out: type[RoleOut],
+        page_query_params: PageQueryParams,
+        include_deleted: bool = False,
     ) -> PaginatedResponse[RoleOut]:
         get_current_user().authorize("read_role")
 
         return await super().paginate(
-            schema_out=schema_out, page_query_params=page_query_params
+            schema_out=schema_out,
+            page_query_params=page_query_params,
+            include_deleted=include_deleted,
         )
 
     async def create_role(self, schema_in: RoleIn) -> RoleOut:
@@ -52,15 +57,17 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn, RoleOut]):
             await super().update(identifier, schema_in, validate)
         )
 
-    async def get_role(self, identifier: int) -> RoleOut:
+    async def get_role(self, identifier: int, include_deleted: bool = False) -> RoleOut:
         get_current_user().authorize("read_role")
 
-        return RoleOut.model_validate(await super().get(identifier))
+        return RoleOut.model_validate(
+            await super().get(identifier, include_deleted=include_deleted)
+        )
 
-    async def delete_role(self, identifier: int) -> None:
+    async def delete_role(self, identifier: int, include_deleted: bool = False) -> None:
         get_current_user().authorize("delete_role")
 
-        await super().delete(identifier)
+        await super().delete(identifier, include_deleted=include_deleted)
 
     async def manage_permissions(
         self, identifier: int, schema_in: RolePermissionIn

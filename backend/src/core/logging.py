@@ -63,6 +63,10 @@ LOGGING_CONFIG = {
         "sqlalchemy.engine.Engine": {
             "handlers": [],
         },
+        "aiosqlite": {
+            "handlers": [],
+            "propagate": False,
+        },
     },
     "root": {
         "handlers": ["console", "file"],

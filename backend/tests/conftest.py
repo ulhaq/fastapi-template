@@ -8,6 +8,7 @@ from sqlalchemy import StaticPool
 from src.core.database import Base, get_db
 from src.core.security import hash_password
 from src.main import app
+from src.models.company import Company
 from src.models.role import Role
 from src.models.permission import Permission
 from src.models.user import User
@@ -35,39 +36,50 @@ async def prepare_database() -> AsyncGenerator[None]:
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestSessionLocal() as session:
+        companies = []
+        for company in INIT_AUTH_DATA["companies"]:
+            companies.append(Company(name=company["name"]))
+        session.add_all(companies)
+
         permissions = []
         for permission in INIT_AUTH_DATA["permissions"]:
-            _permission = Permission(
-                name=permission["name"], description=permission["description"]
+            permissions.append(
+                Permission(
+                    name=permission["name"], description=permission["description"]
+                )
             )
-            permissions.append(_permission)
         session.add_all(permissions)
 
         roles = []
         for role in INIT_AUTH_DATA["roles"]:
-            _role = Role(
-                name=role["name"],
-                description=role["description"],
-                permissions=[
-                    permission
-                    for idx, permission in enumerate(permissions, 1)
-                    if idx in role["permissions"]
-                ],
+            roles.append(
+                Role(
+                    name=role["name"],
+                    description=role["description"],
+                    permissions=[
+                        permission
+                        for idx, permission in enumerate(permissions, 1)
+                        if idx in role["permissions"]
+                    ],
+                )
             )
-            roles.append(_role)
         session.add_all(roles)
 
         users = []
         for user in INIT_AUTH_DATA["users"]:
-            _user = User(
-                name=user["name"],
-                email=user["email"],
-                password=hash_password(user["password"]),
-                roles=[
-                    role for idx, role in enumerate(roles, 1) if idx in user["roles"]
-                ],
+            users.append(
+                User(
+                    name=user["name"],
+                    email=user["email"],
+                    password=hash_password(user["password"]),
+                    company=companies[user["company"] - 1],
+                    roles=[
+                        role
+                        for idx, role in enumerate(roles, 1)
+                        if idx in user["roles"]
+                    ],
+                )
             )
-            users.append(_user)
         session.add_all(users)
 
         await session.commit()

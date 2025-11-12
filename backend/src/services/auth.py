@@ -22,7 +22,8 @@ from src.core.security import (
 )
 from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager
-from src.schemas.user import EmailIn, NewPasswordIn, UserIn, UserOut
+from src.schemas.company import CompanyIn, CompanyOut
+from src.schemas.user import EmailIn, NewPasswordIn
 from src.services.base import BaseService
 from src.services.utils import send_email
 
@@ -33,31 +34,38 @@ class AuthService(BaseService):
     def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
         super().__init__(repos)
 
-    async def register_user(
-        self, user_in: UserIn, bg_tasks: BackgroundTasks
-    ) -> UserOut:
-        if await self.repos.user.get_by_email(user_in.email):
-            raise AlreadyExistsException(
-                f"Account already exists. [email={user_in.email}]",
-                error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+    async def register_company(
+        self, company_in: CompanyIn, bg_tasks: BackgroundTasks
+    ) -> CompanyOut:
+        async with self.repos.db.begin():
+            if await self.repos.user.get_by_email(company_in.email):
+                raise AlreadyExistsException(
+                    f"Account already exists. [email={company_in.email}]",
+                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+                )
+
+            company = await self.repos.company.create(
+                commit=False, **company_in.model_dump(include={"name"})
             )
 
-        user_in.password = hash_password(user_in.password)
+            company_in.password = hash_password(company_in.password)
 
-        user = await self.repos.user.create(**user_in.model_dump())
+            user = await self.repos.user.create(
+                commit=False, **company_in.model_dump(), company=company
+            )
 
-        bg_tasks.add_task(
-            send_email,
-            address=user.email,
-            user_name=user.name,
-            subject=f"Welcome to {settings.app_name}",
-            email_template="welcome",
-            data={
-                "login_url": f"{settings.frontend_url}/login",
-            },
-        )
+            bg_tasks.add_task(
+                send_email,
+                address=user.email,
+                user_name=user.name,
+                subject=f"Welcome to {settings.app_name}",
+                email_template="welcome",
+                data={
+                    "login_url": f"{settings.frontend_url}/login",
+                },
+            )
 
-        return UserOut.model_validate(user)
+            return CompanyOut.model_validate(company)
 
     async def get_access_token(
         self, auth_data: OAuth2PasswordRequestForm, response: Response

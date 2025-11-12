@@ -3,7 +3,11 @@ from typing import Annotated
 from fastapi import BackgroundTasks, Depends
 
 from src.core.config import settings
-from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
+from src.core.exceptions import (
+    AlreadyExistsException,
+    NotFoundException,
+    PermissionDeniedException,
+)
 from src.core.security import authenticate_user, get_current_user, hash_password, sign
 from src.enums import ErrorCode
 from src.models.user import User
@@ -61,6 +65,12 @@ class UserService(
                 raise AlreadyExistsException(
                     f"User already exists. [email={schema_in.email}]",
                     error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+                )
+
+            if not await self.repos.company.get(schema_in.company_id):
+                raise NotFoundException(
+                    f"Company not found. [id={schema_in.company_id}]",
+                    error_code=ErrorCode.RESOURCE_NOT_FOUND,
                 )
 
         get_current_user().authorize("create_user")

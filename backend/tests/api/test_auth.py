@@ -15,11 +15,8 @@ def test_register_an_account(client: TestClient) -> None:
     )
     assert response.status_code == 201
     rs = response.json()
-    assert rs["id"] == 4
+    assert rs["id"] == 3
     assert rs["name"] == "new user"
-    assert rs["email"] == "new_user@testing.com"
-
-    assert rs["roles"] == []
 
     assert rs["created_at"]
     assert rs["updated_at"]

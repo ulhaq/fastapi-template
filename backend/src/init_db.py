@@ -10,6 +10,7 @@ from src.core.database import AsyncSessionLocal
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_password
 from src.models.permission import Permission
+from src.models.company import Company
 from src.models.role import Role
 from src.models.user import User
 
@@ -20,22 +21,50 @@ log = logging.getLogger(__name__)
 alembic_cfg = Config(os.getcwd() + "/alembic.ini")
 
 INIT_AUTH_DATA: dict = {
+    "companies": [
+        {
+            "name": "Company 1",
+        },
+        {
+            "name": "Company 2",
+        },
+    ],
     "permissions": [
         {
+            "name": "read_company",
+            "description": "Allows the user to read company accounts.",
+        },
+        {
+            "name": "create_company",
+            "description": "Allows the user to create new company accounts.",
+        },
+        {
+            "name": "update_company",
+            "description": "Allows the user to update company accounts.",
+        },
+        {
+            "name": "delete_company",
+            "description": "Allows the user to delete company accounts.",
+        },
+        {
+            "name": "manage_company_user",
+            "description": "Allows the user to manage companies' users.",
+        },
+        {
             "name": "read_user",
-            "description": "Allows the user to read user accounts.",
+            "description": "Allows the user to read users.",
         },
         {
             "name": "create_user",
-            "description": "Allows the user to create new user accounts.",
+            "description": "Allows the user to create new users.",
         },
         {
             "name": "update_user",
-            "description": "Allows the user to update user accounts.",
+            "description": "Allows the user to update users.",
         },
         {
             "name": "delete_user",
-            "description": "Allows the user to delete user accounts.",
+            "description": "Allows the user to delete users.",
         },
         {
             "name": "read_role",
@@ -82,12 +111,32 @@ INIT_AUTH_DATA: dict = {
         {
             "name": "admin",
             "description": "Full access to all system features and settings.",
-            "permissions": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+            "permissions": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+            ],
         },
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
-            "permissions": [1, 2],
+            "permissions": [6, 7],
         },
     ],
     "users": [
@@ -95,18 +144,21 @@ INIT_AUTH_DATA: dict = {
             "name": "Admin",
             "email": "admin@example.org",
             "password": "password",
+            "company": 1,
             "roles": [1],
         },
         {
             "name": "Standard",
             "email": "standard@example.org",
             "password": "password",
+            "company": 2,
             "roles": [2],
         },
         {
             "name": "No Roles",
             "email": "no_roles@example.org",
             "password": "password",
+            "company": 1,
             "roles": [],
         },
     ],
@@ -117,39 +169,50 @@ async def up() -> None:
     command.upgrade(alembic_cfg, "head")
 
     async with AsyncSessionLocal() as session:
+        companies = []
+        for company in INIT_AUTH_DATA["companies"]:
+            companies.append(Company(name=company["name"]))
+        session.add_all(companies)
+
         permissions = []
         for permission in INIT_AUTH_DATA["permissions"]:
-            _permission = Permission(
-                name=permission["name"], description=permission["description"]
+            permissions.append(
+                Permission(
+                    name=permission["name"], description=permission["description"]
+                )
             )
-            permissions.append(_permission)
         session.add_all(permissions)
 
         roles = []
         for role in INIT_AUTH_DATA["roles"]:
-            _role = Role(
-                name=role["name"],
-                description=role["description"],
-                permissions=[
-                    permission
-                    for idx, permission in enumerate(permissions, 1)
-                    if idx in role["permissions"]
-                ],
+            roles.append(
+                Role(
+                    name=role["name"],
+                    description=role["description"],
+                    permissions=[
+                        permission
+                        for idx, permission in enumerate(permissions, 1)
+                        if idx in role["permissions"]
+                    ],
+                )
             )
-            roles.append(_role)
         session.add_all(roles)
 
         users = []
         for user in INIT_AUTH_DATA["users"]:
-            _user = User(
-                name=user["name"],
-                email=user["email"],
-                password=hash_password(user["password"]),
-                roles=[
-                    role for idx, role in enumerate(roles, 1) if idx in user["roles"]
-                ],
+            users.append(
+                User(
+                    name=user["name"],
+                    email=user["email"],
+                    password=hash_password(user["password"]),
+                    company=companies[user["company"] - 1],
+                    roles=[
+                        role
+                        for idx, role in enumerate(roles, 1)
+                        if idx in user["roles"]
+                    ],
+                )
             )
-            users.append(_user)
         session.add_all(users)
 
         await session.commit()

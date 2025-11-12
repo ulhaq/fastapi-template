@@ -1,10 +1,12 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.models.mixins import TimestampMixin
+
+from src.models.company import Company
 
 if TYPE_CHECKING:
     from src.models.role import Role
@@ -20,7 +22,13 @@ class User(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
+    company_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("company.id", name="fk_user_company_id_company"),
+        nullable=False,
+    )
 
+    company: Mapped["Company"] = relationship("Company", back_populates="users")
     roles: Mapped[list["Role"]] = relationship(
         "Role", secondary="user_role", back_populates="users", lazy="joined"
     )
