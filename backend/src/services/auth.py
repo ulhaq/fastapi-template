@@ -107,7 +107,7 @@ class AuthService(BaseService):
                 algorithms=[settings.auth_algorithm],
                 audience=settings.app_name,
             )
-            user_id = payload.get("sub")
+            user_id = int(payload.get("sub"))
         except ExpiredSignatureError as exc:
             raise NotAuthenticatedException(
                 "Token expired",
