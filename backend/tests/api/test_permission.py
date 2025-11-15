@@ -96,7 +96,7 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
     assert rs["items"][5]["id"] == 6
     assert rs["items"][5]["name"] == "read_user"
     assert (
-        rs["items"][5]["description"] == "Allows the user to read user."
+        rs["items"][5]["description"] == "Allows the user to read users."
     )
     assert len(rs["items"][5]["roles"]) == 2
     assert rs["items"][5]["roles"][0]["id"] == 1
@@ -117,7 +117,7 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
     assert rs["items"][6]["id"] == 7
     assert rs["items"][6]["name"] == "create_user"
     assert (
-        rs["items"][6]["description"] == "Allows the user to create new user."
+        rs["items"][6]["description"] == "Allows the user to create new users."
     )
     assert len(rs["items"][6]["roles"]) == 2
     assert rs["items"][6]["roles"][0]["id"] == 1
@@ -137,7 +137,7 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert rs["items"][7]["id"] == 8
     assert rs["items"][7]["name"] == "update_user"
-    assert rs["items"][7]["description"] == "Allows the user to update user."
+    assert rs["items"][7]["description"] == "Allows the user to update users."
 
     assert len(rs["items"][7]["roles"]) == 1
     assert rs["items"][7]["roles"][0]["id"] == 1
@@ -151,7 +151,7 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert rs["items"][8]["id"] == 9
     assert rs["items"][8]["name"] == "delete_user"
-    assert rs["items"][8]["description"] == "Allows the user to delete user."
+    assert rs["items"][8]["description"] == "Allows the user to delete users."
 
     assert len(rs["items"][8]["roles"]) == 1
     assert rs["items"][8]["roles"][0]["id"] == 1
