@@ -1,5 +1,5 @@
 <template>
-  <v-slide-x-reverse-transition>
+  <v-expand-transition>
     <v-btn
       v-if="messageStore.queue.length > 0 && !isMessagePanelExpanded"
       color="white"
@@ -30,7 +30,7 @@
         <v-btn
           density="comfortable"
           elevation="0"
-          icon="mdi-arrow-right"
+          icon="mdi-arrow-up"
           :title="t('messagePanel.hide')"
           @click="toggleMessagePanel"
         />
@@ -62,7 +62,7 @@
         />
       </v-card-actions>
     </v-card>
-  </v-slide-x-reverse-transition>
+  </v-expand-transition>
 </template>
 
 <script setup>
