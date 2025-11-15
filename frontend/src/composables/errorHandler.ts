@@ -23,7 +23,7 @@ export function useErrorHandler(errorResponse: any, context?: any): void {
   }
 
   const resolveTimeOut = (code?: string) => {
-    return code && errorsWithTimeout.has(code) ? 5000 : 0
+    return code && errorsWithTimeout.has(code) ? undefined : 0
   }
 
   const resolveErrorMessage = (
@@ -82,18 +82,6 @@ export function useErrorHandler(errorResponse: any, context?: any): void {
     return fallbackField
   }
 
-  if (errorResponse.response.data.msg) {
-    addError(
-      resolveErrorMessage(
-        errorResponse.response.data.error_code,
-        errorResponse.response.data.msg,
-        context,
-      ),
-      resolveTimeOut(errorResponse.response.data.error_code),
-    )
-    return
-  }
-
   if (
     Array.isArray(errorResponse.response.data.errors) &&
     errorResponse.response.data.errors.length > 0
@@ -106,10 +94,28 @@ export function useErrorHandler(errorResponse: any, context?: any): void {
         ...context,
       }
       addError(
-        resolveErrorMessage(err.error_code, err.ctx?.reason, ctx),
+        resolveErrorMessage(
+          err.error_code,
+          err.ctx?.reason ||
+            `${ctx.field}: ${err.msg}` ||
+            errorResponse.response.data.msg,
+          ctx,
+        ),
         resolveTimeOut(err.error_code),
       )
     }
+    return
+  }
+
+  if (errorResponse.response.data.msg) {
+    addError(
+      resolveErrorMessage(
+        errorResponse.response.data.error_code,
+        errorResponse.response.data.msg,
+        context,
+      ),
+      resolveTimeOut(errorResponse.response.data.error_code),
+    )
     return
   }
 

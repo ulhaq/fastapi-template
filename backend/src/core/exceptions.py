@@ -1,43 +1,8 @@
-from datetime import datetime, timezone
-from typing import Annotated, Any, Self
+from typing import Any
 
-from fastapi import HTTPException, Request, status
-from pydantic import BaseModel, Field
+from fastapi import HTTPException, status
 
 from src.enums import ErrorCode
-
-
-class BaseErrorResponse(BaseModel):
-    time: Annotated[datetime, Field()]
-    path: Annotated[str, Field()]
-    method: Annotated[str, Field()]
-    error_code: Annotated[str, Field()]
-
-    @classmethod
-    def from_exception(
-        cls, request: Request, error_code: ErrorCode, **kwargs: Any
-    ) -> Self:
-        return cls(
-            error_code=error_code.code,
-            time=datetime.now(timezone.utc),
-            path=str(request.url),
-            method=request.method,
-            **kwargs,
-        )
-
-
-class ErrorResponse(BaseErrorResponse):
-    msg: Annotated[str, Field()]
-
-
-class ValidationErrorResponse(BaseErrorResponse):
-    class ValidationDetail(BaseModel):
-        error_code: Annotated[str, Field()]
-        field: Annotated[list[str | int], Field()]
-        msg: Annotated[str, Field()]
-        ctx: Annotated[Any, Field()]
-
-    errors: Annotated[list[ValidationDetail], Field()]
 
 
 class ClientException(HTTPException):

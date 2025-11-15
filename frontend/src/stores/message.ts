@@ -3,13 +3,25 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useMessageStore = defineStore('message', () => {
+  function calculateReadingTime(
+    text: string,
+    lettersPerSecond: number = 7,
+  ): number {
+    if (!text?.trim()) return 0
+
+    const letterCount = text.replaceAll(' ', '').length
+    const totalMs = Math.ceil((letterCount / lettersPerSecond) * 1000)
+
+    return totalMs
+  }
+
   const queue = ref<Message[]>([])
 
   function add(message: Omit<Message, 'time'>) {
     const msg = {
       ...message,
       time: Date.now(),
-      timeout: message.timeout ?? 5000,
+      timeout: message.timeout ?? (calculateReadingTime(message.text) || 5000),
     }
 
     if (!exists(msg) || msg.type === 'success') {

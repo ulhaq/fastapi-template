@@ -1,20 +1,23 @@
 import logging
 import logging.config
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
-from src.routers import company
 from src.core.config import settings
-from src.core.exceptions import ClientException, ErrorResponse, ValidationErrorResponse
+from src.core.exceptions import ClientException
 from src.core.logging import LOGGING_CONFIG
 from src.core.middlewares import ErrorHandlingMiddleware
 from src.enums import ErrorCode
-from src.routers import auth, permission, role, user
+from src.routers import auth, company, permission, role, user
+from src.schemas.common import ErrorResponse, ValidationDetail, ValidationErrorResponse
 
 logging.config.dictConfig(LOGGING_CONFIG)
 
@@ -47,7 +50,7 @@ async def handle_http_exception(request: Request, exc: HTTPException) -> JSONRes
     return JSONResponse(
         status_code=exc.status_code,
         content=jsonable_encoder(
-            ErrorResponse.from_exception(
+            ErrorResponse(
                 request,
                 error_code=ErrorCode.SERVER_ERROR
                 if exc.status_code != 401
@@ -68,34 +71,68 @@ async def handle_client_exception(
     return JSONResponse(
         status_code=exc.status_code,
         content=jsonable_encoder(
-            ErrorResponse.from_exception(
-                request, error_code=exc.error_code, msg=exc.detail
-            )
+            ErrorResponse(request, error_code=exc.error_code, msg=exc.detail)
         ),
         headers=exc.headers,
     )
 
 
-@app.exception_handler(RequestValidationError)
-async def handle_validation_exception(
-    request: Request, exc: RequestValidationError
+@app.exception_handler(ValidationError)
+async def handle_validation_error(
+    request: Request, exc: ValidationError
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
-            ValidationErrorResponse.from_exception(
+            ValidationErrorResponse(
                 request,
                 error_code=ErrorCode.VALIDATION_ERROR,
-                errors=[
-                    ValidationErrorResponse.ValidationDetail(
-                        error_code=error["type"],
-                        field=error["loc"],
-                        msg=error["msg"],
-                        ctx=error["ctx"] if "ctx" in error else [],
-                    )
-                    for error in exc.errors()
-                ],
+                msg=ErrorCode.VALIDATION_ERROR.description,
+                errors=exc.errors(),
             )
+        ),
+        headers={},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_request_validation_error(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    if any(
+        error.get("type", None) == ErrorCode.JSON_INVALID.code for error in exc.errors()
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=jsonable_encoder(
+                ErrorResponse(
+                    request,
+                    error_code=ErrorCode.JSON_INVALID,
+                    msg=ErrorCode.JSON_INVALID.description,
+                )
+            ),
+            headers={},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder(
+            ValidationErrorResponse(
+                request,
+                error_code=ErrorCode.VALIDATION_ERROR,
+                msg=ErrorCode.VALIDATION_ERROR.description,
+                errors=exc.errors(),
+            )
+        ),
+        headers={},
+    )
+
+
+@app.exception_handler(ValueError)
+async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder(
+            ErrorResponse(request, error_code=ErrorCode.VALIDATION_ERROR, msg=str(exc))
         ),
         headers={},
     )
@@ -106,3 +143,76 @@ app.include_router(company.router, tags=["Companies"])
 app.include_router(user.router, tags=["Users"])
 app.include_router(role.router, tags=["Roles"])
 app.include_router(permission.router, tags=["Permissions"])
+
+
+def custom_openapi() -> dict[str, Any]:
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        summary=app.summary,
+        description=app.description,
+        routes=app.routes,
+    )
+
+    openapi_schema["components"]["schemas"]["ErrorResponse"] = (
+        ErrorResponse.model_json_schema()
+    )
+
+    openapi_schema["components"]["schemas"]["ValidationDetail"] = (
+        ValidationDetail.model_json_schema()
+    )
+
+    openapi_schema["components"]["schemas"]["ValidationErrorResponse"] = (
+        ValidationErrorResponse.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )
+    )
+
+    for path_item in openapi_schema["paths"].values():
+        for method, operation in path_item.items():
+            if "responses" not in operation:
+                operation["responses"] = {}
+
+            if "400" not in operation["responses"]:
+                operation["responses"]["400"] = {
+                    "description": "Bad Request",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/ErrorResponse"}
+                        }
+                    },
+                }
+
+            if (
+                method.lower() in ["get", "put", "delete"]
+                and "404" not in operation["responses"]
+            ):
+                operation["responses"]["404"] = {
+                    "description": "Not Found",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/ErrorResponse"}
+                        }
+                    },
+                }
+
+            if "422" in operation["responses"]:
+                operation["responses"]["422"] = {
+                    "description": "Validation Error",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ValidationErrorResponse"
+                            }
+                        }
+                    },
+                }
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+setattr(app, "openapi", custom_openapi)

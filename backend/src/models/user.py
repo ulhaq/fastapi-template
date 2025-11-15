@@ -4,9 +4,8 @@ from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-from src.models.mixins import TimestampMixin
-
 from src.models.company import Company
+from src.models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from src.models.role import Role

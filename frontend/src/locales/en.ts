@@ -18,6 +18,7 @@ export default {
       resource_not_found: "It doesn't exist",
       email_already_exists: 'The provided email is already taken',
       value_error: '{field} is invalid',
+      missing: '{field} must be provided',
       string_too_short: '{field} must be at least {min_length} character(s)',
       int_parsing: '{field} is invalid',
       list_type: '{field} must be a list',

@@ -9,8 +9,8 @@ from alembic.config import Config
 from src.core.database import AsyncSessionLocal
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_password
-from src.models.permission import Permission
 from src.models.company import Company
+from src.models.permission import Permission
 from src.models.role import Role
 from src.models.user import User
 

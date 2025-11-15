@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from src.schemas.common import Timestamp

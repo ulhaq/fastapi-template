@@ -5,8 +5,8 @@ from fastapi import Depends
 from src.core.exceptions import AlreadyExistsException
 from src.core.security import get_current_user
 from src.models.company import Company
-from src.repositories.repository_manager import RepositoryManager
 from src.repositories.company import CompanyRepository
+from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.company import CompanyBase, CompanyOut
 from src.services.base import ResourceService

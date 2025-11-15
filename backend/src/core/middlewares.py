@@ -6,8 +6,8 @@ from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.core.config import settings
-from src.core.exceptions import BaseErrorResponse, ErrorResponse
 from src.enums import ErrorCode
+from src.schemas.common import ErrorResponse
 
 log = logging.getLogger(__name__)
 
@@ -60,19 +60,17 @@ class ErrorHandlingMiddleware:
             exc_info=settings.log_exc_info,
         )
 
-        error_content: BaseErrorResponse | ErrorResponse
-        if not settings.app_debug:
-            error_content = BaseErrorResponse.from_exception(
-                Request(scope), error_code=ErrorCode.SERVER_ERROR
-            )
-        else:
-            error_content = ErrorResponse.from_exception(
-                Request(scope), error_code=ErrorCode.SERVER_ERROR, msg=str(exc)
-            )
-
         response = JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=jsonable_encoder(error_content),
+            content=jsonable_encoder(
+                ErrorResponse(
+                    Request(scope),
+                    msg=ErrorCode.SERVER_ERROR.description
+                    if not settings.app_debug
+                    else str(exc),
+                    error_code=ErrorCode.SERVER_ERROR,
+                )
+            ),
         )
 
         if not response_started:

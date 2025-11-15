@@ -3,7 +3,7 @@ from typing import Awaitable, Callable, Sequence
 from pydantic import BaseModel
 
 from src.core.database import Base
-from src.core.exceptions import NotFoundException, ValidationException
+from src.core.exceptions import NotFoundException
 from src.repositories.abc import ResourceRepositoryABC
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
@@ -41,22 +41,19 @@ class ResourceService[
         page_query_params: PageQueryParams,
         include_deleted: bool = False,
     ) -> PaginatedResponse[SchemaOutType]:
-        try:
-            items, total = await self.repo.paginate(
-                sort=page_query_params.sort,
-                filters=page_query_params.filters,
-                page_size=page_query_params.page_size,
-                page_number=page_query_params.page_number,
-                include_deleted=include_deleted,
-            )
-            return PaginatedResponse(
-                items=[schema_out.model_validate(item) for item in items],
-                page_number=page_query_params.page_number,
-                page_size=page_query_params.page_size,
-                total=total,
-            )
-        except ValueError as exc:
-            raise ValidationException(exc) from exc
+        items, total = await self.repo.paginate(
+            sort=page_query_params.sort,
+            filters=page_query_params.filters,
+            page_size=page_query_params.page_size,
+            page_number=page_query_params.page_number,
+            include_deleted=include_deleted,
+        )
+        return PaginatedResponse(
+            items=[schema_out.model_validate(item) for item in items],
+            page_number=page_query_params.page_number,
+            page_size=page_query_params.page_size,
+            total=total,
+        )
 
     async def create(
         self,
