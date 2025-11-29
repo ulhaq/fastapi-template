@@ -12,7 +12,7 @@ export const useMessageStore = defineStore('message', () => {
     const letterCount = text.replaceAll(' ', '').length
     const totalMs = Math.ceil((letterCount / lettersPerSecond) * 1000)
 
-    return totalMs
+    return Math.max(totalMs, 7000)
   }
 
   const queue = ref<Message[]>([])
@@ -24,9 +24,11 @@ export const useMessageStore = defineStore('message', () => {
       timeout: message.timeout ?? (calculateReadingTime(message.text) || 5000),
     }
 
-    if (!exists(msg) || msg.type === 'success') {
-      queue.value = [msg, ...queue.value]
+    const messageIndex = indexOf(msg)
+    if (messageIndex >= 0 && msg.type !== 'success') {
+      queue.value.splice(messageIndex, 1)
     }
+    queue.value = [msg, ...queue.value]
 
     if (msg.timeout > 0) {
       setTimeout(() => remove(msg), msg.timeout)
@@ -47,8 +49,13 @@ export const useMessageStore = defineStore('message', () => {
     queue.value = queue.value.filter((msg) => msg.type != 'error')
   }
 
-  function exists(message: Message) {
-    return queue.value.some((msg) => msg.text === message.text)
+  function indexOf(message: Message) {
+    return queue.value.findIndex(
+      (msg) =>
+        msg.text === message.text &&
+        msg.type === message.type &&
+        msg.timeout === message.timeout,
+    )
   }
 
   return { queue, add, clear, clearErrors, remove }

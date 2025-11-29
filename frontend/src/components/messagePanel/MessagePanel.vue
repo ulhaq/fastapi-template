@@ -4,15 +4,17 @@
       v-if="messageStore.queue.length > 0 && !isMessagePanelExpanded"
       color="white"
       density="comfortable"
-      elevation="24"
-      icon="mdi-bell"
       location="top right"
       position="fixed"
-      size="small"
       style="z-index: 9999; top: 5px; right: 5px"
       :title="t('messagePanel.show')"
       @click="toggleMessagePanel"
-    />
+      icon
+    >
+      <v-badge location="top left" :content="messageStore.queue.length">
+        <v-icon icon="mdi-bell"></v-icon>
+      </v-badge>
+    </v-btn>
     <v-card
       v-if="messageStore.queue.length > 0 && isMessagePanelExpanded"
       class="d-flex flex-column"
@@ -30,6 +32,7 @@
         <v-btn
           density="comfortable"
           elevation="0"
+          class="me-3"
           icon="mdi-arrow-up"
           :title="t('messagePanel.hide')"
           @click="toggleMessagePanel"
@@ -48,7 +51,6 @@
       </v-card-text>
 
       <v-card-actions
-        v-if="messageStore.queue.length > 1"
         class="d-flex justify-center pa-0 ma-0"
         style="min-height: 0"
       >
