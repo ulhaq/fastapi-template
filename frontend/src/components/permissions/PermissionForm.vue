@@ -65,7 +65,6 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRules } from 'vuetify/labs/rules'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useMessageStore } from '@/stores/message'
 import { usePermissionStore } from '@/stores/permission'
 
@@ -126,26 +125,22 @@ async function submit() {
   if (!valid) return
   messageStore.clearErrors()
 
-  try {
-    if (isEditing.value) {
-      await permissionStore.updatePermission(permissionStore.permission)
+  if (isEditing.value) {
+    await permissionStore.updatePermission(permissionStore.permission)
 
-      messageStore.add({
-        text: t('permissions.form.updateSuccess'),
-        type: 'success',
-      })
-    } else {
-      await permissionStore.createPermission(permissionStore.permission)
+    messageStore.add({
+      text: t('permissions.form.updateSuccess'),
+      type: 'success',
+    })
+  } else {
+    await permissionStore.createPermission(permissionStore.permission)
 
-      messageStore.add({
-        text: t('permissions.form.addSuccess'),
-        type: 'success',
-      })
-    }
-
-    closeForm()
-  } catch (error) {
-    useErrorHandler(error)
+    messageStore.add({
+      text: t('permissions.form.addSuccess'),
+      type: 'success',
+    })
   }
+
+  closeForm()
 }
 </script>

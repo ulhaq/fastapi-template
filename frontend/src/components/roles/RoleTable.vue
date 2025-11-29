@@ -54,7 +54,6 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DataTable from '@/components/DataTable.vue'
 import RoleForm from '@/components/roles/RoleForm.vue'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useMessageStore } from '@/stores/message'
 import { useRoleStore } from '@/stores/role'
 
@@ -87,11 +86,7 @@ const options = ref({
 async function fetchRoles(newOptions) {
   options.value = newOptions
 
-  try {
-    await roleStore.fetchRoles(newOptions)
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  await roleStore.fetchRoles(newOptions)
 }
 
 function editRole(role) {
@@ -99,14 +94,10 @@ function editRole(role) {
 }
 
 async function confirmDelete(item) {
-  try {
-    await roleStore.deleteRole(item.id)
+  await roleStore.deleteRole(item.id)
 
-    deleteMenus.value[item.id] = false
+  deleteMenus.value[item.id] = false
 
-    messageStore.add({ text: t('roles.form.deleteSuccess'), type: 'success' })
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  messageStore.add({ text: t('roles.form.deleteSuccess'), type: 'success' })
 }
 </script>

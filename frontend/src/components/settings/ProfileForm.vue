@@ -54,7 +54,6 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRules } from 'vuetify/labs/rules'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
 import { useUserStore } from '@/stores/user'
@@ -93,8 +92,6 @@ async function updateProfile() {
       text: t('settings.tab1.profileForm.profileSuccess'),
       type: 'success',
     })
-  } catch (error) {
-    useErrorHandler(error)
   } finally {
     profileLoading.value = false
   }

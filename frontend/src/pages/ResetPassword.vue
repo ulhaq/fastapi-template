@@ -53,7 +53,6 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useRules } from 'vuetify/labs/rules'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
 
@@ -77,18 +76,14 @@ async function request() {
   const { valid } = await requestForm.value.validate()
   if (!valid) return
 
-  try {
-    await authStore.requestPasswordReset(email.value).then(() => {
-      email.value = null
+  await authStore.requestPasswordReset(email.value).then(() => {
+    email.value = null
 
-      messageStore.add({
-        text: t('reset.form.requestSuccess'),
-        type: 'success',
-      })
+    messageStore.add({
+      text: t('reset.form.requestSuccess'),
+      type: 'success',
     })
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  })
 }
 
 async function reset() {
@@ -96,15 +91,11 @@ async function reset() {
   if (!valid) return
   messageStore.clearErrors()
 
-  try {
-    await authStore.resetPassword(password.value, route.params.token)
+  await authStore.resetPassword(password.value, route.params.token)
 
-    messageStore.add({ text: t('reset.form.resetSuccess'), type: 'success' })
+  messageStore.add({ text: t('reset.form.resetSuccess'), type: 'success' })
 
-    router.push({ name: 'login' })
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  router.push({ name: 'login' })
 }
 
 onMounted(async () => {

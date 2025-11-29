@@ -5,6 +5,7 @@ import type {
 } from 'axios'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useErrorHandler } from '@/composables/errorHandler'
 
 const apiUrl =
   import.meta.env.VITE_API_URL ||
@@ -54,12 +55,15 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status !== 401 || originalRequest._retry) {
+      useErrorHandler(error)
       throw error
     }
 
     originalRequest._retry = true
 
     if (authStore.loading) {
+      useErrorHandler(error)
+
       throw error
     }
 
@@ -88,9 +92,14 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest)
     } catch (refreshError) {
       await authStore.logout()
-      throw refreshError instanceof Error
-        ? refreshError
-        : new Error(String(refreshError))
+      const error =
+        refreshError instanceof Error
+          ? refreshError
+          : new Error(String(refreshError))
+
+      useErrorHandler(error)
+
+      throw error
     } finally {
       authStore.loading = false
     }

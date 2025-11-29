@@ -57,7 +57,6 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DataTable from '@/components/DataTable.vue'
 import PermissionForm from '@/components/permissions/PermissionForm.vue'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useMessageStore } from '@/stores/message'
 import { usePermissionStore } from '@/stores/permission'
 
@@ -105,11 +104,7 @@ const options = ref({
 async function fetchPermissions(newOptions) {
   options.value = newOptions
 
-  try {
-    await permissionStore.fetchPermissions(newOptions)
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  await permissionStore.fetchPermissions(newOptions)
 }
 
 function editPermission(permission) {
@@ -117,17 +112,13 @@ function editPermission(permission) {
 }
 
 async function confirmDelete(item) {
-  try {
-    await permissionStore.deletePermission(item.id)
+  await permissionStore.deletePermission(item.id)
 
-    deleteMenus.value[item.id] = false
+  deleteMenus.value[item.id] = false
 
-    messageStore.add({
-      text: t('permissions.form.deleteSuccess'),
-      type: 'success',
-    })
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  messageStore.add({
+    text: t('permissions.form.deleteSuccess'),
+    type: 'success',
+  })
 }
 </script>

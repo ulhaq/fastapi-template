@@ -61,7 +61,6 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useRules } from 'vuetify/labs/rules'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
 
@@ -81,14 +80,10 @@ async function submit() {
   if (!valid) return
   messageStore.clearErrors()
 
-  try {
-    await authStore.login(email.value, password.value)
+  await authStore.login(email.value, password.value)
 
-    const redirect = route.query.redirect
-    router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  const redirect = route.query.redirect
+  router.push(redirect?.startsWith('/') ? redirect : { name: 'index' })
 }
 
 onMounted(async () => {

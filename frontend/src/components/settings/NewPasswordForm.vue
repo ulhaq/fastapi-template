@@ -74,7 +74,6 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRules } from 'vuetify/labs/rules'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useMessageStore } from '@/stores/message'
 import { useUserStore } from '@/stores/user'
 
@@ -113,8 +112,6 @@ async function changePassword() {
       text: t('settings.tab2.passwordForm.passwordSuccess'),
       type: 'success',
     })
-  } catch (error) {
-    useErrorHandler(error)
   } finally {
     passwordLoading.value = false
   }

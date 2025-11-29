@@ -37,12 +37,8 @@ const options = ref({
 })
 
 async function fetchPermissions(newOptions) {
-  try {
-    options.value = newOptions
+  options.value = newOptions
 
-    await permissionStore.fetchPermissions(newOptions)
-  } catch (error) {
-    useErrorHandler(error)
-  }
+  await permissionStore.fetchPermissions(newOptions)
 }
 </script>

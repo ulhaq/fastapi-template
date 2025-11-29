@@ -108,7 +108,6 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRules } from 'vuetify/labs/rules'
-import { useErrorHandler } from '@/composables/errorHandler'
 import { useMessageStore } from '@/stores/message'
 import { useRoleStore } from '@/stores/role'
 
@@ -191,24 +190,17 @@ async function submit() {
   if (!valid) return
   messageStore.clearErrors()
 
-  try {
-    if (isEditing.value) {
-      await roleStore.updateRole(roleStore.role)
+  if (isEditing.value) {
+    await roleStore.updateRole(roleStore.role)
 
-      messageStore.add({
-        text: t('roles.form.updateSuccess'),
-        type: 'success',
-      })
-    } else {
-      await roleStore.createRole(roleStore.role)
+    messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
+  } else {
+    await roleStore.createRole(roleStore.role)
 
-      messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
-    }
-
-    closeForm()
-  } catch (error) {
-    useErrorHandler(error)
+    messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
   }
+
+  closeForm()
 }
 
 async function addRoleAndNextStep() {
@@ -216,53 +208,43 @@ async function addRoleAndNextStep() {
   if (!valid) return
   messageStore.clearErrors()
 
-  try {
-    let rs
+  let rs
 
-    if (isEditing.value) {
-      rs = await roleStore.updateRole(roleStore.role)
+  if (isEditing.value) {
+    rs = await roleStore.updateRole(roleStore.role)
 
-      messageStore.add({
-        text: t('roles.form.updateSuccess'),
-        type: 'success',
-      })
-    } else {
-      rs = await roleStore.createRole(roleStore.role)
+    messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
+  } else {
+    rs = await roleStore.createRole(roleStore.role)
 
-      messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
-    }
-
-    roleId.value = rs.id
-    step.value = 2
-  } catch (error) {
-    useErrorHandler(error)
+    messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
   }
+
+  roleId.value = rs.id
+  step.value = 2
 }
 
 async function assignPermissionsToRole() {
   messageStore.clearErrors()
-  try {
-    const rs = await roleStore.managePermissions(
-      roleId.value,
-      selectedPermissions.value,
-    )
-    if (rs.permissions.length > 0) {
-      messageStore.add({
-        text: t('roles.form.assignedPermissionsSuccess', {
-          number: selectedPermissions.value.length,
-        }),
-        type: 'success',
-      })
-    } else {
-      messageStore.add({
-        text: t('roles.form.unassignedPermissionsSuccess'),
-        type: 'success',
-      })
-    }
 
-    closeForm()
-  } catch (error) {
-    useErrorHandler(error)
+  const rs = await roleStore.managePermissions(
+    roleId.value,
+    selectedPermissions.value,
+  )
+  if (rs.permissions.length > 0) {
+    messageStore.add({
+      text: t('roles.form.assignedPermissionsSuccess', {
+        number: selectedPermissions.value.length,
+      }),
+      type: 'success',
+    })
+  } else {
+    messageStore.add({
+      text: t('roles.form.unassignedPermissionsSuccess'),
+      type: 'success',
+    })
   }
+
+  closeForm()
 }
 </script>
