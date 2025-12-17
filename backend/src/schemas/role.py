@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from src.schemas.common import NameDescriptionOut, Timestamp
