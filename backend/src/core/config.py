@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     db_connection: str = ""
 
+    auth_enabled: bool = True
     auth_algorithm: str = "HS256"
     auth_access_token_expiry: int = 30 * 60
     auth_refresh_token_expiry: int = 15 * 24 * 60 * 60

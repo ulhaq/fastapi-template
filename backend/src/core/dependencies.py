@@ -15,11 +15,18 @@ from src.models.user import User
 
 async def authenticate(
     db: Annotated[AsyncSession, Depends(get_db)],
-    token: Annotated[str, Depends(oauth2_scheme)],
+    token: Annotated[str | None, Depends(oauth2_scheme)],
 ) -> None:
+    if not settings.auth_enabled:
+        current_user.set(Auth(id=0, name="", email="", permissions=[], roles=[]))
+        return
+
     credentials_exception = NotAuthenticatedException(
         headers={"WWW-Authenticate": "Bearer"}
     )
+
+    if not token:
+        raise credentials_exception
 
     try:
         payload = decode(

@@ -157,6 +157,12 @@ def custom_openapi() -> dict[str, Any]:
         routes=app.routes,
     )
 
+    if not settings.auth_enabled:
+        openapi_schema["components"].pop("securitySchemes", None)
+        for path in openapi_schema.get("paths", {}).values():
+            for method in path.values():
+                method.pop("security", None)
+
     openapi_schema["components"]["schemas"]["ErrorResponse"] = (
         ErrorResponse.model_json_schema()
     )

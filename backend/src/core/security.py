@@ -15,7 +15,7 @@ from src.models.user import User
 from src.schemas.user import ChangePasswordIn
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
 current_user: ContextVar["Auth"] = ContextVar("current_user")
 
 
@@ -41,6 +41,9 @@ class Auth(BaseModel):
         )
 
     def has_permission(self, permission_name: str) -> bool:
+        if not settings.auth_enabled:
+            return True
+
         return permission_name in self.permissions
 
     def authorize(self, permission: str) -> None:
