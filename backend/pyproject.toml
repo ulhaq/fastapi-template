@@ -22,6 +22,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aiosmtpd>=1.4.6",
+    "locust>=2.42.6",
     "mypy>=1.15.0",
     "pylint>=3.3.7",
     "pytest>=8.3.5",
