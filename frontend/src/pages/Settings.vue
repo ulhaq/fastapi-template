@@ -20,19 +20,11 @@
 
         <v-tabs-window v-model="tab">
           <v-tabs-window-item value="profile">
-            <v-card flat>
-              <v-card-text>
-                <profile-form />
-              </v-card-text>
-            </v-card>
+            <profile-form />
           </v-tabs-window-item>
 
           <v-tabs-window-item value="security">
-            <v-card flat>
-              <v-card-text>
-                <new-password-form />
-              </v-card-text>
-            </v-card>
+            <new-password-form />
           </v-tabs-window-item>
         </v-tabs-window>
       </v-col>

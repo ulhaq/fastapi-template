@@ -13,6 +13,7 @@
                 v-model="email"
                 :label="t('common.email')"
                 :rules="[rules.required(), rules.email()]"
+                density="comfortable"
                 type="email"
               />
             </v-col>
@@ -23,6 +24,7 @@
                 v-model="password"
                 :label="t('common.password')"
                 :rules="[rules.required(), rules.minLength(6)]"
+                density="comfortable"
                 type="password"
               />
             </v-col>

@@ -161,7 +161,7 @@ export default {
   },
   messagePanel: {
     title: 'Message Panel',
-    show: 'Shoe Message Panel',
+    show: 'Show Message Panel',
     hide: 'Hide Message Panel',
   },
   menuBar: {
@@ -215,7 +215,7 @@ export default {
         title: 'New Password',
         currentPassword: 'Current Password',
         newPassword: 'New Password',
-        confirmPassword: 'Confirm Password',
+        confirmPassword: 'Confirm New Password',
         passwordSuccess: 'Password changed',
       },
     },

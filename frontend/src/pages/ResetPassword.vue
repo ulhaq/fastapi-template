@@ -10,6 +10,7 @@
             v-model="email"
             :label="t('common.email')"
             :rules="[rules.required(), rules.email()]"
+            density="comfortable"
             type="email"
           />
           <v-btn block class="mb-4" color="primary" type="submit">
@@ -37,6 +38,7 @@
             v-model="password"
             :label="t('common.password')"
             :rules="[rules.required(), rules.minLength(6)]"
+            density="comfortable"
             type="password"
           />
           <v-btn block class="mb-4" color="primary" type="submit">

@@ -220,7 +220,7 @@ export default {
         title: 'Ny adgangskode',
         currentPassword: 'Nuværende adgangskode',
         newPassword: 'Ny adgangskode',
-        confirmPassword: 'Bekræft adgangskode',
+        confirmPassword: 'Bekræft ny adgangskode',
         passwordSuccess: 'Adgangskode ændret',
       },
     },

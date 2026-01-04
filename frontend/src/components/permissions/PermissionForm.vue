@@ -23,6 +23,7 @@
                     v-model="permissionStore.permission.name"
                     :label="t('common.name')"
                     :rules="[rules.required(), rules.minLength(1)]"
+                    density="comfortable"
                   />
                 </v-col>
               </v-row>
@@ -32,6 +33,7 @@
                     v-model="permissionStore.permission.description"
                     :label="t('common.description')"
                     :rules="[rules.required()]"
+                    density="comfortable"
                   />
                 </v-col>
               </v-row>
