@@ -34,7 +34,7 @@ async def refresh_access_token(
     request: Request,
     response: Response,
     service: Annotated[AuthService, Depends()],
-) -> Token:
+) -> Token | None:
     return await service.refresh_access_token(
         request.cookies.get("refresh_token"), response
     )

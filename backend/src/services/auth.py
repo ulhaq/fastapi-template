@@ -92,13 +92,9 @@ class AuthService(BaseService):
 
     async def refresh_access_token(
         self, refresh_token: str | None, response: Response
-    ) -> Token:
+    ) -> Token | None:
         if not refresh_token:
-            raise NotAuthenticatedException(
-                "Refresh token invalid",
-                error_code=ErrorCode.TOKEN_INVALID,
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            return None
 
         try:
             payload = decode(
