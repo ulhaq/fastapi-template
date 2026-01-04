@@ -25,7 +25,9 @@
                 />
               </v-col>
             </v-row>
-            <v-row>
+            <v-row
+              class="d-flex flex-wrap justify-end flex-column-reverse flex-sm-row"
+            >
               <v-col>
                 <v-text-field
                   v-model="newPassword"

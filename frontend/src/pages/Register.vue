@@ -1,6 +1,6 @@
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-card class="pa-6" elevation="8" width="450">
+    <v-card class="pa-6" elevation="8">
       <v-card-title class="text-h5 text-center mb-6">{{
         t('register.form.title')
       }}</v-card-title>

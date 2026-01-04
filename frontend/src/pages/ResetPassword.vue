@@ -1,6 +1,6 @@
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-card v-if="!newPassword" class="pa-6" elevation="8" width="450">
+    <v-card v-if="!newPassword" class="pa-6" elevation="8">
       <v-card-title class="text-h5 text-center mb-6">{{
         t('reset.form.requestTitle')
       }}</v-card-title>
@@ -28,7 +28,7 @@
         </v-form>
       </v-card-text>
     </v-card>
-    <v-card v-else class="pa-6" elevation="8" width="450">
+    <v-card v-else class="pa-6" elevation="8">
       <v-card-title class="text-h5 text-center mb-6">{{
         t('reset.form.resetTitle')
       }}</v-card-title>

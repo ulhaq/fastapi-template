@@ -39,8 +39,7 @@
               </v-row>
             </v-card-text>
 
-            <v-card-actions>
-              <v-spacer />
+            <v-card-actions class="d-flex flex-wrap justify-end flex-column-reverse flex-sm-row">
               <v-btn
                 color="error"
                 :text="t('common.cancel')"
