@@ -20,7 +20,6 @@
                   v-model="name"
                   :label="t('common.name')"
                   :rules="[rules.required(), rules.minLength(1)]"
-                  density="comfortable"
                 />
               </v-col>
             </v-row>
@@ -30,7 +29,6 @@
                   v-model="email"
                   :label="t('common.email')"
                   :rules="[rules.required(), rules.email()]"
-                  density="comfortable"
                 />
               </v-col>
             </v-row>

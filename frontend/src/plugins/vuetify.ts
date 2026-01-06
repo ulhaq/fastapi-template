@@ -17,4 +17,9 @@ export default createVuetify({
   locale: {
     adapter: createVueI18nAdapter({ i18n, useI18n }),
   },
+  defaults: {
+    VTextField: {
+      density: 'comfortable',
+    },
+  },
 })

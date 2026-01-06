@@ -23,7 +23,6 @@
                     v-model="roleStore.role.name"
                     :label="t('common.name')"
                     :rules="[rules.required(), rules.minLength(1)]"
-                    density="comfortable"
                   />
                 </v-col>
               </v-row>
@@ -33,7 +32,6 @@
                     v-model="roleStore.role.description"
                     :label="t('common.description')"
                     :rules="[rules.required()]"
-                    density="comfortable"
                   />
                 </v-col>
               </v-row>

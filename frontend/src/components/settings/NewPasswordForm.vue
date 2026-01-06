@@ -21,7 +21,6 @@
                   :label="t('settings.tab2.passwordForm.currentPassword')"
                   :rules="[rules.required()]"
                   type="password"
-                  density="comfortable"
                 />
               </v-col>
             </v-row>
@@ -33,7 +32,6 @@
                   v-model="newPassword"
                   :label="t('settings.tab2.passwordForm.newPassword')"
                   :rules="[rules.required(), rules.minLength(6)]"
-                  density="comfortable"
                   type="password"
                 />
               </v-col>
@@ -50,7 +48,6 @@
                       t('rules.confirmPassword'),
                     ),
                   ]"
-                  density="comfortable"
                   type="password"
                 />
               </v-col>
