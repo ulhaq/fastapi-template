@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, status
 
 from src.core.dependencies import authenticate
 from src.routers.query_options import (
@@ -16,7 +16,9 @@ from src.services.permission import PermissionService
 router = APIRouter()
 
 
-@router.get("/permissions", dependencies=[Depends(authenticate)], status_code=200)
+@router.get(
+    "/permissions", dependencies=[Depends(authenticate)], status_code=status.HTTP_200_OK
+)
 async def get_all_permissions(
     service: Annotated[PermissionService, Depends()],
     sort: SortQuery,
@@ -35,7 +37,11 @@ async def get_all_permissions(
     )
 
 
-@router.post("/permissions", dependencies=[Depends(authenticate)], status_code=201)
+@router.post(
+    "/permissions",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_a_permission(
     service: Annotated[PermissionService, Depends()], permission_in: PermissionIn
 ) -> PermissionOut:
@@ -43,7 +49,9 @@ async def create_a_permission(
 
 
 @router.put(
-    "/permissions/{identifier}", dependencies=[Depends(authenticate)], status_code=200
+    "/permissions/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_200_OK,
 )
 async def update_a_permission(
     service: Annotated[PermissionService, Depends()],
@@ -54,7 +62,9 @@ async def update_a_permission(
 
 
 @router.get(
-    "/permissions/{identifier}", dependencies=[Depends(authenticate)], status_code=200
+    "/permissions/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_200_OK,
 )
 async def retrieve_a_permission(
     service: Annotated[PermissionService, Depends()], identifier: Annotated[int, Path()]
@@ -63,7 +73,9 @@ async def retrieve_a_permission(
 
 
 @router.delete(
-    "/permissions/{identifier}", dependencies=[Depends(authenticate)], status_code=204
+    "/permissions/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_a_permission(
     service: Annotated[PermissionService, Depends()], identifier: Annotated[int, Path()]

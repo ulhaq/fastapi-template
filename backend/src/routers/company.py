@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, status
 
 from src.core.dependencies import authenticate
 from src.routers.query_options import (
@@ -16,7 +16,9 @@ from src.services.company import CompanyService
 router = APIRouter()
 
 
-@router.get("/companies", dependencies=[Depends(authenticate)], status_code=200)
+@router.get(
+    "/companies", dependencies=[Depends(authenticate)], status_code=status.HTTP_200_OK
+)
 async def get_all_companies(
     service: Annotated[CompanyService, Depends()],
     sort: SortQuery,
@@ -35,7 +37,11 @@ async def get_all_companies(
     )
 
 
-@router.post("/companies", dependencies=[Depends(authenticate)], status_code=201)
+@router.post(
+    "/companies",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_a_company(
     service: Annotated[CompanyService, Depends()], company_in: CompanyBase
 ) -> CompanyOut:
@@ -43,7 +49,9 @@ async def create_a_company(
 
 
 @router.put(
-    "/companies/{identifier}", dependencies=[Depends(authenticate)], status_code=200
+    "/companies/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_200_OK,
 )
 async def update_a_company(
     service: Annotated[CompanyService, Depends()],
@@ -54,7 +62,9 @@ async def update_a_company(
 
 
 @router.get(
-    "/companies/{identifier}", dependencies=[Depends(authenticate)], status_code=200
+    "/companies/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_200_OK,
 )
 async def retrieve_a_company(
     service: Annotated[CompanyService, Depends()], identifier: Annotated[int, Path()]
@@ -63,7 +73,9 @@ async def retrieve_a_company(
 
 
 @router.delete(
-    "/companies/{identifier}", dependencies=[Depends(authenticate)], status_code=204
+    "/companies/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_a_company(
     service: Annotated[CompanyService, Depends()], identifier: Annotated[int, Path()]

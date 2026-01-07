@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, status
 
 from src.core.dependencies import authenticate
 from src.routers.query_options import (
@@ -16,7 +16,9 @@ from src.services.role import RoleService
 router = APIRouter()
 
 
-@router.get("/roles", dependencies=[Depends(authenticate)], status_code=200)
+@router.get(
+    "/roles", dependencies=[Depends(authenticate)], status_code=status.HTTP_200_OK
+)
 async def get_all_roles(
     service: Annotated[RoleService, Depends()],
     sort: SortQuery,
@@ -35,7 +37,9 @@ async def get_all_roles(
     )
 
 
-@router.post("/roles", dependencies=[Depends(authenticate)], status_code=201)
+@router.post(
+    "/roles", dependencies=[Depends(authenticate)], status_code=status.HTTP_201_CREATED
+)
 async def create_a_role(
     service: Annotated[RoleService, Depends()], role_in: RoleIn
 ) -> RoleOut:
@@ -43,7 +47,9 @@ async def create_a_role(
 
 
 @router.put(
-    "/roles/{identifier}", dependencies=[Depends(authenticate)], status_code=200
+    "/roles/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_200_OK,
 )
 async def update_a_role(
     service: Annotated[RoleService, Depends()],
@@ -54,7 +60,9 @@ async def update_a_role(
 
 
 @router.get(
-    "/roles/{identifier}", dependencies=[Depends(authenticate)], status_code=200
+    "/roles/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_200_OK,
 )
 async def retrieve_a_role(
     service: Annotated[RoleService, Depends()], identifier: Annotated[int, Path()]
@@ -63,7 +71,9 @@ async def retrieve_a_role(
 
 
 @router.delete(
-    "/roles/{identifier}", dependencies=[Depends(authenticate)], status_code=204
+    "/roles/{identifier}",
+    dependencies=[Depends(authenticate)],
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_a_role(
     service: Annotated[RoleService, Depends()], identifier: Annotated[int, Path()]
@@ -74,7 +84,7 @@ async def delete_a_role(
 @router.post(
     "/roles/{identifier}/permissions",
     dependencies=[Depends(authenticate)],
-    status_code=200,
+    status_code=status.HTTP_200_OK,
 )
 async def manage_permissions_of_a_role(
     service: Annotated[RoleService, Depends()],

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Path, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.core.security import Token
@@ -11,7 +11,7 @@ from src.services.auth import AuthService
 router = APIRouter()
 
 
-@router.post("/auth/register", status_code=201)
+@router.post("/auth/register", status_code=status.HTTP_201_CREATED)
 async def create_an_account(
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
@@ -20,7 +20,7 @@ async def create_an_account(
     return await service.register_company(company_in, bg_tasks)
 
 
-@router.post("/auth/token", status_code=200)
+@router.post("/auth/token", status_code=status.HTTP_200_OK)
 async def get_access_token(
     response: Response,
     auth_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -29,7 +29,7 @@ async def get_access_token(
     return await service.get_access_token(auth_data, response)
 
 
-@router.post("/auth/refresh", status_code=200)
+@router.post("/auth/refresh", status_code=status.HTTP_200_OK)
 async def refresh_access_token(
     request: Request,
     response: Response,
@@ -40,14 +40,14 @@ async def refresh_access_token(
     )
 
 
-@router.post("/auth/logout", status_code=204)
+@router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     response: Response, service: Annotated[AuthService, Depends()]
 ) -> None:
     await service.logout(response)
 
 
-@router.post("/auth/reset-password", status_code=202)
+@router.post("/auth/reset-password", status_code=status.HTTP_202_ACCEPTED)
 async def request_password_reset(
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
@@ -56,7 +56,7 @@ async def request_password_reset(
     return await service.request_password_reset(email_in, bg_tasks)
 
 
-@router.post("/auth/reset-password/{token}", status_code=204)
+@router.post("/auth/reset-password/{token}", status_code=status.HTTP_204_NO_CONTENT)
 async def reset_password(
     service: Annotated[AuthService, Depends()],
     token: Annotated[str, Path()],
