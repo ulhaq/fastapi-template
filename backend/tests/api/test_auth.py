@@ -87,21 +87,23 @@ def test_logout(client: TestClient) -> None:
 
 
 def test_request_password_reset(client: TestClient) -> None:
-    response = client.post("auth/reset-password", json={"email": "admin@example.org"})
+    response = client.post(
+        "auth/reset-password/request", json={"email": "admin@example.org"}
+    )
     assert response.status_code == 202
 
 
 def test_reset_password(mocker: MockerFixture, client: TestClient) -> None:
     mock_send = mocker.patch("src.services.auth.send_email")
 
-    client.post("auth/reset-password", json={"email": "admin@example.org"})
+    client.post("auth/reset-password/request", json={"email": "admin@example.org"})
 
     mock_send.assert_called_once()
 
-    token = mock_send.call_args.kwargs["data"]["reset_url"].split("reset/")[1]
+    token = mock_send.call_args.kwargs["data"]["reset_url"].split("token=")[1]
 
     response = client.post(
-        f"auth/reset-password/{token}", json={"password": "new password"}
+        "auth/reset-password", json={"token": token, "password": "new password"}
     )
     assert response.status_code == 204
 
@@ -115,7 +117,7 @@ def test_reset_password(mocker: MockerFixture, client: TestClient) -> None:
 
 def test_request_password_reset_with_non_existent_email(client: TestClient) -> None:
     response = client.post(
-        "auth/reset-password", json={"email": "non-existent@example.org"}
+        "auth/reset-password/request", json={"email": "non-existent@example.org"}
     )
     assert response.status_code == 202
 
@@ -151,10 +153,9 @@ def test_cannot_refresh_access_token_with_expired_token(client: TestClient) -> N
 
 
 def test_cannot_reset_password_with_invalid_token(client: TestClient) -> None:
-    token = "invalidtoken"
-
     response = client.post(
-        f"auth/reset-password/{token}", json={"password": "new password"}
+        "auth/reset-password",
+        json={"token": "invalidtoken", "password": "new password"},
     )
     assert response.status_code == 401
     rs = response.json()
@@ -168,12 +169,12 @@ def test_cannot_reset_password_with_expired_token(
     mock_send = mocker.patch("src.services.auth.send_email")
 
     with patch("src.core.config.settings.auth_password_reset_expiry", -1):
-        client.post("auth/reset-password", json={"email": "admin@example.org"})
+        client.post("auth/reset-password/request", json={"email": "admin@example.org"})
 
-        token = mock_send.call_args.kwargs["data"]["reset_url"].split("reset/")[1]
+        token = mock_send.call_args.kwargs["data"]["reset_url"].split("token=")[1]
 
         response = client.post(
-            f"auth/reset-password/{token}", json={"password": "new password"}
+            "auth/reset-password", json={"token": token, "password": "new password"}
         )
         assert response.status_code == 401
         rs = response.json()

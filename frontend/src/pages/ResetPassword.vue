@@ -1,6 +1,6 @@
 <template>
   <v-container class="fill-height d-flex align-center justify-center">
-    <v-card v-if="!newPassword" class="pa-6" elevation="8">
+    <v-card v-if="!token" class="pa-6" elevation="8">
       <v-card-title class="text-h5 text-center mb-6">{{
         t('reset.form.requestTitle')
       }}</v-card-title>
@@ -34,9 +34,19 @@
       <v-card-text>
         <v-form ref="resetForm" class="pb-4" @submit.prevent="reset">
           <v-text-field
-            v-model="password"
-            :label="t('common.password')"
+            v-model="newPassword"
+            :label="t('reset.form.newPassword')"
             :rules="[rules.required(), rules.minLength(6)]"
+            type="password"
+          />
+          <v-text-field
+            v-model="confirmPassword"
+            :label="t('reset.form.confirmPassword')"
+            :rules="[
+              rules.required(),
+              rules.minLength(6),
+              rules.matchesField(newPassword, '', t('rules.confirmPassword')),
+            ]"
             type="password"
           />
           <v-btn block class="mb-4" color="primary" type="submit">
@@ -49,7 +59,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useRules } from 'vuetify/labs/rules'
@@ -64,13 +74,12 @@ const authStore = useAuthStore()
 const messageStore = useMessageStore()
 
 const email = ref('')
-const password = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
 const requestForm = ref(false)
 const resetForm = ref(false)
 
-const newPassword = computed(() => {
-  return route.params.token
-})
+const token = ref(null)
 
 async function request() {
   const { valid } = await requestForm.value.validate()
@@ -91,7 +100,7 @@ async function reset() {
   if (!valid) return
   messageStore.clearErrors()
 
-  await authStore.resetPassword(password.value, route.params.token)
+  await authStore.resetPassword(newPassword.value, token.value)
 
   messageStore.add({ text: t('reset.form.resetSuccess'), type: 'success' })
 
@@ -99,6 +108,7 @@ async function reset() {
 }
 
 onMounted(async () => {
-  //
+  token.value = route.query.token
+  router.replace({ name: 'reset-password' })
 })
 </script>

@@ -192,6 +192,8 @@ export default {
     form: {
       requestTitle: 'Reset your password',
       resetTitle: 'Choose a new password',
+      newPassword: 'New Password',
+      confirmPassword: 'Confirm New Password',
       update: 'Update password',
       requestSuccess:
         'If an account with that email exists, a password reset link has been sent',

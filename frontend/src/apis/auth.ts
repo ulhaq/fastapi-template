@@ -40,12 +40,13 @@ export default {
   },
 
   async requestPasswordReset(email: string): Promise<any> {
-    const response = await axios.post('/auth/reset-password', { email })
+    const response = await axios.post('/auth/reset-password/request', { email })
     return response.data
   },
 
   async resetPassword(password: string, token: string): Promise<any> {
-    const response = await axios.post(`/auth/reset-password/${token}`, {
+    const response = await axios.post(`/auth/reset-password`, {
+      token,
       password,
     })
     return response.data

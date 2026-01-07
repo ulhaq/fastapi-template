@@ -79,7 +79,7 @@ class UserService(
 
         user = await super().create(schema_in, validate)
 
-        token = sign(data=schema_in.email, salt="new-user")
+        token = sign(data=schema_in.email, salt="reset-password")
 
         bg_tasks.add_task(
             send_email,
@@ -88,8 +88,10 @@ class UserService(
             subject=f"Welcome to {settings.app_name}",
             email_template="new-user",
             data={
-                "reset_url": f"{settings.frontend_url}/reset-password/{token}",
-                "expiration_minutes": settings.auth_password_reset_expiry / 60,
+                "reset_url": f"{settings.frontend_url}/"
+                + settings.frontend_password_reset_path
+                + token,
+                "expiration_minutes": settings.auth_password_reset_expiry,
             },
         )
 

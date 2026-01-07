@@ -47,7 +47,7 @@
             t('login.form.newAccount')
           }}</v-btn>
           <v-spacer />
-          <v-btn :to="{ name: 'reset' }">{{
+          <v-btn :to="{ name: 'reset-password' }">{{
             t('login.form.resetPassword')
           }}</v-btn>
         </v-card-actions>

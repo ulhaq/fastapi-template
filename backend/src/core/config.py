@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     template_path: str = "./src/templates"
     frontend_url: str = "http://localhost:3000"
-    frontend_password_reset_path: str = "reset"
+    frontend_password_reset_path: str = "reset-password?token="
 
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False

@@ -41,7 +41,6 @@
                   :label="t('settings.tab2.passwordForm.confirmPassword')"
                   :rules="[
                     rules.required(),
-                    rules.minLength(6),
                     rules.matchesField(
                       newPassword,
                       '',

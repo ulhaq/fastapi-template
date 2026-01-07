@@ -1,11 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Path, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.core.security import Token
 from src.schemas.company import CompanyIn, CompanyOut
-from src.schemas.user import EmailIn, NewPasswordIn
+from src.schemas.user import EmailIn, ResetPasswordIn
 from src.services.auth import AuthService
 
 router = APIRouter()
@@ -47,7 +47,7 @@ async def logout(
     await service.logout(response)
 
 
-@router.post("/auth/reset-password", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/auth/reset-password/request", status_code=status.HTTP_202_ACCEPTED)
 async def request_password_reset(
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
@@ -56,10 +56,8 @@ async def request_password_reset(
     return await service.request_password_reset(email_in, bg_tasks)
 
 
-@router.post("/auth/reset-password/{token}", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/auth/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 async def reset_password(
-    service: Annotated[AuthService, Depends()],
-    token: Annotated[str, Path()],
-    new_password_in: NewPasswordIn,
+    service: Annotated[AuthService, Depends()], reset_password_in: ResetPasswordIn
 ) -> None:
-    await service.reset_password(new_password_in, token)
+    await service.reset_password(reset_password_in)

@@ -23,7 +23,7 @@ from src.core.security import (
 from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.company import CompanyIn, CompanyOut
-from src.schemas.user import EmailIn, NewPasswordIn
+from src.schemas.user import EmailIn, ResetPasswordIn
 from src.services.base import BaseService
 from src.services.utils import send_email
 
@@ -156,23 +156,24 @@ class AuthService(BaseService):
             email_template="reset-password",
             data={
                 "reset_url": f"{settings.frontend_url}/"
-                f"{settings.frontend_password_reset_path}/{token}",
+                + settings.frontend_password_reset_path
+                + token,
                 "expiration_minutes": settings.auth_password_reset_expiry,
             },
         )
 
         return None
 
-    async def reset_password(self, new_password_in: NewPasswordIn, token: str) -> None:
+    async def reset_password(self, reset_password_in: ResetPasswordIn) -> None:
         email = unsign(
-            token=token,
+            token=reset_password_in.token,
             salt="reset-password",
             max_age=settings.auth_password_reset_expiry,
         )
         if model := await self.repos.user.get_by_email(email):
-            new_password_in.password = hash_password(new_password_in.password)
+            reset_password_in.password = hash_password(reset_password_in.password)
 
-            await self.repos.user.update(model, password=new_password_in.password)
+            await self.repos.user.update(model, password=reset_password_in.password)
             return None
 
         raise NotFoundException(f"User not found. [{email=}]")

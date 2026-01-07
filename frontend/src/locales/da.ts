@@ -197,6 +197,8 @@ export default {
     form: {
       requestTitle: 'Nulstil din adgangskode',
       resetTitle: 'Vælg en ny adgangskode',
+      newPassword: 'Ny adgangskode',
+      confirmPassword: 'Bekræft ny adgangskode',
       update: 'Opdater adgangskode',
       requestSuccess:
         'Hvis en konto med denne email findes, er et nulstillingslink sendt',

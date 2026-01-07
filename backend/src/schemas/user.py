@@ -38,12 +38,13 @@ class EmailIn(BaseModel):
     email: EmailStr
 
 
-class NewPasswordIn(BaseModel):
+class ResetPasswordIn(BaseModel):
+    token: Annotated[str, Field()]
     password: Annotated[str, Field(min_length=6)]
 
 
-class ChangePasswordIn(NewPasswordIn):
-    password: Annotated[str, Field()]
+class ChangePasswordIn(BaseModel):
+    password: Annotated[str, Field(min_length=6)]
     new_password: Annotated[str, Field(min_length=6)]
     confirm_password: Annotated[str, Field()]
 
