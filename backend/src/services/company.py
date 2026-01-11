@@ -66,9 +66,7 @@ class CompanyService(
 
         return CompanyOut.model_validate(await super().get(identifier))
 
-    async def delete_company(
-        self, identifier: int, include_deleted: bool = False
-    ) -> None:
+    async def delete_company(self, identifier: int, force_delete: bool = False) -> None:
         get_current_user().authorize("delete_company")
 
-        await super().delete(identifier, include_deleted=include_deleted)
+        await super().delete(identifier, force_delete=force_delete)

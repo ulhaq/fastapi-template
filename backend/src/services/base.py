@@ -85,13 +85,13 @@ class ResourceService[
         self,
         identifier: int,
         validation_callback: Callable[[], Awaitable] | None = None,
-        include_deleted: bool = False,
+        force_delete: bool = False,
     ) -> None:
         if model := await self.repo.get(identifier):
             if validation_callback:
                 await validation_callback()
 
-            if include_deleted is False:
+            if force_delete is False:
                 await self.repo.delete(model)
             else:
                 await self.repo.force_delete(model)

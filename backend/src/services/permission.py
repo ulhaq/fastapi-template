@@ -71,8 +71,8 @@ class PermissionService(
         )
 
     async def delete_permission(
-        self, identifier: int, include_deleted: bool = False
+        self, identifier: int, force_delete: bool = False
     ) -> None:
         get_current_user().authorize("delete_permission")
 
-        await super().delete(identifier, include_deleted=include_deleted)
+        await super().delete(identifier, force_delete=force_delete)

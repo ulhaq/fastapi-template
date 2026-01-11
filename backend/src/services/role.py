@@ -64,10 +64,10 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn, RoleOut]):
             await super().get(identifier, include_deleted=include_deleted)
         )
 
-    async def delete_role(self, identifier: int, include_deleted: bool = False) -> None:
+    async def delete_role(self, identifier: int, force_delete: bool = False) -> None:
         get_current_user().authorize("delete_role")
 
-        await super().delete(identifier, include_deleted=include_deleted)
+        await super().delete(identifier, force_delete=force_delete)
 
     async def manage_permissions(
         self, identifier: int, schema_in: RolePermissionIn
