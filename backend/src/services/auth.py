@@ -16,9 +16,10 @@ from src.core.security import (
     authenticate_user,
     create_access_token,
     create_refresh_token,
-    hash_password,
+    hash_secret,
     sign,
     unsign,
+    verify_secret,
 )
 from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager
@@ -48,7 +49,7 @@ class AuthService(BaseService):
                 commit=False, **company_in.model_dump(include={"name"})
             )
 
-            company_in.password = hash_password(company_in.password)
+            company_in.password = hash_secret(company_in.password)
 
             user = await self.repos.user.create(
                 commit=False, **company_in.model_dump(), company=company
@@ -141,28 +142,33 @@ class AuthService(BaseService):
     async def request_password_reset(
         self, email_in: EmailIn, bg_tasks: BackgroundTasks
     ) -> None:
-        user = await self.repos.user.get_by_email(email_in.email)
-        if not user:
-            log.info("Password reset request failed. [email=%s]", email_in.email)
+        async with self.repos.db.begin():
+            user = await self.repos.user.get_by_email(email_in.email)
+            if not user:
+                log.info("Password reset request failed. [email=%s]", email_in.email)
+                return None
+
+            token = sign(data=email_in.email, salt="reset-password")
+
+            await self.repos.user.create_password_reset_token(
+                commit=False, user=user, token=hash_secret(token)
+            )
+
+            bg_tasks.add_task(
+                send_email,
+                address=user.email,
+                user_name=user.name,
+                subject="Password Reset",
+                email_template="reset-password",
+                data={
+                    "reset_url": f"{settings.frontend_url}/"
+                    + settings.frontend_password_reset_path
+                    + token,
+                    "expiration_minutes": settings.auth_password_reset_expiry,
+                },
+            )
+
             return None
-
-        token = sign(data=email_in.email, salt="reset-password")
-
-        bg_tasks.add_task(
-            send_email,
-            address=user.email,
-            user_name=user.name,
-            subject="Password Reset",
-            email_template="reset-password",
-            data={
-                "reset_url": f"{settings.frontend_url}/"
-                + settings.frontend_password_reset_path
-                + token,
-                "expiration_minutes": settings.auth_password_reset_expiry,
-            },
-        )
-
-        return None
 
     async def reset_password(self, reset_password_in: ResetPasswordIn) -> None:
         email = unsign(
@@ -170,10 +176,20 @@ class AuthService(BaseService):
             salt="reset-password",
             max_age=settings.auth_password_reset_expiry,
         )
-        if model := await self.repos.user.get_by_email(email):
-            reset_password_in.password = hash_password(reset_password_in.password)
+        if user := await self.repos.user.get_by_email(email):
+            token = await self.repos.user.get_password_reset_token(user)
 
-            await self.repos.user.update(model, password=reset_password_in.password)
+            if not token or not verify_secret(reset_password_in.token, token.token):
+                raise NotAuthenticatedException(
+                    "Token invalid", error_code=ErrorCode.TOKEN_INVALID
+                )
+
+            await self.repos.user.delete_password_reset_token(commit=False, user=user)
+
+            reset_password_in.password = hash_secret(reset_password_in.password)
+
+            await self.repos.user.update(user, password=reset_password_in.password)
+
             return None
 
         raise NotFoundException(f"User not found. [{email=}]")

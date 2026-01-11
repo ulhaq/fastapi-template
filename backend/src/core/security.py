@@ -14,7 +14,7 @@ from src.enums import ErrorCode
 from src.models.user import User
 from src.schemas.user import ChangePasswordIn
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+crypt_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
 current_user: ContextVar["Auth"] = ContextVar("current_user")
 
@@ -91,12 +91,12 @@ def unsign(token: str, salt: SignSalt, max_age: int = 10 * 60) -> Any:
         ) from exc
 
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+def hash_secret(secret: str) -> str:
+    return crypt_context.hash(secret)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_secret(plain_secret: str, hashed_secret: str) -> bool:
+    return crypt_context.verify(plain_secret, hashed_secret)
 
 
 def create_access_token(user: User) -> str:
@@ -132,7 +132,7 @@ def create_refresh_token(user: User) -> str:
 def authenticate_user(
     auth_data: OAuth2PasswordRequestForm | ChangePasswordIn, user: User | None
 ) -> User | None:
-    if user and verify_password(auth_data.password, user.password):
+    if user and verify_secret(auth_data.password, user.password):
         return user
     return None
 

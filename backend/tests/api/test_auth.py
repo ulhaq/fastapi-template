@@ -108,6 +108,14 @@ def test_reset_password(mocker: MockerFixture, client: TestClient) -> None:
     assert response.status_code == 204
 
     response = client.post(
+        "auth/reset-password", json={"token": token, "password": "new password"}
+    )
+    assert response.status_code == 401
+    rs = response.json()
+    assert rs["error_code"] == "token_invalid"
+    assert rs["msg"] == "Token invalid"
+
+    response = client.post(
         "auth/token",
         data={"username": "admin@example.org", "password": "new password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},

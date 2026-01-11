@@ -8,7 +8,7 @@ from alembic import command
 from alembic.config import Config
 from src.core.database import AsyncSessionLocal
 from src.core.logging import LOGGING_CONFIG
-from src.core.security import hash_password
+from src.core.security import hash_secret
 from src.models.company import Company
 from src.models.permission import Permission
 from src.models.role import Role
@@ -204,7 +204,7 @@ async def up() -> None:
                 User(
                     name=user["name"],
                     email=user["email"],
-                    password=hash_password(user["password"]),
+                    password=hash_secret(user["password"]),
                     company=companies[user["company"] - 1],
                     roles=[
                         role

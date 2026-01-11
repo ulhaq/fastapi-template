@@ -10,10 +10,14 @@ from src.repositories.base import SQLResourceRepository
 
 class RoleRepositoryABC(ResourceRepositoryABC[Role], ABC):
     @abstractmethod
-    async def add_permissions(self, role: Role, *permission_ids: int) -> None: ...
+    async def add_permissions(
+        self, role: Role, *permission_ids: int, commit: bool = True
+    ) -> None: ...
 
     @abstractmethod
-    async def remove_permissions(self, role: Role, *permission_ids: int) -> None: ...
+    async def remove_permissions(
+        self, role: Role, *permission_ids: int, commit: bool = True
+    ) -> None: ...
 
 
 class RoleRepository(SQLResourceRepository[Role], RoleRepositoryABC):

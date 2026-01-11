@@ -23,7 +23,7 @@
 
         <mj-button background-color="#28a745" color="#ffffff" border-radius="4px" font-size="16px" href="{{ reset_url }}" padding="12px 0"> Get Started </mj-button>
 
-        <mj-text font-size="16px" color="#555555" padding-top="16px"> This link will expire in {{ expiration_minutes }} minutes for security reasons. </mj-text>
+        <mj-text font-size="16px" color="#555555" padding-top="16px"> This one-time link will expire in {{ expiration_minutes }} minutes for security reasons. </mj-text>
 
         <mj-text font-size="16px" color="#555555" padding-top="16px"> If you have any questions or didn’t expect this email, feel free to contact us. </mj-text>
 

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, Asyn
 from sqlalchemy import StaticPool
 
 from src.core.database import Base, get_db
-from src.core.security import hash_password
+from src.core.security import hash_secret
 from src.main import app
 from src.models.company import Company
 from src.models.role import Role
@@ -71,7 +71,7 @@ async def prepare_database() -> AsyncGenerator[None]:
                 User(
                     name=user["name"],
                     email=user["email"],
-                    password=hash_password(user["password"]),
+                    password=hash_secret(user["password"]),
                     company=companies[user["company"] - 1],
                     roles=[
                         role

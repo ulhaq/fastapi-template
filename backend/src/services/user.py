@@ -8,7 +8,7 @@ from src.core.exceptions import (
     NotFoundException,
     PermissionDeniedException,
 )
-from src.core.security import authenticate_user, get_current_user, hash_password, sign
+from src.core.security import authenticate_user, get_current_user, hash_secret, sign
 from src.enums import ErrorCode
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
@@ -53,7 +53,7 @@ class UserService(
         if not user:
             raise PermissionDeniedException("Incorrect password")
 
-        schema_in.password = hash_password(schema_in.new_password)
+        schema_in.password = hash_secret(schema_in.new_password)
 
         return UserOut.model_validate(await super().update(auth.id, schema_in))
 
@@ -75,7 +75,7 @@ class UserService(
 
         get_current_user().authorize("create_user")
 
-        schema_in.password = hash_password(schema_in.password)
+        schema_in.password = hash_secret(schema_in.password)
 
         user = await super().create(schema_in, validate)
 

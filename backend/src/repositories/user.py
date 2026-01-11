@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.password_reset_token import PasswordResetToken
 from src.models.role import Role
 from src.models.user import User
 from src.repositories.abc import ResourceRepositoryABC
@@ -14,10 +16,29 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
     async def get_by_email(self, email: str) -> User | None: ...
 
     @abstractmethod
-    async def add_roles(self, user: User, *role_ids: int) -> None: ...
+    async def add_roles(
+        self, user: User, *role_ids: int, commit: bool = True
+    ) -> None: ...
 
     @abstractmethod
-    async def remove_roles(self, user: User, *role_ids: int) -> None: ...
+    async def remove_roles(
+        self, user: User, *role_ids: int, commit: bool = True
+    ) -> None: ...
+
+    @abstractmethod
+    async def get_password_reset_token(
+        self, user: User
+    ) -> PasswordResetToken | None: ...
+
+    @abstractmethod
+    async def create_password_reset_token(
+        self, *, commit: bool = True, user: User, token: str
+    ) -> PasswordResetToken: ...
+
+    @abstractmethod
+    async def delete_password_reset_token(
+        self, *, commit: bool = True, user: User
+    ) -> None: ...
 
 
 class UserRepository(SQLResourceRepository[User], UserRepositoryABC):
@@ -36,3 +57,41 @@ class UserRepository(SQLResourceRepository[User], UserRepositoryABC):
         self, user: User, *role_ids: int, commit: bool = True
     ) -> None:
         await self.remove_relationship(user, "roles", *role_ids, commit=commit)
+
+    async def get_password_reset_token(self, user: User) -> PasswordResetToken | None:
+        stmt = select(PasswordResetToken).filter(PasswordResetToken.user_id == user.id)
+
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
+    async def create_password_reset_token(
+        self, *, commit: bool = True, user: User, token: str
+    ) -> PasswordResetToken:
+        await self.delete_password_reset_token(commit=commit, user=user)
+
+        instance = PasswordResetToken(
+            user_id=user.id, token=token, created_at=datetime.now(UTC)
+        )
+
+        self.db.add(instance)
+
+        if commit is True:
+            await self.db.commit()
+        else:
+            await self.db.flush()
+
+        await self.db.refresh(instance)
+
+        return instance
+
+    async def delete_password_reset_token(
+        self, *, commit: bool = True, user: User
+    ) -> None:
+        stmt = delete(PasswordResetToken).filter(PasswordResetToken.user_id == user.id)
+
+        await self.db.execute(stmt)
+
+        if commit is True:
+            await self.db.commit()
+        else:
+            await self.db.flush()

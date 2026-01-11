@@ -8,6 +8,7 @@ from src.models.company import Company
 from src.models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
+    from src.models.password_reset_token import PasswordResetToken
     from src.models.role import Role
 
 
@@ -30,4 +31,7 @@ class User(Base, TimestampMixin):
     company: Mapped["Company"] = relationship("Company", back_populates="users")
     roles: Mapped[list["Role"]] = relationship(
         "Role", secondary="user_role", back_populates="users", lazy="joined"
+    )
+    password_reset_token: Mapped["PasswordResetToken"] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )
