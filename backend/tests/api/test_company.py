@@ -159,6 +159,9 @@ def test_delete_a_company(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.delete("/companies/1")
     assert response.status_code == 204
 
+    response = admin_authenticated.get("/companies/1")
+    assert response.status_code == 404
+
 
 def test_cannot_create_a_company_with_already_existing_name(
     admin_authenticated: TestClient,
