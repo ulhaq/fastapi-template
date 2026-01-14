@@ -63,7 +63,7 @@ export function useErrorHandler(errorResponse: any, context?: any): void {
     const keyParts = field.map((part) => {
       if (typeof part === 'number' || !Number.isNaN(Number(part))) {
         const key = alphabet[placeholderIndex++]
-        ctx[key] = Number(part)
+        ctx[key] = Number(part) + 1
         return key
       }
       return part
