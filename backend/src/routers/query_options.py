@@ -2,7 +2,7 @@ from typing import Annotated, Callable
 
 from fastapi import Depends, Query, Request
 from fastapi.encoders import jsonable_encoder
-from pydantic import Json
+from pydantic import TypeAdapter
 
 from src.core.exceptions import ValidationException
 from src.enums import ComparisonOperator, ErrorCode
@@ -60,7 +60,7 @@ def sort_query() -> Callable[..., list[str]]:
 def filters_query() -> Callable[..., dict[str, dict]]:
     def dependency(
         request: Request,
-        filters: Json[dict[str, Filters]] | None = Query(
+        filters: str | None = Query(
             default=None,
             description=(
                 "Filter expression as a JSON string.\n\n"
@@ -78,9 +78,15 @@ def filters_query() -> Callable[..., dict[str, dict]]:
         if not filters:
             return {}
 
+        parsed_filters = {}
+        if filters:
+            parsed_filters = TypeAdapter(dict[str, Filters]).validate_json(filters)
+
         path = request.url.path
         valid_fields = FILTERING_FIELDS_BY_PATH.get(path, []) + COMMON_FILTERING_FIELDS
-        invalid_fields = [field for field in filters if field not in valid_fields]
+        invalid_fields = [
+            field for field in parsed_filters if field not in valid_fields
+        ]
 
         if invalid_fields:
             raise ValidationException(
@@ -89,7 +95,7 @@ def filters_query() -> Callable[..., dict[str, dict]]:
                 error_code=ErrorCode.PARAMETER_INVALID,
             )
 
-        return jsonable_encoder(filters)
+        return jsonable_encoder(parsed_filters)
 
     return dependency
 
