@@ -75,14 +75,7 @@ class UserRepository(SQLResourceRepository[User], UserRepositoryABC):
 
         self.db.add(instance)
 
-        if commit is True:
-            await self.db.commit()
-        else:
-            await self.db.flush()
-
-        await self.db.refresh(instance)
-
-        return instance
+        return await self.save(instance, commit=commit)
 
     async def delete_password_reset_token(
         self, *, commit: bool = True, user: User
@@ -91,7 +84,4 @@ class UserRepository(SQLResourceRepository[User], UserRepositoryABC):
 
         await self.db.execute(stmt)
 
-        if commit is True:
-            await self.db.commit()
-        else:
-            await self.db.flush()
+        await self.save(commit=commit)

@@ -4,9 +4,10 @@ import logging.config
 import os
 import sys
 
-from alembic import command
+from alembic.command import downgrade, upgrade
 from alembic.config import Config
-from src.core.database import AsyncSessionLocal
+
+from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_secret
 from src.models.company import Company
@@ -166,9 +167,9 @@ INIT_AUTH_DATA: dict = {
 
 
 async def up() -> None:
-    command.upgrade(alembic_cfg, "head")
+    upgrade(alembic_cfg, "head")
 
-    async with AsyncSessionLocal() as session:
+    async with ASYNC_SESSION_LOCAL() as session:
         companies = []
         for company in INIT_AUTH_DATA["companies"]:
             companies.append(Company(name=company["name"]))
@@ -225,7 +226,7 @@ async def main(drop: bool = False) -> None:
         log.info("Created tables and initial data")
     else:
         log.info("Dropping tables")
-        command.downgrade(alembic_cfg, "base")
+        downgrade(alembic_cfg, "base")
         log.info("Dropped tables")
 
 

@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any, Sequence
+from typing import Any, Literal, Sequence, overload
 
 from sqlalchemy import BinaryExpression, Select, exists, func, or_, select
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -86,14 +86,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
 
         self.db.add(instance)
 
-        if commit is True:
-            await self.db.commit()
-        else:
-            await self.db.flush()
-
-        await self.db.refresh(instance)
-
-        return instance
+        return await self.save(instance, commit=commit)
 
     async def update(
         self, model: ModelType, *, commit: bool = True, **kwargs: Any
@@ -104,30 +97,17 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
 
         self.db.add(model)
 
-        if commit is True:
-            await self.db.commit()
-        else:
-            await self.db.flush()
-
-        await self.db.refresh(model)
-
-        return model
+        return await self.save(model, commit=commit)
 
     async def delete(self, model: ModelType, *, commit: bool = True) -> None:
         setattr(model, "deleted_at", datetime.now(UTC))
 
-        if commit is True:
-            await self.db.commit()
-        else:
-            await self.db.flush()
+        await self.save(commit=commit)
 
     async def force_delete(self, model: ModelType, *, commit: bool = True) -> None:
         await self.db.delete(model)
 
-        if commit is True:
-            await self.db.commit()
-        else:
-            await self.db.flush()
+        await self.save(commit=commit)
 
     async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
@@ -196,12 +176,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
             else:
                 setattr(target_model, relationship_attr, related_objects[0])
 
-            if commit is True:
-                await self.db.commit()
-            else:
-                await self.db.flush()
-
-            await self.db.refresh(target_model)
+        await self.save(target_model, commit=commit)
 
     async def remove_relationship(
         self,
@@ -225,12 +200,52 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         else:
             setattr(target_model, relationship_attr, None)
 
-        if commit is True:
+        await self.save(target_model, commit=commit)
+
+    @overload
+    async def save(
+        self,
+        instance: None = None,
+        *,
+        refresh: bool = True,
+        commit: bool = True,
+    ) -> None: ...
+    @overload
+    async def save[I](
+        self,
+        instance: I,
+        *,
+        refresh: Literal[True] = True,
+        commit: bool = True,
+    ) -> I: ...
+    @overload
+    async def save[I](
+        self,
+        instance: I,
+        *,
+        refresh: Literal[False],
+        commit: bool = True,
+    ) -> None: ...
+    async def save[I](
+        self,
+        instance: I | None = None,
+        *,
+        refresh: bool = True,
+        commit: bool = True,
+    ) -> I | None:
+        if commit:
             await self.db.commit()
         else:
             await self.db.flush()
 
-        await self.db.refresh(target_model)
+        if instance is None:
+            return None
+
+        if refresh:
+            await self.db.refresh(instance)
+            return instance
+
+        return None
 
     def _get_order_expressions(self, sort: list[str]) -> list[UnaryExpression]:
         ordering: list[UnaryExpression] = []
