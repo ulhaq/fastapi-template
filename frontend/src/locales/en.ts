@@ -174,7 +174,7 @@ export default {
   },
   login: {
     form: {
-      title: 'Login',
+      title: 'Welcome Back',
       submit: 'Login',
       newAccount: 'New account',
       resetPassword: 'Reset password',

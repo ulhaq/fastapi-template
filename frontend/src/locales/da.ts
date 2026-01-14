@@ -179,7 +179,7 @@ export default {
   },
   login: {
     form: {
-      title: 'Login',
+      title: 'Velkommen tilbage',
       submit: 'Login',
       newAccount: 'Ny konto',
       resetPassword: 'Nulstil adgangskode',
