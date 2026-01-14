@@ -86,12 +86,9 @@ async function request() {
   if (!valid) return
 
   await authStore.requestPasswordReset(email.value).then(() => {
-    email.value = null
+    messageStore.add({ text: t('reset.form.requestSuccess'), type: 'success' })
 
-    messageStore.add({
-      text: t('reset.form.requestSuccess'),
-      type: 'success',
-    })
+    router.push({ name: 'login' })
   })
 }
 
