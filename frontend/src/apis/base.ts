@@ -9,7 +9,7 @@ import { useErrorHandler } from '@/composables/errorHandler'
 
 const apiUrl =
   import.meta.env.VITE_API_URL ||
-  `${window.location.protocol}//${window.location.hostname}:8000`
+  `${window.location.protocol}//${window.location.hostname}:8000/v1`
 
 if (!import.meta.env.VITE_API_URL) {
   console.warn('No VITE_API_URL found, using fallback URL:', apiUrl)

@@ -3,60 +3,94 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
+from src.core.config import settings
+from src.core.limiter import limiter
 from src.core.security import Token
 from src.schemas.company import CompanyIn, CompanyOut
 from src.schemas.user import EmailIn, ResetPasswordIn
 from src.services.auth import AuthService
 
-router = APIRouter()
+router = APIRouter(prefix="/auth")
 
 
-@router.post("/auth/register", status_code=status.HTTP_201_CREATED)
+def _set_refresh_token_cookie(response: Response, refresh_token: str) -> None:
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        expires=settings.auth_refresh_token_expiry,
+        secure=settings.app_env != "local",
+        samesite="lax",
+        path="/v1/auth",
+    )
+
+
+def _delete_refresh_token_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key="refresh_token",
+        secure=settings.app_env != "local",
+        samesite="lax",
+        path="/v1/auth",
+    )
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def create_an_account(
+    request: Request,  # pylint: disable=unused-argument
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
     company_in: CompanyIn,
 ) -> CompanyOut:
-    return await service.register_company(company_in, bg_tasks)
+    return await service.register_company(company_in, bg_tasks.add_task)
 
 
-@router.post("/auth/token", status_code=status.HTTP_200_OK)
+@router.post("/token", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
 async def get_access_token(
+    request: Request,  # pylint: disable=unused-argument
     response: Response,
     auth_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     service: Annotated[AuthService, Depends()],
 ) -> Token:
-    return await service.get_access_token(auth_data, response)
+    token = await service.get_access_token(auth_data.username, auth_data.password)
+    _set_refresh_token_cookie(response, token.refresh_token)
+    return token
 
 
-@router.post("/auth/refresh", status_code=status.HTTP_200_OK)
+@router.post("/refresh", status_code=status.HTTP_200_OK)
 async def refresh_access_token(
     request: Request,
     response: Response,
     service: Annotated[AuthService, Depends()],
-) -> Token | None:
-    return await service.refresh_access_token(
-        request.cookies.get("refresh_token"), response
-    )
+) -> Token:
+    token = await service.refresh_access_token(request.cookies.get("refresh_token"))
+    _set_refresh_token_cookie(response, token.refresh_token)
+    return token
 
 
-@router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
-    response: Response, service: Annotated[AuthService, Depends()]
+    request: Request,
+    response: Response,
+    service: Annotated[AuthService, Depends()],
 ) -> None:
-    await service.logout(response)
+    await service.logout(request.cookies.get("refresh_token"))
+    _delete_refresh_token_cookie(response)
 
 
-@router.post("/auth/reset-password/request", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/reset-password/request", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit("5/minute")
 async def request_password_reset(
+    request: Request,  # pylint: disable=unused-argument
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
     email_in: EmailIn,
 ) -> None:
-    return await service.request_password_reset(email_in, bg_tasks)
+    return await service.request_password_reset(email_in, bg_tasks.add_task)
 
 
-@router.post("/auth/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 async def reset_password(
     service: Annotated[AuthService, Depends()], reset_password_in: ResetPasswordIn
 ) -> None:

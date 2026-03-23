@@ -81,6 +81,24 @@ class ResourceService[
             f"{self.repo.model.__name__} not found. [{identifier=}]"
         )
 
+    async def patch(
+        self,
+        identifier: int,
+        schema_in: SchemaInType,
+        validation_callback: Callable[[], Awaitable] | None = None,
+    ) -> BaseType:
+        if model := await self.repo.get(identifier):
+            if validation_callback:
+                await validation_callback()
+
+            return await self.repo.update(
+                model, **schema_in.model_dump(exclude_unset=True)
+            )
+
+        raise NotFoundException(
+            f"{self.repo.model.__name__} not found. [{identifier=}]"
+        )
+
     async def delete(
         self,
         identifier: int,

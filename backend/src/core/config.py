@@ -1,7 +1,11 @@
-from typing import Self
+from typing import Literal, Self
 
-from pydantic import Field, computed_field, model_validator
+from pydantic import Field, SecretStr, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _parse_comma_list(value: str) -> list[str]:
+    return [v.strip().rstrip("/") for v in value.split(",")]
 
 
 class Settings(BaseSettings):
@@ -11,8 +15,8 @@ class Settings(BaseSettings):
 
     app_name: str = ""
     app_url: str = "http://localhost"
-    app_env: str = "local"
-    app_secret: str = ""
+    app_env: Literal["local", "development", "staging", "production"] = "local"
+    app_secret: SecretStr = SecretStr("")
     app_debug: bool = False
 
     db_connection: str = ""
@@ -28,10 +32,7 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_origins(self) -> list[str]:
-        return [
-            origin.strip().rstrip("/")
-            for origin in self.raw_allow_origins.split(",")  # pylint: disable=no-member
-        ]
+        return _parse_comma_list(self.raw_allow_origins)  # pylint: disable=no-member
 
     allow_credentials: bool = True
 
@@ -40,14 +41,14 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_methods(self) -> list[str]:
-        return [method.strip() for method in self.raw_allow_methods.split(",")]  # pylint: disable=no-member
+        return _parse_comma_list(self.raw_allow_methods)  # pylint: disable=no-member
 
     raw_allow_headers: str = Field(default="*", validation_alias="allow_headers")
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_headers(self) -> list[str]:
-        return [header.strip() for header in self.raw_allow_headers.split(",")]  # pylint: disable=no-member
+        return _parse_comma_list(self.raw_allow_headers)  # pylint: disable=no-member
 
     email_host: str = ""
     email_user: str = ""
@@ -61,6 +62,8 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     frontend_password_reset_path: str = "reset-password?token="
 
+    rate_limit_enabled: bool = True
+
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False
 
@@ -70,6 +73,12 @@ class Settings(BaseSettings):
             raise ValueError(
                 "ALLOW_ORIGINS must not contain '*' when ALLOW_CREDENTIALS is True"
             )
+        return self
+
+    @model_validator(mode="after")
+    def validate_production_auth(self) -> Self:
+        if self.auth_enabled is False and self.app_env == "production":
+            raise ValueError("AUTH_ENABLED must be True in production")
         return self
 
 

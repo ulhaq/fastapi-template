@@ -1,3 +1,7 @@
+import os
+
+os.environ["RATE_LIMIT_ENABLED"] = "false"
+
 from collections.abc import AsyncGenerator, Generator
 from httpx import Headers
 import pytest
@@ -97,7 +101,7 @@ def _client() -> Generator[TestClient, None, None]:
 @pytest.fixture
 def admin_authenticated(client: TestClient) -> TestClient:
     rs = client.post(
-        "auth/token",
+        "/v1/auth/token",
         data={"username": "admin@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     ).json()
@@ -110,7 +114,7 @@ def admin_authenticated(client: TestClient) -> TestClient:
 @pytest.fixture
 def standard_authenticated(client: TestClient) -> TestClient:
     rs = client.post(
-        "auth/token",
+        "/v1/auth/token",
         data={"username": "standard@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     ).json()

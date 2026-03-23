@@ -10,7 +10,7 @@ from tests.utils import (
 
 
 def test_get_all_permissions(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/permissions?page_size=20")
+    response = admin_authenticated.get("/v1/permissions?page_size=20")
     assert response.status_code == 200
     rs = response.json()
 
@@ -95,9 +95,7 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert rs["items"][5]["id"] == 6
     assert rs["items"][5]["name"] == "read_user"
-    assert (
-        rs["items"][5]["description"] == "Allows the user to read users."
-    )
+    assert rs["items"][5]["description"] == "Allows the user to read users."
     assert len(rs["items"][5]["roles"]) == 2
     assert rs["items"][5]["roles"][0]["id"] == 1
     assert rs["items"][5]["roles"][0]["name"] == "admin"
@@ -116,9 +114,7 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert rs["items"][6]["id"] == 7
     assert rs["items"][6]["name"] == "create_user"
-    assert (
-        rs["items"][6]["description"] == "Allows the user to create new users."
-    )
+    assert rs["items"][6]["description"] == "Allows the user to create new users."
     assert len(rs["items"][6]["roles"]) == 2
     assert rs["items"][6]["roles"][0]["id"] == 1
     assert rs["items"][6]["roles"][0]["name"] == "admin"
@@ -315,7 +311,7 @@ def test_paginate_permissions(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.get(
-        f"/permissions?page_number={page_number}&page_size{page_size}"
+        f"/v1/permissions?page_number={page_number}&page_size{page_size}"
     )
     assert response.status_code == 200
     rs = response.json()
@@ -343,7 +339,7 @@ def test_paginate_permissions(
     ],
 )
 def test_sort_permissions(sort: str, admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get(f"/permissions?sort={sort}")
+    response = admin_authenticated.get(f"/v1/permissions?sort={sort}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -382,7 +378,7 @@ def test_filter_permissions(
     for field, value, op in filter_data:
         filters[field] = {"v": [*value], "op": op}
 
-    response = admin_authenticated.get(f"/permissions?filters={json.dumps(filters)}")
+    response = admin_authenticated.get(f"/v1/permissions?filters={json.dumps(filters)}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -393,7 +389,7 @@ def test_filter_permissions(
 
 def test_create_a_permission(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/permissions",
+        "/v1/permissions",
         json={
             "name": "test permission",
             "description": "description of test permission",
@@ -411,9 +407,32 @@ def test_create_a_permission(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
 
+def test_patch_a_permission(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch(
+        "/v1/permissions/1",
+        json={"name": "company_read"},
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "company_read"
+    assert rs["description"] == "Allows the user to read company accounts."
+    assert rs["created_at"]
+    assert rs["updated_at"]
+
+
+def test_patch_a_permission_with_partial_body(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/permissions/1", json={})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "read_company"
+    assert rs["description"] == "Allows the user to read company accounts."
+
+
 def test_update_a_permission(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.put(
-        "/permissions/1",
+        "/v1/permissions/1",
         json={
             "name": "Company Read Permission",
             "description": "Allows the user to read any company.",
@@ -438,7 +457,7 @@ def test_update_a_permission(admin_authenticated: TestClient) -> None:
 
 
 def test_retrieve_a_permission(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/permissions/1")
+    response = admin_authenticated.get("/v1/permissions/1")
     assert response.status_code == 200
     rs = response.json()
 
@@ -459,15 +478,15 @@ def test_retrieve_a_permission(admin_authenticated: TestClient) -> None:
 
 
 def test_delete_a_permission(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.delete("/permissions/1")
+    response = admin_authenticated.delete("/v1/permissions/1")
     assert response.status_code == 204
 
-    response = admin_authenticated.get("/permissions/1")
+    response = admin_authenticated.get("/v1/permissions/1")
     assert response.status_code == 404
 
 
 def test_cannot_get_non_existent_permission(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/permissions/0")
+    response = admin_authenticated.get("/v1/permissions/0")
     assert response.status_code == 404
     rs = response.json()
     assert rs["msg"] == "Permission not found. [identifier=0]"
@@ -477,7 +496,7 @@ def test_cannot_create_a_permission_with_already_existing_name(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.post(
-        "/permissions",
+        "/v1/permissions",
         json={
             "name": "create_user",
             "description": "description of test permission",
@@ -488,10 +507,22 @@ def test_cannot_create_a_permission_with_already_existing_name(
     assert rs["msg"] == "Permission already exists. [name=create_user]"
 
 
+def test_cannot_patch_a_permission_while_unauthorized(
+    standard_authenticated: TestClient,
+) -> None:
+    response = standard_authenticated.patch(
+        "/v1/permissions/1",
+        json={"name": "company_read"},
+    )
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "You are not authorized to perform this action"
+
+
 def test_cannot_get_permissions_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/permissions")
+    response = standard_authenticated.get("/v1/permissions")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -501,7 +532,7 @@ def test_cannot_update_a_permission_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.put(
-        "/permissions/1",
+        "/v1/permissions/1",
         json={
             "name": "Administrator",
             "description": "Full access to all system features and settings.",
@@ -515,7 +546,7 @@ def test_cannot_update_a_permission_while_unauthorized(
 def test_cannot_retrieve_a_permission_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/permissions/1")
+    response = standard_authenticated.get("/v1/permissions/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -524,7 +555,7 @@ def test_cannot_retrieve_a_permission_while_unauthorized(
 def test_cannot_delete_a_permission_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.delete("/permissions/1")
+    response = standard_authenticated.delete("/v1/permissions/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"

@@ -23,5 +23,10 @@ class RoleOut(RoleBase, Timestamp):
 class RoleIn(RoleBase): ...
 
 
+class RolePatch(BaseModel):
+    name: str | None = None
+    description: str | None = None
+
+
 class RolePermissionIn(BaseModel):
     permission_ids: list[int] = Field(default_factory=list)

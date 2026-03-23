@@ -34,6 +34,11 @@ class UserIn(UserBase):
     company_id: Annotated[int, Field()]
 
 
+class UserPatch(BaseModel):
+    name: Annotated[str, Field(min_length=1)] | None = None
+    email: EmailStr | None = None
+
+
 class EmailIn(BaseModel):
     email: EmailStr
 
@@ -44,7 +49,7 @@ class ResetPasswordIn(BaseModel):
 
 
 class ChangePasswordIn(BaseModel):
-    password: Annotated[str, Field(min_length=6)]
+    password: Annotated[str, Field(min_length=1)]
     new_password: Annotated[str, Field(min_length=6)]
     confirm_password: Annotated[str, Field()]
 

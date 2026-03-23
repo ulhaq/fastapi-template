@@ -1,10 +1,10 @@
-from contextvars import ContextVar
 from time import time
 from typing import Any, Literal, Self
+from uuid import uuid4
 
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-from jwt import encode
+from jwt import ExpiredSignatureError, InvalidTokenError, decode, encode
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
@@ -12,11 +12,10 @@ from src.core.config import settings
 from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
 from src.enums import ErrorCode
 from src.models.user import User
-from src.schemas.user import ChangePasswordIn
 
 crypt_context = CryptContext(schemes=["argon2"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
-current_user: ContextVar["Auth"] = ContextVar("current_user")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/token", auto_error=False)
+BEARER_HEADERS: dict[str, str] = {"WWW-Authenticate": "Bearer"}
 
 
 class Auth(BaseModel):
@@ -64,6 +63,7 @@ class JWTTokenClaims(BaseModel):
     aud: str
     exp: int
     iat: int
+    jti: str
 
     name: str | None = None
     email: str | None = None
@@ -73,13 +73,17 @@ type SignSalt = Literal["reset-password"]
 
 
 def sign(data: Any, salt: SignSalt) -> str:
-    s = URLSafeTimedSerializer(secret_key=settings.app_secret, salt=salt)
+    s = URLSafeTimedSerializer(
+        secret_key=settings.app_secret.get_secret_value(), salt=salt
+    )
     return s.dumps(data)
 
 
 def unsign(token: str, salt: SignSalt, max_age: int = 10 * 60) -> Any:
     try:
-        s = URLSafeTimedSerializer(secret_key=settings.app_secret, salt=salt)
+        s = URLSafeTimedSerializer(
+            secret_key=settings.app_secret.get_secret_value(), salt=salt
+        )
         return s.loads(token, max_age=max_age)
     except SignatureExpired as exc:
         raise NotAuthenticatedException(
@@ -99,46 +103,42 @@ def verify_secret(plain_secret: str, hashed_secret: str) -> bool:
     return crypt_context.verify(plain_secret, hashed_secret)
 
 
-def create_access_token(user: User) -> str:
+def decode_token(token: str) -> dict:
+    try:
+        return decode(
+            token,
+            settings.app_secret.get_secret_value(),
+            algorithms=[settings.auth_algorithm],
+            audience=settings.app_name,
+        )
+    except ExpiredSignatureError as exc:
+        raise NotAuthenticatedException(
+            "Token expired", error_code=ErrorCode.TOKEN_EXPIRED, headers=BEARER_HEADERS
+        ) from exc
+    except InvalidTokenError as exc:
+        raise NotAuthenticatedException(headers=BEARER_HEADERS) from exc
+
+
+def create_token(user: User, expiry: int, *, include_user_claims: bool = True) -> str:
+    claims = JWTTokenClaims(
+        iss=settings.app_name,
+        aud=settings.app_name,
+        sub=str(user.id),
+        exp=int(time() + expiry),
+        iat=int(time()),
+        jti=str(uuid4()),
+    )
+    if include_user_claims:
+        claims.name = user.name
+        claims.email = user.email
     return encode(
-        JWTTokenClaims(
-            iss=settings.app_name,
-            aud=settings.app_name,
-            sub=str(user.id),
-            exp=int(time() + settings.auth_access_token_expiry),
-            iat=int(time()),
-            name=user.name,
-            email=user.email,
-        ).model_dump(),
-        settings.app_secret,
+        claims.model_dump(exclude_none=True),
+        settings.app_secret.get_secret_value(),
         algorithm=settings.auth_algorithm,
     )
 
 
-def create_refresh_token(user: User) -> str:
-    return encode(
-        JWTTokenClaims(
-            iss=settings.app_name,
-            aud=settings.app_name,
-            sub=str(user.id),
-            exp=int(time() + settings.auth_refresh_token_expiry),
-            iat=int(time()),
-        ).model_dump(exclude_unset=True),
-        settings.app_secret,
-        algorithm=settings.auth_algorithm,
-    )
-
-
-def authenticate_user(
-    auth_data: OAuth2PasswordRequestForm | ChangePasswordIn, user: User | None
-) -> User | None:
-    if user and verify_secret(auth_data.password, user.password):
+def authenticate_user(password: str, user: User | None) -> User | None:
+    if user and verify_secret(password, user.password):
         return user
     return None
-
-
-def get_current_user() -> Auth:
-    if user := current_user.get():
-        return user
-
-    raise NotAuthenticatedException(headers={"WWW-Authenticate": "Bearer"})

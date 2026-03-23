@@ -67,8 +67,6 @@ class UserRepository(SQLResourceRepository[User], UserRepositoryABC):
     async def create_password_reset_token(
         self, *, commit: bool = True, user: User, token: str
     ) -> PasswordResetToken:
-        await self.delete_password_reset_token(commit=commit, user=user)
-
         instance = PasswordResetToken(
             user_id=user.id, token=token, created_at=datetime.now(UTC)
         )

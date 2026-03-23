@@ -3,19 +3,21 @@ from typing import Annotated
 from fastapi import Depends
 
 from src.core.exceptions import AlreadyExistsException
-from src.core.security import get_current_user
 from src.models.company import Company
 from src.repositories.company import CompanyRepository
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
-from src.schemas.company import CompanyBase, CompanyOut
+from src.schemas.company import CompanyBase, CompanyOut, CompanyPatch
 from src.services.base import ResourceService
 
 
 class CompanyService(
-    ResourceService[CompanyRepository, Company, CompanyBase, CompanyOut]
+    ResourceService[CompanyRepository, Company, CompanyBase | CompanyPatch, CompanyOut]
 ):
-    def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
+    def __init__(
+        self,
+        repos: Annotated[RepositoryManager, Depends()],
+    ) -> None:
         self.repo = repos.company
         super().__init__(repos)
 
@@ -25,8 +27,6 @@ class CompanyService(
         page_query_params: PageQueryParams,
         include_deleted: bool = False,
     ) -> PaginatedResponse[CompanyOut]:
-        get_current_user().authorize("read_company")
-
         return await super().paginate(
             schema_out=schema_out,
             page_query_params=page_query_params,
@@ -39,8 +39,6 @@ class CompanyService(
                 raise AlreadyExistsException(
                     f"Company already exists. [name={schema_in.name}]"
                 )
-
-        get_current_user().authorize("create_company")
 
         return CompanyOut.model_validate(await super().create(schema_in, validate))
 
@@ -55,18 +53,27 @@ class CompanyService(
                     f"Company already exists. [name={schema_in.name}]"
                 )
 
-        get_current_user().authorize("update_company")
-
         return CompanyOut.model_validate(
             await super().update(identifier, schema_in, validate)
         )
 
-    async def get_company(self, identifier: int) -> CompanyOut:
-        get_current_user().authorize("read_company")
+    async def patch_company(
+        self, identifier: int, schema_in: CompanyPatch
+    ) -> CompanyOut:
+        async def validate() -> None:
+            if schema_in.name:
+                existing_company = await self.repo.get_one_by_name(schema_in.name)
+                if existing_company and existing_company.id != identifier:
+                    raise AlreadyExistsException(
+                        f"Company already exists. [name={schema_in.name}]"
+                    )
 
+        return CompanyOut.model_validate(
+            await super().patch(identifier, schema_in, validate)
+        )
+
+    async def get_company(self, identifier: int) -> CompanyOut:
         return CompanyOut.model_validate(await super().get(identifier))
 
     async def delete_company(self, identifier: int, force_delete: bool = False) -> None:
-        get_current_user().authorize("delete_company")
-
         await super().delete(identifier, force_delete=force_delete)

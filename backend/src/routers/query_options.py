@@ -11,15 +11,15 @@ from src.schemas.common import Filters
 COMMON_SORTING_FIELDS = ["id", "name", "created_at", "updated_at"]
 
 SORTING_FIELDS_BY_PATH: dict[str, list[str]] = {
-    "/roles": ["description"],
-    "/permissions": ["description"],
+    "/v1/roles": ["description"],
+    "/v1/permissions": ["description"],
 }
 
 COMMON_FILTERING_FIELDS = ["id", "name", "created_at", "updated_at"]
 
 FILTERING_FIELDS_BY_PATH: dict[str, list[str]] = {
-    "/roles": ["description"],
-    "/permissions": ["description"],
+    "/v1/roles": ["description"],
+    "/v1/permissions": ["description"],
 }
 
 

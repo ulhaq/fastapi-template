@@ -2,7 +2,7 @@ import logging
 import logging.config
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware import Middleware
@@ -10,9 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from src.core.config import settings
 from src.core.exceptions import ClientException
+from src.core.limiter import limiter
 from src.core.logging import LOGGING_CONFIG
 from src.core.middlewares import ErrorHandlingMiddleware
 from src.enums import ErrorCode
@@ -23,7 +27,7 @@ logging.config.dictConfig(LOGGING_CONFIG)
 
 log = logging.getLogger(__name__)
 
-if not settings.app_secret:
+if not settings.app_secret.get_secret_value():
     raise RuntimeError("Application secret is not set")
 
 
@@ -39,8 +43,16 @@ app = FastAPI(
             allow_headers=settings.allow_headers,
         ),
         Middleware(ErrorHandlingMiddleware),
+        Middleware(SlowAPIMiddleware),
     ],
 )
+
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
+    return _rate_limit_exceeded_handler(request, exc)
 
 
 @app.exception_handler(HTTPException)
@@ -138,11 +150,11 @@ async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
     )
 
 
-app.include_router(auth.router, tags=["Authentication"])
-app.include_router(company.router, tags=["Companies"])
-app.include_router(user.router, tags=["Users"])
-app.include_router(role.router, tags=["Roles"])
-app.include_router(permission.router, tags=["Permissions"])
+app.include_router(auth.router, tags=["Authentication"], prefix="/v1")
+app.include_router(company.router, tags=["Companies"], prefix="/v1")
+app.include_router(user.router, tags=["Users"], prefix="/v1")
+app.include_router(role.router, tags=["Roles"], prefix="/v1")
+app.include_router(permission.router, tags=["Permissions"], prefix="/v1")
 
 
 def custom_openapi() -> dict[str, Any]:

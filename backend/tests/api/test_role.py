@@ -10,7 +10,7 @@ from tests.utils import (
 
 
 def test_get_all_roles(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/roles")
+    response = admin_authenticated.get("/v1/roles")
     assert response.status_code == 200
     rs = response.json()
     assert rs["page_number"] == 1
@@ -178,7 +178,7 @@ def test_paginate_roles(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.get(
-        f"/roles?page_number={page_number}&page_size{page_size}"
+        f"/v1/roles?page_number={page_number}&page_size{page_size}"
     )
     assert response.status_code == 200
     rs = response.json()
@@ -206,7 +206,7 @@ def test_paginate_roles(
     ],
 )
 def test_sort_roles(sort: str, admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get(f"/roles?sort={sort}")
+    response = admin_authenticated.get(f"/v1/roles?sort={sort}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -245,7 +245,7 @@ def test_filter_roles(
     for field, value, op in filter_data:
         filters[field] = {"v": [*value], "op": op}
 
-    response = admin_authenticated.get(f"/roles?filters={json.dumps(filters)}")
+    response = admin_authenticated.get(f"/v1/roles?filters={json.dumps(filters)}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -256,7 +256,7 @@ def test_filter_roles(
 
 def test_create_a_role(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/roles",
+        "/v1/roles",
         json={
             "name": "test role",
             "description": "description of test role",
@@ -274,9 +274,35 @@ def test_create_a_role(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
 
+def test_patch_a_role(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch(
+        "/v1/roles/1",
+        json={
+            "name": "Administrator",
+            "description": "Full Access",
+        },
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "Administrator"
+    assert rs["description"] == "Full Access"
+    assert rs["created_at"]
+    assert rs["updated_at"]
+
+
+def test_patch_a_role_with_partial_body(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/roles/1", json={})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "admin"
+    assert rs["description"] == "Full access to all system features and settings."
+
+
 def test_update_a_role(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.put(
-        "/roles/1",
+        "/v1/roles/1",
         json={
             "name": "Administrator",
             "description": "Full access to all system features and settings.",
@@ -402,7 +428,7 @@ def test_update_a_role(admin_authenticated: TestClient) -> None:
 
 
 def test_retrieve_a_role(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/roles/1")
+    response = admin_authenticated.get("/v1/roles/1")
     assert response.status_code == 200
     rs = response.json()
 
@@ -525,7 +551,7 @@ def test_retrieve_a_role(admin_authenticated: TestClient) -> None:
 
 def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/roles/1/permissions",
+        "/v1/roles/1/permissions",
         json={
             "permission_ids": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
         },
@@ -609,7 +635,7 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
     response = admin_authenticated.post(
-        "/roles/1/permissions",
+        "/v1/roles/1/permissions",
         json={
             "permission_ids": [1],
         },
@@ -633,15 +659,15 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
 
 
 def test_delete_a_role(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.delete("/roles/2")
+    response = admin_authenticated.delete("/v1/roles/2")
     assert response.status_code == 204
 
-    response = admin_authenticated.get("/roles/2")
+    response = admin_authenticated.get("/v1/roles/2")
     assert response.status_code == 404
 
 
 def test_cannot_get_non_existent_role(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/roles/0")
+    response = admin_authenticated.get("/v1/roles/0")
     assert response.status_code == 404
     rs = response.json()
     assert rs["msg"] == "Role not found. [identifier=0]"
@@ -651,7 +677,7 @@ def test_cannot_create_a_role_with_already_existing_name(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.post(
-        "/roles",
+        "/v1/roles",
         json={
             "name": "admin",
             "description": "description of test role",
@@ -662,10 +688,22 @@ def test_cannot_create_a_role_with_already_existing_name(
     assert rs["msg"] == "Role already exists. [name=admin]"
 
 
+def test_cannot_patch_a_role_while_unauthorized(
+    standard_authenticated: TestClient,
+) -> None:
+    response = standard_authenticated.patch(
+        "/v1/roles/1",
+        json={"name": "Administrator"},
+    )
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "You are not authorized to perform this action"
+
+
 def test_cannot_get_roles_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/roles")
+    response = standard_authenticated.get("/v1/roles")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -675,7 +713,7 @@ def test_cannot_update_a_role_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.put(
-        "/roles/1",
+        "/v1/roles/1",
         json={
             "name": "Administrator",
             "description": "Full access to all system features and settings.",
@@ -689,7 +727,7 @@ def test_cannot_update_a_role_while_unauthorized(
 def test_cannot_retrieve_a_role_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/roles/1")
+    response = standard_authenticated.get("/v1/roles/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -698,7 +736,7 @@ def test_cannot_retrieve_a_role_while_unauthorized(
 def test_cannot_delete_a_role_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.delete("/roles/1")
+    response = standard_authenticated.delete("/v1/roles/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -708,7 +746,7 @@ def test_cannot_manage_a_role_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.post(
-        "/roles/1/permissions",
+        "/v1/roles/1/permissions",
         json={
             "permission_ids": [1],
         },

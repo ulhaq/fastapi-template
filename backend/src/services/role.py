@@ -3,17 +3,19 @@ from typing import Annotated
 from fastapi import Depends
 
 from src.core.exceptions import AlreadyExistsException
-from src.core.security import get_current_user
 from src.models.role import Role
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.role import RoleRepository
 from src.schemas.common import PageQueryParams, PaginatedResponse
-from src.schemas.role import RoleIn, RoleOut, RolePermissionIn
+from src.schemas.role import RoleIn, RoleOut, RolePatch, RolePermissionIn
 from src.services.base import ResourceService
 
 
-class RoleService(ResourceService[RoleRepository, Role, RoleIn, RoleOut]):
-    def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
+class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, RoleOut]):
+    def __init__(
+        self,
+        repos: Annotated[RepositoryManager, Depends()],
+    ) -> None:
         self.repo = repos.role
         super().__init__(repos)
 
@@ -23,8 +25,6 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn, RoleOut]):
         page_query_params: PageQueryParams,
         include_deleted: bool = False,
     ) -> PaginatedResponse[RoleOut]:
-        get_current_user().authorize("read_role")
-
         return await super().paginate(
             schema_out=schema_out,
             page_query_params=page_query_params,
@@ -38,8 +38,6 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn, RoleOut]):
                     f"Role already exists. [name={schema_in.name}]"
                 )
 
-        get_current_user().authorize("create_role")
-
         return RoleOut.model_validate(await super().create(schema_in, validate))
 
     async def update_role(self, identifier: int, schema_in: RoleIn) -> RoleOut:
@@ -51,29 +49,34 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn, RoleOut]):
                     f"Role already exists. [name={schema_in.name}]"
                 )
 
-        get_current_user().authorize("update_role")
-
         return RoleOut.model_validate(
             await super().update(identifier, schema_in, validate)
         )
 
-    async def get_role(self, identifier: int, include_deleted: bool = False) -> RoleOut:
-        get_current_user().authorize("read_role")
+    async def patch_role(self, identifier: int, schema_in: RolePatch) -> RoleOut:
+        async def validate() -> None:
+            if schema_in.name:
+                existing_role = await self.repo.get_one_by_name(schema_in.name)
+                if existing_role and existing_role.id != identifier:
+                    raise AlreadyExistsException(
+                        f"Role already exists. [name={schema_in.name}]"
+                    )
 
+        return RoleOut.model_validate(
+            await super().patch(identifier, schema_in, validate)
+        )
+
+    async def get_role(self, identifier: int, include_deleted: bool = False) -> RoleOut:
         return RoleOut.model_validate(
             await super().get(identifier, include_deleted=include_deleted)
         )
 
     async def delete_role(self, identifier: int, force_delete: bool = False) -> None:
-        get_current_user().authorize("delete_role")
-
         await super().delete(identifier, force_delete=force_delete)
 
     async def manage_permissions(
         self, identifier: int, schema_in: RolePermissionIn
     ) -> RoleOut:
-        get_current_user().authorize("manage_role_permission")
-
         role = await self.get(identifier)
 
         current_permissions = {permission.id for permission in role.permissions}

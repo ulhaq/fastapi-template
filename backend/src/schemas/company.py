@@ -18,3 +18,7 @@ class CompanyOut(CompanyBase, Timestamp):
 class CompanyIn(CompanyBase):
     email: EmailStr
     password: Annotated[str, Field(min_length=6)]
+
+
+class CompanyPatch(BaseModel):
+    name: Annotated[str, Field(min_length=1)] | None = None

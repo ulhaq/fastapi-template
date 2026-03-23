@@ -21,3 +21,8 @@ class PermissionOut(PermissionBase, Timestamp):
 
 
 class PermissionIn(PermissionBase): ...
+
+
+class PermissionPatch(BaseModel):
+    name: str | None = None
+    description: str | None = None

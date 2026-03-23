@@ -10,7 +10,7 @@ from tests.utils import (
 
 
 def test_get_all_companies(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/companies")
+    response = admin_authenticated.get("/v1/companies")
     assert response.status_code == 200
     rs = response.json()
     assert rs["page_number"] == 1
@@ -44,7 +44,7 @@ def test_paginate_companies(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.get(
-        f"/companies?page_number={page_number}&page_size{page_size}"
+        f"/v1/companies?page_number={page_number}&page_size{page_size}"
     )
     assert response.status_code == 200
     rs = response.json()
@@ -66,7 +66,7 @@ def test_paginate_companies(
     ],
 )
 def test_sort_companies(sort: str, admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get(f"/companies?sort={sort}")
+    response = admin_authenticated.get(f"/v1/companies?sort={sort}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -104,7 +104,7 @@ def test_filter_companies(
     for field, value, op in filter_data:
         filters[field] = {"v": [*value], "op": op}
 
-    response = admin_authenticated.get(f"/companies?filters={json.dumps(filters)}")
+    response = admin_authenticated.get(f"/v1/companies?filters={json.dumps(filters)}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -115,7 +115,7 @@ def test_filter_companies(
 
 def test_create_a_company(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/companies",
+        "/v1/companies",
         json={
             "name": "test company",
         },
@@ -129,9 +129,30 @@ def test_create_a_company(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
 
+def test_patch_a_company(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch(
+        "/v1/companies/1",
+        json={"name": "Patched Company"},
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "Patched Company"
+    assert rs["created_at"]
+    assert rs["updated_at"]
+
+
+def test_patch_a_company_with_partial_body(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/companies/1", json={})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "Company 1"
+
+
 def test_update_a_company(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.put(
-        "/companies/1",
+        "/v1/companies/1",
         json={
             "name": "Updated Company",
         },
@@ -145,7 +166,7 @@ def test_update_a_company(admin_authenticated: TestClient) -> None:
 
 
 def test_retrieve_a_company(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/companies/1")
+    response = admin_authenticated.get("/v1/companies/1")
     assert response.status_code == 200
     rs = response.json()
 
@@ -156,10 +177,10 @@ def test_retrieve_a_company(admin_authenticated: TestClient) -> None:
 
 
 def test_delete_a_company(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.delete("/companies/1")
+    response = admin_authenticated.delete("/v1/companies/1")
     assert response.status_code == 204
 
-    response = admin_authenticated.get("/companies/1")
+    response = admin_authenticated.get("/v1/companies/1")
     assert response.status_code == 404
 
 
@@ -167,7 +188,7 @@ def test_cannot_create_a_company_with_already_existing_name(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.post(
-        "/companies",
+        "/v1/companies",
         json={
             "name": "Company 1",
         },
@@ -177,10 +198,22 @@ def test_cannot_create_a_company_with_already_existing_name(
     assert rs["msg"] == "Company already exists. [name=Company 1]"
 
 
+def test_cannot_patch_a_company_while_unauthorized(
+    standard_authenticated: TestClient,
+) -> None:
+    response = standard_authenticated.patch(
+        "/v1/companies/1",
+        json={"name": "Patched Company"},
+    )
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "You are not authorized to perform this action"
+
+
 def test_cannot_get_companies_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/companies")
+    response = standard_authenticated.get("/v1/companies")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -190,7 +223,7 @@ def test_cannot_update_a_company_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.put(
-        "/companies/1",
+        "/v1/companies/1",
         json={
             "name": "Administrator",
             "description": "Full access to all system features and settings.",
@@ -204,7 +237,7 @@ def test_cannot_update_a_company_while_unauthorized(
 def test_cannot_retrieve_a_company_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/companies/1")
+    response = standard_authenticated.get("/v1/companies/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -213,7 +246,7 @@ def test_cannot_retrieve_a_company_while_unauthorized(
 def test_cannot_delete_a_company_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.delete("/companies/1")
+    response = standard_authenticated.delete("/v1/companies/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"

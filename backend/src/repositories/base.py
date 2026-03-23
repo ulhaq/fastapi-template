@@ -136,7 +136,9 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         rs = await self.db.execute(stmt)
         items = rs.unique().scalars().all()
 
-        total = await self.get_total(*filter_expressions, include_deleted=True)
+        total = await self.get_total(
+            *filter_expressions, include_deleted=include_deleted
+        )
 
         return items, total
 

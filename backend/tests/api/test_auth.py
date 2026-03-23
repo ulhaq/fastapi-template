@@ -6,7 +6,7 @@ from pytest_mock import MockerFixture
 
 def test_register_an_account(client: TestClient) -> None:
     response = client.post(
-        "/auth/register",
+        "/v1/auth/register",
         json={
             "name": "new user",
             "email": "new_user@testing.com",
@@ -24,7 +24,7 @@ def test_register_an_account(client: TestClient) -> None:
 
 def test_get_access_token(client: TestClient) -> None:
     response = client.post(
-        "auth/token",
+        "v1/auth/token",
         data={"username": "admin@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
@@ -38,7 +38,7 @@ def test_get_access_token(client: TestClient) -> None:
 def test_refresh_access_token(client: TestClient) -> None:
     with patch("src.core.config.settings.auth_access_token_expiry", 2):
         response = client.post(
-            "auth/token",
+            "v1/auth/token",
             data={"username": "admin@example.org", "password": "password"},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
@@ -48,47 +48,47 @@ def test_refresh_access_token(client: TestClient) -> None:
         old_refresh_token = rs["refresh_token"]
 
         response = client.get(
-            "users/me", headers={"Authorization": f"Bearer {old_access_token}"}
+            "/v1/users/me", headers={"Authorization": f"Bearer {old_access_token}"}
         )
         assert response.status_code == 200
 
         time.sleep(2)
 
         response = client.get(
-            "users/me", headers={"Authorization": f"Bearer {old_access_token}"}
+            "/v1/users/me", headers={"Authorization": f"Bearer {old_access_token}"}
         )
         assert response.status_code == 401
 
-        response = client.post("auth/refresh")
+        response = client.post("v1/auth/refresh")
         assert response.status_code == 200
         rs = response.json()
         assert rs["token_type"] == "bearer"
         assert rs["access_token"] and rs["access_token"] != old_access_token
-        assert rs["refresh_token"] and rs["refresh_token"] == old_refresh_token
+        assert rs["refresh_token"] and rs["refresh_token"] != old_refresh_token
 
         response = client.get(
-            "users/me", headers={"Authorization": f"Bearer {rs['access_token']}"}
+            "/v1/users/me", headers={"Authorization": f"Bearer {rs['access_token']}"}
         )
         assert response.status_code == 200
 
 
 def test_logout(client: TestClient) -> None:
     response = client.post(
-        "auth/token",
+        "v1/auth/token",
         data={"username": "admin@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
     assert "refresh_token=" in response.headers["set-cookie"]
 
-    response = client.post("auth/logout")
+    response = client.post("v1/auth/logout")
     assert response.status_code == 204
     assert "refresh_token=" in dict(response.headers).get("set-cookie", "")
 
 
 def test_request_password_reset(client: TestClient) -> None:
     response = client.post(
-        "auth/reset-password/request", json={"email": "admin@example.org"}
+        "v1/auth/reset-password/request", json={"email": "admin@example.org"}
     )
     assert response.status_code == 202
 
@@ -96,19 +96,19 @@ def test_request_password_reset(client: TestClient) -> None:
 def test_reset_password(mocker: MockerFixture, client: TestClient) -> None:
     mock_send = mocker.patch("src.services.auth.send_email")
 
-    client.post("auth/reset-password/request", json={"email": "admin@example.org"})
+    client.post("v1/auth/reset-password/request", json={"email": "admin@example.org"})
 
     mock_send.assert_called_once()
 
     token = mock_send.call_args.kwargs["data"]["reset_url"].split("token=")[1]
 
     response = client.post(
-        "auth/reset-password", json={"token": token, "password": "new password"}
+        "v1/auth/reset-password", json={"token": token, "password": "new password"}
     )
     assert response.status_code == 204
 
     response = client.post(
-        "auth/reset-password", json={"token": token, "password": "new password"}
+        "v1/auth/reset-password", json={"token": token, "password": "new password"}
     )
     assert response.status_code == 401
     rs = response.json()
@@ -116,7 +116,7 @@ def test_reset_password(mocker: MockerFixture, client: TestClient) -> None:
     assert rs["msg"] == "Token invalid"
 
     response = client.post(
-        "auth/token",
+        "v1/auth/token",
         data={"username": "admin@example.org", "password": "new password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
@@ -125,26 +125,26 @@ def test_reset_password(mocker: MockerFixture, client: TestClient) -> None:
 
 def test_request_password_reset_with_non_existent_email(client: TestClient) -> None:
     response = client.post(
-        "auth/reset-password/request", json={"email": "non-existent@example.org"}
+        "v1/auth/reset-password/request", json={"email": "non-existent@example.org"}
     )
     assert response.status_code == 202
 
 
 def test_cannot_refresh_access_token_with_invalid_token(client: TestClient) -> None:
     response = client.post(
-        "auth/refresh",
+        "v1/auth/refresh",
         cookies={"refresh_token": "invalidtoken"},
     )
     assert response.status_code == 401
     rs = response.json()
-    assert rs["error_code"] == "token_invalid"
-    assert rs["msg"] == "Token invalid"
+    assert rs["error_code"] == "unauthorized"
+    assert rs["msg"] == "Not authenticated"
 
 
 def test_cannot_refresh_access_token_with_expired_token(client: TestClient) -> None:
     with patch("src.core.config.settings.auth_refresh_token_expiry", -1):
         response = client.post(
-            "auth/token",
+            "v1/auth/token",
             data={"username": "admin@example.org", "password": "password"},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
@@ -152,7 +152,7 @@ def test_cannot_refresh_access_token_with_expired_token(client: TestClient) -> N
         rs = response.json()
 
         response = client.post(
-            "auth/refresh", cookies={"refresh_token": rs["refresh_token"]}
+            "v1/auth/refresh", cookies={"refresh_token": rs["refresh_token"]}
         )
         assert response.status_code == 401
         rs = response.json()
@@ -162,7 +162,7 @@ def test_cannot_refresh_access_token_with_expired_token(client: TestClient) -> N
 
 def test_cannot_reset_password_with_invalid_token(client: TestClient) -> None:
     response = client.post(
-        "auth/reset-password",
+        "v1/auth/reset-password",
         json={"token": "invalidtoken", "password": "new password"},
     )
     assert response.status_code == 401
@@ -177,12 +177,14 @@ def test_cannot_reset_password_with_expired_token(
     mock_send = mocker.patch("src.services.auth.send_email")
 
     with patch("src.core.config.settings.auth_password_reset_expiry", -1):
-        client.post("auth/reset-password/request", json={"email": "admin@example.org"})
+        client.post(
+            "v1/auth/reset-password/request", json={"email": "admin@example.org"}
+        )
 
         token = mock_send.call_args.kwargs["data"]["reset_url"].split("token=")[1]
 
         response = client.post(
-            "auth/reset-password", json={"token": token, "password": "new password"}
+            "v1/auth/reset-password", json={"token": token, "password": "new password"}
         )
         assert response.status_code == 401
         rs = response.json()
@@ -194,7 +196,7 @@ def test_cannot_register_an_account_with_already_existing_email(
     client: TestClient,
 ) -> None:
     response = client.post(
-        "/auth/register",
+        "/v1/auth/register",
         json={"name": "new user", "email": "admin@example.org", "password": "password"},
     )
     assert response.status_code == 409
@@ -205,7 +207,7 @@ def test_cannot_register_an_account_with_already_existing_email(
 
 def test_cannot_get_access_token_with_wrong_credentials(client: TestClient) -> None:
     response = client.post(
-        "auth/token",
+        "v1/auth/token",
         data={"username": "no-user@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
@@ -213,3 +215,79 @@ def test_cannot_get_access_token_with_wrong_credentials(client: TestClient) -> N
     rs = response.json()
     assert rs["error_code"] == "login_failed"
     assert rs["msg"] == "Not authenticated"
+
+
+def test_get_access_token_sets_httponly_refresh_token_cookie(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "v1/auth/token",
+        data={"username": "admin@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    cookie = response.headers.get("set-cookie", "")
+    assert "refresh_token=" in cookie
+    assert "HttpOnly" in cookie
+    assert "Path=/v1/auth" in cookie
+
+
+def test_cannot_refresh_without_cookie(client: TestClient) -> None:
+    response = client.post(
+        "v1/auth/refresh",
+        cookies={"refresh_token": ""},
+    )
+    assert response.status_code == 401
+
+
+def test_cannot_refresh_after_logout(client: TestClient) -> None:
+    response = client.post(
+        "v1/auth/token",
+        data={"username": "admin@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    old_refresh_token = response.json()["refresh_token"]
+
+    client.post("v1/auth/logout")
+
+    client.cookies.set("refresh_token", old_refresh_token)
+    response = client.post("v1/auth/refresh")
+    assert response.status_code == 401
+
+
+def test_cannot_reuse_refresh_token_after_rotation(client: TestClient) -> None:
+    response = client.post(
+        "v1/auth/token",
+        data={"username": "admin@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    old_refresh_token = response.json()["refresh_token"]
+
+    response = client.post("v1/auth/refresh")
+    assert response.status_code == 200
+
+    client.cookies.set("refresh_token", old_refresh_token)
+    response = client.post("v1/auth/refresh")
+    assert response.status_code == 401
+
+
+def test_second_login_invalidates_previous_refresh_token(client: TestClient) -> None:
+    response = client.post(
+        "v1/auth/token",
+        data={"username": "admin@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    first_refresh_token = response.json()["refresh_token"]
+
+    client.post(
+        "v1/auth/token",
+        data={"username": "admin@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+
+    client.cookies.set("refresh_token", first_refresh_token)
+    response = client.post("v1/auth/refresh")
+    assert response.status_code == 401

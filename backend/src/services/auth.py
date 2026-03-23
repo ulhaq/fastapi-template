@@ -1,9 +1,9 @@
 import logging
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Depends, Response
-from fastapi.security import OAuth2PasswordRequestForm
-from jwt import ExpiredSignatureError, InvalidTokenError, decode
+from fastapi import Depends
 
 from src.core.config import settings
 from src.core.exceptions import (
@@ -12,10 +12,11 @@ from src.core.exceptions import (
     NotFoundException,
 )
 from src.core.security import (
+    BEARER_HEADERS,
     Token,
     authenticate_user,
-    create_access_token,
-    create_refresh_token,
+    create_token,
+    decode_token,
     hash_secret,
     sign,
     unsign,
@@ -36,139 +37,156 @@ class AuthService(BaseService):
         super().__init__(repos)
 
     async def register_company(
-        self, company_in: CompanyIn, bg_tasks: BackgroundTasks
+        self, company_in: CompanyIn, schedule_task: Callable
     ) -> CompanyOut:
-        async with self.repos.db.begin():
-            if await self.repos.user.get_by_email(company_in.email):
-                raise AlreadyExistsException(
-                    f"Account already exists. [email={company_in.email}]",
-                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
-                )
-
-            company = await self.repos.company.create(
-                commit=False, **company_in.model_dump(include={"name"})
+        if await self.repos.user.get_by_email(company_in.email):
+            raise AlreadyExistsException(
+                f"Account already exists. [email={company_in.email}]",
+                error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
             )
 
-            company_in.password = hash_secret(company_in.password)
-
-            user = await self.repos.user.create(
-                commit=False, **company_in.model_dump(), company=company
-            )
-
-            bg_tasks.add_task(
-                send_email,
-                address=user.email,
-                user_name=user.name,
-                subject=f"Welcome to {settings.app_name}",
-                email_template="welcome",
-                data={
-                    "login_url": f"{settings.frontend_url}/login",
-                },
-            )
-
-            return CompanyOut.model_validate(company)
-
-    async def get_access_token(
-        self, auth_data: OAuth2PasswordRequestForm, response: Response
-    ) -> Token:
-        user = authenticate_user(
-            auth_data, await self.repos.user.get_by_email(auth_data.username)
+        company = await self.repos.company.create(
+            commit=False, **company_in.model_dump(include={"name"})
         )
+
+        hashed_pw = hash_secret(company_in.password)
+
+        user = await self.repos.user.create(
+            commit=False,
+            name=company_in.name,
+            email=company_in.email,
+            password=hashed_pw,
+            company=company,
+        )
+
+        company_out = CompanyOut.model_validate(company)
+        user_email, user_name = user.email, user.name
+
+        await self.repos.commit()
+
+        schedule_task(
+            send_email,
+            address=user_email,
+            user_name=user_name,
+            subject=f"Welcome to {settings.app_name}",
+            email_template="welcome",
+            data={
+                "login_url": f"{settings.frontend_url}/login",
+            },
+        )
+
+        return company_out
+
+    async def get_access_token(self, username: str, password: str) -> Token:
+        user = authenticate_user(password, await self.repos.user.get_by_email(username))
 
         if not user:
             raise NotAuthenticatedException(
                 error_code=ErrorCode.LOGIN_FAILED,
-                headers={"WWW-Authenticate": "Bearer"},
+                headers=BEARER_HEADERS,
             )
 
-        access_token = create_access_token(user)
-        refresh_token = create_refresh_token(user)
+        access_token = create_token(user, settings.auth_access_token_expiry)
+        refresh_token = create_token(
+            user, settings.auth_refresh_token_expiry, include_user_claims=False
+        )
 
-        self._set_refresh_token_cookie(refresh_token=refresh_token, response=response)
+        expires_at = datetime.now(UTC) + timedelta(
+            seconds=settings.auth_refresh_token_expiry
+        )
+        await self.repos.refresh_token.delete_by_user(user)
+        await self.repos.refresh_token.create(
+            user, hash_secret(refresh_token), expires_at
+        )
+        await self.repos.commit()
 
         return Token(
             access_token=access_token,
             refresh_token=refresh_token,
         )
 
-    async def refresh_access_token(
-        self, refresh_token: str | None, response: Response
-    ) -> Token | None:
+    async def refresh_access_token(self, refresh_token: str | None) -> Token:
         if not refresh_token:
-            return None
+            raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
-        try:
-            payload = decode(
-                refresh_token,
-                settings.app_secret,
-                algorithms=[settings.auth_algorithm],
-                audience=settings.app_name,
-            )
-            user_id = int(payload.get("sub"))
-        except ExpiredSignatureError as exc:
-            raise NotAuthenticatedException(
-                "Token expired",
-                error_code=ErrorCode.TOKEN_EXPIRED,
-                headers={"WWW-Authenticate": "Bearer"},
-            ) from exc
-        except InvalidTokenError as exc:
-            raise NotAuthenticatedException(
-                "Token invalid",
-                error_code=ErrorCode.TOKEN_INVALID,
-                headers={"WWW-Authenticate": "Bearer"},
-            ) from exc
-
-        credentials_exception = NotAuthenticatedException(
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+        payload = decode_token(refresh_token)
+        user_id = int(payload.get("sub", 0))
 
         if not user_id:
-            raise credentials_exception
+            raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
         user = await self.repos.user.get(user_id)
         if not user:
-            raise credentials_exception
+            raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
-        self._set_refresh_token_cookie(refresh_token=refresh_token, response=response)
+        stored_token = await self.repos.refresh_token.get_by_user(user)
+        if not stored_token or not verify_secret(refresh_token, stored_token.token):
+            raise NotAuthenticatedException(headers=BEARER_HEADERS)
+
+        await self.repos.refresh_token.delete_by_user(user)
+
+        new_access_token = create_token(user, settings.auth_access_token_expiry)
+        new_refresh_token = create_token(
+            user, settings.auth_refresh_token_expiry, include_user_claims=False
+        )
+        expires_at = datetime.now(UTC) + timedelta(
+            seconds=settings.auth_refresh_token_expiry
+        )
+        await self.repos.refresh_token.create(
+            user, hash_secret(new_refresh_token), expires_at
+        )
+        await self.repos.commit()
 
         return Token(
-            access_token=create_access_token(user),
-            refresh_token=refresh_token,
+            access_token=new_access_token,
+            refresh_token=new_refresh_token,
         )
 
-    async def logout(self, response: Response) -> None:
-        self._delete_refresh_token_cookie(response=response)
+    async def logout(self, refresh_token: str | None) -> None:
+        if refresh_token:
+            try:
+                payload = decode_token(refresh_token)
+                user_id = int(payload.get("sub", 0))
+                if user_id and (user := await self.repos.user.get(user_id)):
+                    await self.repos.refresh_token.delete_by_user(user)
+                    await self.repos.commit()
+            except Exception:  # pylint: disable=broad-except
+                pass
 
     async def request_password_reset(
-        self, email_in: EmailIn, bg_tasks: BackgroundTasks
+        self, email_in: EmailIn, schedule_task: Callable
     ) -> None:
-        async with self.repos.db.begin():
-            user = await self.repos.user.get_by_email(email_in.email)
-            if not user:
-                log.info("Password reset request failed. [email=%s]", email_in.email)
-                return None
-
-            token = sign(data=email_in.email, salt="reset-password")
-
-            await self.repos.user.create_password_reset_token(
-                commit=False, user=user, token=hash_secret(token)
-            )
-
-            bg_tasks.add_task(
-                send_email,
-                address=user.email,
-                user_name=user.name,
-                subject="Password Reset",
-                email_template="reset-password",
-                data={
-                    "reset_url": f"{settings.frontend_url}/"
-                    + settings.frontend_password_reset_path
-                    + token,
-                    "expiration_minutes": settings.auth_password_reset_expiry,
-                },
-            )
-
+        user = await self.repos.user.get_by_email(email_in.email)
+        if not user:
+            log.info("Password reset request failed. [email=%s]", email_in.email)
             return None
+
+        token = sign(data=email_in.email, salt="reset-password")
+
+        await self.repos.user.delete_password_reset_token(commit=False, user=user)
+        await self.repos.user.create_password_reset_token(
+            commit=False, user=user, token=hash_secret(token)
+        )
+
+        user_email, user_name = user.email, user.name
+
+        await self.repos.commit()
+
+        schedule_task(
+            send_email,
+            address=user_email,
+            user_name=user_name,
+            subject="Password Reset",
+            email_template="reset-password",
+            data={
+                "reset_url": f"{settings.frontend_url}/"
+                + settings.frontend_password_reset_path
+                + token,
+                "expiration_minutes": settings.auth_password_reset_expiry // 60,
+            },
+        )
+
+        return None
 
     async def reset_password(self, reset_password_in: ResetPasswordIn) -> None:
         email = unsign(
@@ -186,34 +204,10 @@ class AuthService(BaseService):
 
             await self.repos.user.delete_password_reset_token(commit=False, user=user)
 
-            reset_password_in.password = hash_secret(reset_password_in.password)
+            hashed_pw = hash_secret(reset_password_in.password)
 
-            await self.repos.user.update(user, password=reset_password_in.password)
+            await self.repos.user.update(user, password=hashed_pw)
 
             return None
 
         raise NotFoundException(f"User not found. [{email=}]")
-
-    def _set_refresh_token_cookie(
-        self,
-        refresh_token: str,
-        response: Response,
-    ) -> None:
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            expires=settings.auth_refresh_token_expiry,
-            # secure=True,  # Only over HTTPS
-            # samesite="strict",  # or "lax" depending on use case
-            path="/auth/refresh",
-        )
-
-    def _delete_refresh_token_cookie(self, response: Response) -> None:
-        response.delete_cookie(
-            key="refresh_token",
-            httponly=True,
-            # secure=True,  # Only over HTTPS
-            # samesite="strict",  # or "lax" depending on use case
-            path="/auth/refresh",
-        )

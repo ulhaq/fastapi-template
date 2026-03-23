@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 
 def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/users/me")
+    response = admin_authenticated.get("/v1/users/me")
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
@@ -157,7 +157,7 @@ def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
 
 def test_create_a_user(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/users",
+        "/v1/users",
         json={
             "name": "John Doe",
             "email": "new@testing.com",
@@ -177,11 +177,33 @@ def test_create_a_user(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
 
+def test_patch_authenticated_user_profile(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/users/me", json={"name": "Admin Patched"})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "Admin Patched"
+    assert rs["email"] == "admin@example.org"
+    assert rs["created_at"]
+    assert rs["updated_at"]
+
+
+def test_patch_authenticated_user_profile_with_partial_body(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.patch("/v1/users/me", json={})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 1
+    assert rs["name"] == "Admin"
+    assert rs["email"] == "admin@example.org"
+
+
 def test_update_authenticated_user_profile(
     admin_authenticated: TestClient, client: TestClient
 ) -> None:
     response = admin_authenticated.put(
-        "/users/me",
+        "/v1/users/me",
         json={"name": "John Doe", "email": "new@testing.com"},
     )
     assert response.status_code == 200
@@ -191,7 +213,7 @@ def test_update_authenticated_user_profile(
     assert rs["email"] == "new@testing.com"
 
     response = client.post(
-        "/auth/token",
+        "/v1/auth/token",
         data={"username": "new@testing.com", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
@@ -199,7 +221,7 @@ def test_update_authenticated_user_profile(
     access_token = rs["access_token"]
 
     response = client.get(
-        "/users/me", headers={"Authorization": f"Bearer {access_token}"}
+        "/v1/users/me", headers={"Authorization": f"Bearer {access_token}"}
     )
     assert response.status_code == 200
     rs = response.json()
@@ -212,7 +234,7 @@ def test_change_authenticated_user_password(
     admin_authenticated: TestClient, client: TestClient
 ) -> None:
     response = admin_authenticated.put(
-        "/users/me/change-password",
+        "/v1/users/me/change-password",
         json={
             "password": "password",
             "new_password": "new password",
@@ -226,7 +248,7 @@ def test_change_authenticated_user_password(
     assert rs["email"] == "admin@example.org"
 
     response = client.post(
-        "/auth/token",
+        "/v1/auth/token",
         data={"username": "admin@example.org", "password": "new password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
@@ -234,7 +256,7 @@ def test_change_authenticated_user_password(
     access_token = rs["access_token"]
 
     response = client.get(
-        "/users/me", headers={"Authorization": f"Bearer {access_token}"}
+        "/v1/users/me", headers={"Authorization": f"Bearer {access_token}"}
     )
     assert response.status_code == 200
     rs = response.json()
@@ -245,7 +267,7 @@ def test_change_authenticated_user_password(
 
 def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/users/2/roles",
+        "/v1/users/2/roles",
         json={
             "role_ids": [1, 2],
         },
@@ -421,7 +443,7 @@ def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
     response = admin_authenticated.post(
-        "/users/2/roles",
+        "/v1/users/2/roles",
         json={
             "role_ids": [2],
         },
@@ -457,13 +479,13 @@ def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
 
 
 def test_delete_a_user(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.delete("/users/2")
+    response = admin_authenticated.delete("/v1/users/2")
     assert response.status_code == 204
 
 
 def test_cannot_manage_own_roles(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/users/1/roles",
+        "/v1/users/1/roles",
         json={
             "role_ids": [1, 2],
         },
@@ -476,13 +498,13 @@ def test_cannot_manage_own_roles(admin_authenticated: TestClient) -> None:
 
 def test_cannot_create_a_user_while_unauthorized(client: TestClient) -> None:
     rs = client.post(
-        "auth/token",
+        "/v1/auth/token",
         data={"username": "no_roles@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     ).json()
 
     response = client.post(
-        "/users",
+        "/v1/users",
         json={
             "name": "John Doe",
             "email": "new@testing.com",
@@ -499,7 +521,7 @@ def test_cannot_create_a_user_while_unauthorized(client: TestClient) -> None:
 def test_cannot_delete_a_user_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.delete("/users/1")
+    response = standard_authenticated.delete("/v1/users/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
