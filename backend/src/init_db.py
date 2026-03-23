@@ -114,11 +114,25 @@ INIT_AUTH_DATA: dict = {
             "name": "admin",
             "description": "Full access to all system features and settings.",
             "permissions": list(Permission),
+            "company": 1,
         },
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
             "permissions": [Permission.READ_USER, Permission.CREATE_USER],
+            "company": 1,
+        },
+        {
+            "name": "admin",
+            "description": "Full access to all system features and settings.",
+            "permissions": list(Permission),
+            "company": 2,
+        },
+        {
+            "name": "standard",
+            "description": "Access to manage and view own resources.",
+            "permissions": [Permission.READ_USER, Permission.CREATE_USER],
+            "company": 2,
         },
     ],
     "users": [
@@ -133,7 +147,7 @@ INIT_AUTH_DATA: dict = {
             "name": "Standard",
             "email": "standard@example.org",
             "password": "password",
-            "company": 2,
+            "company": 1,
             "roles": [2],
         },
         {
@@ -171,6 +185,7 @@ async def up() -> None:
                 Role(
                     name=role["name"],
                     description=role["description"],
+                    company=companies[role["company"] - 1],
                     permissions=[
                         permission
                         for permission in permissions

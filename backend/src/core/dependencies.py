@@ -19,7 +19,7 @@ async def authenticate(
 ) -> Auth:
     if not settings.auth_enabled:
         return Auth(
-            id=0, name="", email="", permissions=[p.value for p in Permission], roles=[]
+            id=0, name="", email="", company_id=0, permissions=[p.value for p in Permission], roles=[]
         )
 
     if not token:

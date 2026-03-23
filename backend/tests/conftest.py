@@ -60,6 +60,7 @@ async def prepare_database() -> AsyncGenerator[None]:
                 Role(
                     name=role["name"],
                     description=role["description"],
+                    company=companies[role["company"] - 1],
                     permissions=[
                         permission
                         for permission in permissions

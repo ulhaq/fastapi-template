@@ -15,25 +15,20 @@ def test_get_all_companies(admin_authenticated: TestClient) -> None:
     rs = response.json()
     assert rs["page_number"] == 1
     assert rs["page_size"] == 10
-    assert rs["total"] == 2
+    assert rs["total"] == 1
 
-    assert len(rs["items"]) == 2
+    assert len(rs["items"]) == 1
     assert rs["items"][0]["id"] == 1
     assert rs["items"][0]["name"] == "Company 1"
     assert rs["items"][0]["created_at"]
     assert rs["items"][0]["updated_at"]
 
-    assert rs["items"][1]["id"] == 2
-    assert rs["items"][1]["name"] == "Company 2"
-    assert rs["items"][1]["created_at"]
-    assert rs["items"][1]["updated_at"]
-
 
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 2, 2),
-        pytest.param(2, 10, 0, 2),
+        pytest.param(1, 10, 1, 1),
+        pytest.param(2, 10, 0, 1),
     ],
 )
 def test_paginate_companies(
@@ -78,16 +73,14 @@ def test_sort_companies(sort: str, admin_authenticated: TestClient) -> None:
     [
         pytest.param(["id"], [[1]], ["eq"], 1),
         pytest.param(["id"], [[0, 1]], ["between"], 1),
-        pytest.param(["id"], [[1, 2]], ["between"], 2),
-        pytest.param(["id"], [[2, 3]], ["between"], 1),
-        pytest.param(["id", "name"], [[1], ["a"]], ["eq", "co"], 2),
+        pytest.param(["id"], [[1, 2]], ["between"], 1),
         pytest.param(["name"], [["Company 1"]], ["eq"], 1),
-        pytest.param(["name"], [["a", "d"]], ["co"], 2),
+        pytest.param(["name"], [["a", "d"]], ["co"], 1),
         pytest.param(
             ["created_at"],
             [["2025-04-22T14:04:38.586226", "2050-09-22T14:04:38.586226"]],
             ["between"],
-            2,
+            1,
         ),
     ],
 )
@@ -182,6 +175,24 @@ def test_delete_a_company(admin_authenticated: TestClient) -> None:
 
     response = admin_authenticated.get("/v1/companies/1")
     assert response.status_code == 404
+
+
+def test_cannot_access_other_company(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/companies/2")
+    assert response.status_code == 403
+
+    response = admin_authenticated.put(
+        "/v1/companies/2", json={"name": "Hacked"}
+    )
+    assert response.status_code == 403
+
+    response = admin_authenticated.patch(
+        "/v1/companies/2", json={"name": "Hacked"}
+    )
+    assert response.status_code == 403
+
+    response = admin_authenticated.delete("/v1/companies/2")
+    assert response.status_code == 403
 
 
 def test_cannot_create_a_company_with_already_existing_name(

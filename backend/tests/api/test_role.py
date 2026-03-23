@@ -264,9 +264,10 @@ def test_create_a_role(admin_authenticated: TestClient) -> None:
     )
     assert response.status_code == 201
     rs = response.json()
-    assert rs["id"] == 3
+    assert rs["id"] == 5
     assert rs["name"] == "test role"
     assert rs["description"] == "description of test role"
+    assert rs["company_id"] == 1
 
     assert rs["permissions"] == []
 

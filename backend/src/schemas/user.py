@@ -31,7 +31,6 @@ class UserOut(UserBase, Timestamp):
 
 class UserIn(UserBase):
     password: Annotated[str, Field(min_length=6)]
-    company_id: Annotated[int, Field()]
 
 
 class UserPatch(BaseModel):

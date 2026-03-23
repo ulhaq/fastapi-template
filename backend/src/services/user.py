@@ -8,7 +8,6 @@ from src.core.config import settings
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
-    NotFoundException,
     PermissionDeniedException,
 )
 from src.core.security import Auth, authenticate_user, hash_secret, sign
@@ -98,12 +97,6 @@ class UserService(
                     error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
                 )
 
-            if not await self.repos.company.get(schema_in.company_id):
-                raise NotFoundException(
-                    f"Company not found. [id={schema_in.company_id}]",
-                    error_code=ErrorCode.RESOURCE_NOT_FOUND,
-                )
-
         hashed_pw = hash_secret(schema_in.password)
         await validate()
 
@@ -111,7 +104,7 @@ class UserService(
             name=schema_in.name,
             email=schema_in.email,
             password=hashed_pw,
-            company_id=schema_in.company_id,
+            company_id=self.current_user.company_id,
         )
 
         user = copy.copy(user)
@@ -142,6 +135,11 @@ class UserService(
         return UserOut.model_validate(user)
 
     async def delete_user(self, identifier: int) -> None:
+        user = await self.get(identifier)
+        if user.company_id != self.current_user.company_id:
+            raise PermissionDeniedException(
+                "You are not allowed to delete users from other companies"
+            )
         await super().delete(identifier)
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
@@ -151,6 +149,18 @@ class UserService(
             )
 
         user = await self.get(identifier)
+        if user.company_id != self.current_user.company_id:
+            raise PermissionDeniedException(
+                "You are not allowed to manage roles of users from other companies"
+            )
+
+        if schema_in.role_ids:
+            roles = await self.repos.role.filter_by_ids(schema_in.role_ids)
+            for role in roles:
+                if role.company_id != self.current_user.company_id:
+                    raise PermissionDeniedException(
+                        f"Role does not belong to your company. [role_id={role.id}]"
+                    )
 
         current_roles = {role.id for role in user.roles}
         schema_in_role_ids = set(schema_in.role_ids)

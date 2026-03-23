@@ -2,7 +2,9 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from src.core.exceptions import AlreadyExistsException
+from src.core.dependencies import authenticate
+from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
+from src.core.security import Auth
 from src.models.company import Company
 from src.repositories.company import CompanyRepository
 from src.repositories.repository_manager import RepositoryManager
@@ -14,12 +16,23 @@ from src.services.base import ResourceService
 class CompanyService(
     ResourceService[CompanyRepository, Company, CompanyBase | CompanyPatch, CompanyOut]
 ):
+    current_user: Auth
+
     def __init__(
         self,
         repos: Annotated[RepositoryManager, Depends()],
+        current_user: Annotated[Auth, Depends(authenticate)],
     ) -> None:
         self.repo = repos.company
+        self.current_user = current_user
         super().__init__(repos)
+
+    async def get(self, identifier: int, include_deleted: bool = False) -> Company:
+        if identifier != self.current_user.company_id:
+            raise PermissionDeniedException(
+                "You are not allowed to access other companies"
+            )
+        return await super().get(identifier, include_deleted=include_deleted)
 
     async def paginate(
         self,
@@ -27,10 +40,19 @@ class CompanyService(
         page_query_params: PageQueryParams,
         include_deleted: bool = False,
     ) -> PaginatedResponse[CompanyOut]:
-        return await super().paginate(
-            schema_out=schema_out,
-            page_query_params=page_query_params,
-            include_deleted=include_deleted,
+        company = await self.get(
+            self.current_user.company_id, include_deleted=include_deleted
+        )
+        items = (
+            [schema_out.model_validate(company)]
+            if page_query_params.page_number == 1
+            else []
+        )
+        return PaginatedResponse(
+            items=items,
+            page_number=page_query_params.page_number,
+            page_size=page_query_params.page_size,
+            total=1,
         )
 
     async def create_company(self, schema_in: CompanyBase) -> CompanyOut:
@@ -73,7 +95,7 @@ class CompanyService(
         )
 
     async def get_company(self, identifier: int) -> CompanyOut:
-        return CompanyOut.model_validate(await super().get(identifier))
+        return CompanyOut.model_validate(await self.get(identifier))
 
     async def delete_company(self, identifier: int, force_delete: bool = False) -> None:
         await super().delete(identifier, force_delete=force_delete)

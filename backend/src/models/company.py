@@ -7,6 +7,7 @@ from src.core.database import Base
 from src.models.mixins import DeleteTimestampMixin, TimestampMixin
 
 if TYPE_CHECKING:
+    from src.models.role import Role
     from src.models.user import User
 
 
@@ -20,3 +21,4 @@ class Company(Base, DeleteTimestampMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
 
     users: Mapped[list["User"]] = relationship(back_populates="company", lazy="joined")
+    roles: Mapped[list["Role"]] = relationship(back_populates="company")

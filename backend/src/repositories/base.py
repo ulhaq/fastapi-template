@@ -307,3 +307,142 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         if include_deleted is False:
             return stmt.filter(getattr(self.model, "deleted_at").is_(None))
         return stmt
+
+
+class CompanyScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):  # pylint: disable=invalid-name
+    _company_id: int | None = None
+
+    def set_company_scope(self, company_id: int) -> None:
+        self._company_id = company_id
+
+    def _apply_company_scope(self, stmt: Select) -> Select:
+        if self._company_id is not None:
+            return stmt.filter(
+                getattr(self.model, "company_id") == self._company_id
+            )
+        return stmt
+
+    async def get_one(
+        self, identifier: int, include_deleted: bool = False
+    ) -> ModelType:
+        stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
+        stmt = self._apply_company_scope(stmt)
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one()
+
+    async def get(
+        self, identifier: int, include_deleted: bool = False
+    ) -> ModelType | None:
+        stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
+        stmt = self._apply_company_scope(stmt)
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
+    async def get_one_by_name(
+        self, name: str, include_deleted: bool = False
+    ) -> ModelType | None:
+        stmt = select(self.model).filter(getattr(self.model, "name") == name)
+        stmt = self._apply_company_scope(stmt)
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
+    async def get_all(self, include_deleted: bool = False) -> Sequence[ModelType]:
+        stmt = select(self.model)
+        stmt = self._apply_company_scope(stmt)
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def filter_by(
+        self, include_deleted: bool = False, **kwargs: Any
+    ) -> Sequence[ModelType]:
+        stmt = select(self.model).filter_by(**kwargs)
+        stmt = self._apply_company_scope(stmt)
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def filter_by_ids(
+        self, identifiers: list[int], include_deleted: bool = False
+    ) -> Sequence[ModelType]:
+        stmt = select(self.model).filter(getattr(self.model, "id").in_(identifiers))
+        stmt = self._apply_company_scope(stmt)
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
+        stmt = select(
+            exists().where(getattr(self.model, "id") == identifier)
+        )
+        stmt = self._apply_company_scope(stmt)
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        return rs.scalar_one()
+
+    async def create(self, *, commit: bool = True, **kwargs: Any) -> ModelType:
+        if self._company_id is not None:
+            kwargs.setdefault("company_id", self._company_id)
+        return await super().create(commit=commit, **kwargs)
+
+    async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        self,
+        sort: list[str],
+        filters: dict[str, dict],
+        page_size: int,
+        page_number: int,
+        include_deleted: bool = False,
+    ) -> tuple[Sequence[ModelType], int]:
+        order_expressions = self._get_order_expressions(sort)
+        filter_expressions = self._get_filter_expressions(filters)
+
+        stmt = select(self.model)
+        stmt = self._apply_company_scope(stmt)
+
+        if filter_expressions:
+            stmt = stmt.filter(or_(*filter_expressions))
+
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        stmt = (
+            stmt.order_by(*order_expressions)
+            .offset((page_number - 1) * page_size)
+            .limit(page_size)
+        )
+
+        rs = await self.db.execute(stmt)
+        items = rs.unique().scalars().all()
+
+        total = await self.get_total(
+            *filter_expressions, include_deleted=include_deleted
+        )
+
+        return items, total
+
+    async def get_total(
+        self, *filter_expressions: BinaryExpression, include_deleted: bool = False
+    ) -> int:
+        stmt = select(
+            func.count()  # pylint: disable=not-callable
+        ).select_from(self.model)
+
+        stmt = self._apply_company_scope(stmt)
+
+        if filter_expressions:
+            stmt = stmt.filter(or_(*filter_expressions))
+
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        total = rs.scalar_one()
+        return int(total)

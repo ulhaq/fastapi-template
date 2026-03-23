@@ -2,7 +2,9 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from src.core.dependencies import authenticate
 from src.core.exceptions import AlreadyExistsException
+from src.core.security import Auth
 from src.models.role import Role
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.role import RoleRepository
@@ -12,11 +14,16 @@ from src.services.base import ResourceService
 
 
 class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, RoleOut]):
+    current_user: Auth
+
     def __init__(
         self,
         repos: Annotated[RepositoryManager, Depends()],
+        current_user: Annotated[Auth, Depends(authenticate)],
     ) -> None:
         self.repo = repos.role
+        self.repo.set_company_scope(current_user.company_id)
+        self.current_user = current_user
         super().__init__(repos)
 
     async def paginate(

@@ -22,6 +22,7 @@ class Auth(BaseModel):
     id: int
     name: str
     email: str
+    company_id: int
     roles: list[str]
     permissions: list[str]
 
@@ -31,6 +32,7 @@ class Auth(BaseModel):
             id=user_model.id,
             name=user_model.name,
             email=user_model.email,
+            company_id=user_model.company_id,
             permissions=list(
                 dict.fromkeys(
                     permission.name

@@ -162,7 +162,6 @@ def test_create_a_user(admin_authenticated: TestClient) -> None:
             "name": "John Doe",
             "email": "new@testing.com",
             "password": "password",
-            "company_id": 1,
         },
     )
     assert response.status_code == 201
@@ -509,7 +508,6 @@ def test_cannot_create_a_user_while_unauthorized(client: TestClient) -> None:
             "name": "John Doe",
             "email": "new@testing.com",
             "password": "password",
-            "company_id": 1,
         },
         headers={"Authorization": f"Bearer {rs['access_token']}"},
     )

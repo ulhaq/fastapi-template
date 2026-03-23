@@ -15,6 +15,7 @@ class RoleBase(BaseModel):
 
 class RoleOut(RoleBase, Timestamp):
     id: int
+    company_id: int
     permissions: Annotated[list[NameDescriptionOut], AfterValidator(sort_by_id)] = (
         Field(default_factory=list)
     )

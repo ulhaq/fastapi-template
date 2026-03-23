@@ -71,15 +71,12 @@ class ResourceService[
         schema_in: SchemaInType,
         validation_callback: Callable[[], Awaitable] | None = None,
     ) -> BaseType:
-        if model := await self.repo.get(identifier):
-            if validation_callback:
-                await validation_callback()
+        model = await self.get(identifier)
 
-            return await self.repo.update(model, **schema_in.model_dump())
+        if validation_callback:
+            await validation_callback()
 
-        raise NotFoundException(
-            f"{self.repo.model.__name__} not found. [{identifier=}]"
-        )
+        return await self.repo.update(model, **schema_in.model_dump())
 
     async def patch(
         self,
@@ -87,16 +84,13 @@ class ResourceService[
         schema_in: SchemaInType,
         validation_callback: Callable[[], Awaitable] | None = None,
     ) -> BaseType:
-        if model := await self.repo.get(identifier):
-            if validation_callback:
-                await validation_callback()
+        model = await self.get(identifier)
 
-            return await self.repo.update(
-                model, **schema_in.model_dump(exclude_unset=True)
-            )
+        if validation_callback:
+            await validation_callback()
 
-        raise NotFoundException(
-            f"{self.repo.model.__name__} not found. [{identifier=}]"
+        return await self.repo.update(
+            model, **schema_in.model_dump(exclude_unset=True)
         )
 
     async def delete(
@@ -105,17 +99,12 @@ class ResourceService[
         validation_callback: Callable[[], Awaitable] | None = None,
         force_delete: bool = False,
     ) -> None:
-        if model := await self.repo.get(identifier):
-            if validation_callback:
-                await validation_callback()
+        model = await self.get(identifier)
 
-            if force_delete is False:
-                await self.repo.delete(model)
-            else:
-                await self.repo.force_delete(model)
+        if validation_callback:
+            await validation_callback()
 
-            return
-
-        raise NotFoundException(
-            f"{self.repo.model.__name__} not found. [{identifier=}]"
-        )
+        if force_delete is False:
+            await self.repo.delete(model)
+        else:
+            await self.repo.force_delete(model)
