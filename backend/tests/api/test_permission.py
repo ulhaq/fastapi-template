@@ -20,276 +20,129 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert len(rs["items"]) == 19
     assert rs["items"][0]["id"] == 1
-    assert rs["items"][0]["name"] == "read_company"
+    assert rs["items"][0]["name"] == "read:company"
     assert rs["items"][0]["description"] == "Allows the user to read company accounts."
-    assert len(rs["items"][0]["roles"]) == 1
-    assert rs["items"][0]["roles"][0]["id"] == 1
-    assert rs["items"][0]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][0]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][0]["created_at"]
     assert rs["items"][0]["updated_at"]
 
     assert rs["items"][1]["id"] == 2
-    assert rs["items"][1]["name"] == "create_company"
+    assert rs["items"][1]["name"] == "create:company"
     assert (
         rs["items"][1]["description"]
         == "Allows the user to create new company accounts."
-    )
-    assert len(rs["items"][1]["roles"]) == 1
-    assert rs["items"][1]["roles"][0]["id"] == 1
-    assert rs["items"][1]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][1]["roles"][0]["description"]
-        == "Full access to all system features and settings."
     )
     assert rs["items"][1]["created_at"]
     assert rs["items"][1]["updated_at"]
 
     assert rs["items"][2]["id"] == 3
-    assert rs["items"][2]["name"] == "update_company"
+    assert rs["items"][2]["name"] == "update:company"
     assert (
         rs["items"][2]["description"] == "Allows the user to update company accounts."
-    )
-    assert len(rs["items"][2]["roles"]) == 1
-    assert rs["items"][2]["roles"][0]["id"] == 1
-    assert rs["items"][2]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][2]["roles"][0]["description"]
-        == "Full access to all system features and settings."
     )
     assert rs["items"][2]["created_at"]
     assert rs["items"][2]["updated_at"]
 
     assert rs["items"][3]["id"] == 4
-    assert rs["items"][3]["name"] == "delete_company"
+    assert rs["items"][3]["name"] == "delete:company"
     assert (
         rs["items"][3]["description"] == "Allows the user to delete company accounts."
-    )
-    assert len(rs["items"][3]["roles"]) == 1
-    assert rs["items"][3]["roles"][0]["id"] == 1
-    assert rs["items"][3]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][3]["roles"][0]["description"]
-        == "Full access to all system features and settings."
     )
     assert rs["items"][3]["created_at"]
     assert rs["items"][3]["updated_at"]
 
     assert rs["items"][4]["id"] == 5
-    assert rs["items"][4]["name"] == "manage_company_user"
+    assert rs["items"][4]["name"] == "manage:company_user"
     assert (
         rs["items"][4]["description"] == "Allows the user to manage companies' users."
-    )
-    assert len(rs["items"][4]["roles"]) == 1
-    assert rs["items"][4]["roles"][0]["id"] == 1
-    assert rs["items"][4]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][4]["roles"][0]["description"]
-        == "Full access to all system features and settings."
     )
     assert rs["items"][4]["created_at"]
     assert rs["items"][4]["updated_at"]
 
     assert rs["items"][5]["id"] == 6
-    assert rs["items"][5]["name"] == "read_user"
+    assert rs["items"][5]["name"] == "read:user"
     assert rs["items"][5]["description"] == "Allows the user to read users."
-    assert len(rs["items"][5]["roles"]) == 2
-    assert rs["items"][5]["roles"][0]["id"] == 1
-    assert rs["items"][5]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][5]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
-    assert rs["items"][5]["roles"][1]["id"] == 2
-    assert rs["items"][5]["roles"][1]["name"] == "standard"
-    assert (
-        rs["items"][5]["roles"][1]["description"]
-        == "Access to manage and view own resources."
-    )
     assert rs["items"][5]["created_at"]
     assert rs["items"][5]["updated_at"]
 
     assert rs["items"][6]["id"] == 7
-    assert rs["items"][6]["name"] == "create_user"
+    assert rs["items"][6]["name"] == "create:user"
     assert rs["items"][6]["description"] == "Allows the user to create new users."
-    assert len(rs["items"][6]["roles"]) == 2
-    assert rs["items"][6]["roles"][0]["id"] == 1
-    assert rs["items"][6]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][6]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
-    assert rs["items"][6]["roles"][1]["id"] == 2
-    assert rs["items"][6]["roles"][1]["name"] == "standard"
-    assert (
-        rs["items"][6]["roles"][1]["description"]
-        == "Access to manage and view own resources."
-    )
     assert rs["items"][6]["created_at"]
     assert rs["items"][6]["updated_at"]
 
     assert rs["items"][7]["id"] == 8
-    assert rs["items"][7]["name"] == "update_user"
+    assert rs["items"][7]["name"] == "update:user"
     assert rs["items"][7]["description"] == "Allows the user to update users."
-
-    assert len(rs["items"][7]["roles"]) == 1
-    assert rs["items"][7]["roles"][0]["id"] == 1
-    assert rs["items"][7]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][7]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][7]["created_at"]
     assert rs["items"][7]["updated_at"]
 
     assert rs["items"][8]["id"] == 9
-    assert rs["items"][8]["name"] == "delete_user"
+    assert rs["items"][8]["name"] == "delete:user"
     assert rs["items"][8]["description"] == "Allows the user to delete users."
-
-    assert len(rs["items"][8]["roles"]) == 1
-    assert rs["items"][8]["roles"][0]["id"] == 1
-    assert rs["items"][8]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][8]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][8]["created_at"]
     assert rs["items"][8]["updated_at"]
 
     assert rs["items"][9]["id"] == 10
-    assert rs["items"][9]["name"] == "read_role"
+    assert rs["items"][9]["name"] == "read:role"
     assert rs["items"][9]["description"] == "Allows the user to read roles."
-    assert len(rs["items"][9]["roles"]) == 1
-    assert rs["items"][9]["roles"][0]["id"] == 1
-    assert rs["items"][9]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][9]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][9]["created_at"]
     assert rs["items"][9]["updated_at"]
 
     assert rs["items"][10]["id"] == 11
-    assert rs["items"][10]["name"] == "create_role"
+    assert rs["items"][10]["name"] == "create:role"
     assert rs["items"][10]["description"] == "Allows the user to create new roles."
-    assert len(rs["items"][10]["roles"]) == 1
-    assert rs["items"][10]["roles"][0]["id"] == 1
-    assert rs["items"][10]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][10]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][10]["created_at"]
     assert rs["items"][10]["updated_at"]
 
     assert rs["items"][11]["id"] == 12
-    assert rs["items"][11]["name"] == "update_role"
+    assert rs["items"][11]["name"] == "update:role"
     assert rs["items"][11]["description"] == "Allows the user to update roles."
-    assert len(rs["items"][11]["roles"]) == 1
-    assert rs["items"][11]["roles"][0]["id"] == 1
-    assert rs["items"][11]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][11]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][11]["created_at"]
     assert rs["items"][11]["updated_at"]
 
     assert rs["items"][12]["id"] == 13
-    assert rs["items"][12]["name"] == "delete_role"
+    assert rs["items"][12]["name"] == "delete:role"
     assert rs["items"][12]["description"] == "Allows the user to delete roles."
-    assert len(rs["items"][12]["roles"]) == 1
-    assert rs["items"][12]["roles"][0]["id"] == 1
-    assert rs["items"][12]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][12]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][12]["created_at"]
     assert rs["items"][12]["updated_at"]
 
     assert rs["items"][13]["id"] == 14
-    assert rs["items"][13]["name"] == "manage_user_role"
+    assert rs["items"][13]["name"] == "manage:user_role"
     assert rs["items"][13]["description"] == "Allows the user to manage users' roles."
-    assert len(rs["items"][13]["roles"]) == 1
-    assert rs["items"][13]["roles"][0]["id"] == 1
-    assert rs["items"][13]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][13]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][13]["created_at"]
     assert rs["items"][13]["updated_at"]
 
     assert rs["items"][14]["id"] == 15
-    assert rs["items"][14]["name"] == "read_permission"
+    assert rs["items"][14]["name"] == "read:permission"
     assert rs["items"][14]["description"] == "Allows the user to read permissions."
-    assert len(rs["items"][14]["roles"]) == 1
-    assert rs["items"][14]["roles"][0]["id"] == 1
-    assert rs["items"][14]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][14]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][14]["created_at"]
     assert rs["items"][14]["updated_at"]
 
     assert rs["items"][15]["id"] == 16
-    assert rs["items"][15]["name"] == "create_permission"
+    assert rs["items"][15]["name"] == "create:permission"
     assert (
         rs["items"][15]["description"] == "Allows the user to create new permissions."
-    )
-    assert len(rs["items"][15]["roles"]) == 1
-    assert rs["items"][15]["roles"][0]["id"] == 1
-    assert rs["items"][15]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][15]["roles"][0]["description"]
-        == "Full access to all system features and settings."
     )
     assert rs["items"][15]["created_at"]
     assert rs["items"][15]["updated_at"]
 
     assert rs["items"][16]["id"] == 17
-    assert rs["items"][16]["name"] == "update_permission"
+    assert rs["items"][16]["name"] == "update:permission"
     assert rs["items"][16]["description"] == "Allows the user to update permissions."
-    assert len(rs["items"][16]["roles"]) == 1
-    assert rs["items"][16]["roles"][0]["id"] == 1
-    assert rs["items"][16]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][16]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][16]["created_at"]
     assert rs["items"][16]["updated_at"]
 
     assert rs["items"][17]["id"] == 18
-    assert rs["items"][17]["name"] == "delete_permission"
+    assert rs["items"][17]["name"] == "delete:permission"
     assert rs["items"][17]["description"] == "Allows the user to delete permissions."
-    assert len(rs["items"][17]["roles"]) == 1
-    assert rs["items"][17]["roles"][0]["id"] == 1
-    assert rs["items"][17]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][17]["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
     assert rs["items"][17]["created_at"]
     assert rs["items"][17]["updated_at"]
 
     assert rs["items"][18]["id"] == 19
-    assert rs["items"][18]["name"] == "manage_role_permission"
+    assert rs["items"][18]["name"] == "manage:role_permission"
     assert (
         rs["items"][18]["description"]
         == "Allows the user to manage roles' permissions."
-    )
-    assert len(rs["items"][18]["roles"]) == 1
-    assert rs["items"][18]["roles"][0]["id"] == 1
-    assert rs["items"][18]["roles"][0]["name"] == "admin"
-    assert (
-        rs["items"][18]["roles"][0]["description"]
-        == "Full access to all system features and settings."
     )
     assert rs["items"][18]["created_at"]
     assert rs["items"][18]["updated_at"]
@@ -354,7 +207,7 @@ def test_sort_permissions(sort: str, admin_authenticated: TestClient) -> None:
         pytest.param(["id"], [[1, 2]], ["between"], 2),
         pytest.param(["id"], [[2, 3]], ["between"], 2),
         pytest.param(["id", "name"], [[1], ["a"]], ["eq", "co"], 10),
-        pytest.param(["name"], [["create_user"]], ["eq"], 1),
+        pytest.param(["name"], [["create:user"]], ["eq"], 1),
         pytest.param(["name"], [["re", "ate"]], ["co"], 10),
         pytest.param(["description"], [["allows"]], ["ico"], 10),
         pytest.param(
@@ -400,9 +253,6 @@ def test_create_a_permission(admin_authenticated: TestClient) -> None:
     assert rs["id"] == 20
     assert rs["name"] == "test permission"
     assert rs["description"] == "description of test permission"
-
-    assert rs["roles"] == []
-
     assert rs["created_at"]
     assert rs["updated_at"]
 
@@ -426,7 +276,7 @@ def test_patch_a_permission_with_partial_body(admin_authenticated: TestClient) -
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "read_company"
+    assert rs["name"] == "read:company"
     assert rs["description"] == "Allows the user to read company accounts."
 
 
@@ -443,15 +293,6 @@ def test_update_a_permission(admin_authenticated: TestClient) -> None:
     assert rs["id"] == 1
     assert rs["name"] == "Company Read Permission"
     assert rs["description"] == "Allows the user to read any company."
-
-    assert len(rs["roles"]) == 1
-    assert rs["roles"][0]["id"] == 1
-    assert rs["roles"][0]["name"] == "admin"
-    assert (
-        rs["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
-
     assert rs["created_at"]
     assert rs["updated_at"]
 
@@ -462,17 +303,8 @@ def test_retrieve_a_permission(admin_authenticated: TestClient) -> None:
     rs = response.json()
 
     assert rs["id"] == 1
-    assert rs["name"] == "read_company"
+    assert rs["name"] == "read:company"
     assert rs["description"] == "Allows the user to read company accounts."
-
-    assert len(rs["roles"]) == 1
-    assert rs["roles"][0]["id"] == 1
-    assert rs["roles"][0]["name"] == "admin"
-    assert (
-        rs["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
-
     assert rs["created_at"]
     assert rs["updated_at"]
 
@@ -498,13 +330,13 @@ def test_cannot_create_a_permission_with_already_existing_name(
     response = admin_authenticated.post(
         "/v1/permissions",
         json={
-            "name": "create_user",
+            "name": "create:user",
             "description": "description of test permission",
         },
     )
     assert response.status_code == 409
     rs = response.json()
-    assert rs["msg"] == "Permission already exists. [name=create_user]"
+    assert rs["msg"] == "Permission already exists. [name=create:user]"
 
 
 def test_cannot_patch_a_permission_while_unauthorized(

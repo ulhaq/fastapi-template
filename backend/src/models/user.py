@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.models.company import Company
-from src.models.mixins import TimestampMixin
+from src.models.mixins import DeleteTimestampMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from src.models.password_reset_token import PasswordResetToken
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 # pylint: disable=too-few-public-methods
 
 
-class User(Base, TimestampMixin):
+class User(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

@@ -62,8 +62,8 @@ async def prepare_database() -> AsyncGenerator[None]:
                     description=role["description"],
                     permissions=[
                         permission
-                        for idx, permission in enumerate(permissions, 1)
-                        if idx in role["permissions"]
+                        for permission in permissions
+                        if permission.name in role["permissions"]
                     ],
                 )
             )

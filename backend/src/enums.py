@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, StrEnum
 
 
 class ComparisonOperator(Enum):
@@ -51,3 +51,25 @@ class ErrorCode(Enum):
     def __init__(self, code: str, description: str):
         self.code = code
         self.description = description
+
+
+class Permission(StrEnum):
+    READ_COMPANY = "read:company"
+    CREATE_COMPANY = "create:company"
+    UPDATE_COMPANY = "update:company"
+    DELETE_COMPANY = "delete:company"
+    MANAGE_COMPANY_USER = "manage:company_user"
+    READ_USER = "read:user"
+    CREATE_USER = "create:user"
+    UPDATE_USER = "update:user"
+    DELETE_USER = "delete:user"
+    READ_ROLE = "read:role"
+    CREATE_ROLE = "create:role"
+    UPDATE_ROLE = "update:role"
+    DELETE_ROLE = "delete:role"
+    MANAGE_USER_ROLE = "manage:user_role"
+    READ_PERMISSION = "read:permission"
+    CREATE_PERMISSION = "create:permission"
+    UPDATE_PERMISSION = "update:permission"
+    DELETE_PERMISSION = "delete:permission"
+    MANAGE_ROLE_PERMISSION = "manage:role_permission"

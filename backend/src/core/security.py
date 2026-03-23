@@ -31,18 +31,17 @@ class Auth(BaseModel):
             id=user_model.id,
             name=user_model.name,
             email=user_model.email,
-            permissions=[
-                permission.name
-                for role in user_model.roles
-                for permission in role.permissions
-            ],
+            permissions=list(
+                dict.fromkeys(
+                    permission.name
+                    for role in user_model.roles
+                    for permission in role.permissions
+                )
+            ),
             roles=[role.name for role in user_model.roles],
         )
 
     def has_permission(self, permission_name: str) -> bool:
-        if not settings.auth_enabled:
-            return True
-
         return permission_name in self.permissions
 
     def authorize(self, permission: str) -> None:

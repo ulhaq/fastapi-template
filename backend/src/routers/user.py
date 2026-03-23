@@ -2,8 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, status
 
-from src.core.dependencies import authenticate
+from src.core.dependencies import require_permission
 from src.core.security import Auth
+from src.enums import Permission
 from src.schemas.user import (
     ChangePasswordIn,
     UserBase,
@@ -47,29 +48,26 @@ async def change_password_of_authenticated_user(
 async def create_a_user(
     bg_tasks: BackgroundTasks,
     service: Annotated[UserService, Depends()],
-    current_user: Annotated[Auth, Depends(authenticate)],
+    _: Annotated[Auth, Depends(require_permission(Permission.CREATE_USER))],
     user_in: UserIn,
 ) -> UserOut:
-    current_user.authorize("create_user")
     return await service.create_user(user_in, bg_tasks.add_task)
 
 
 @router.delete("/{identifier}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_a_user(
     service: Annotated[UserService, Depends()],
-    current_user: Annotated[Auth, Depends(authenticate)],
+    _: Annotated[Auth, Depends(require_permission(Permission.DELETE_USER))],
     identifier: Annotated[int, Path()],
 ) -> None:
-    current_user.authorize("delete_user")
     await service.delete_user(identifier)
 
 
 @router.post("/{identifier}/roles", status_code=status.HTTP_200_OK)
 async def manage_roles_of_a_user(
     service: Annotated[UserService, Depends()],
-    current_user: Annotated[Auth, Depends(authenticate)],
+    _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_USER_ROLE))],
     identifier: Annotated[int, Path()],
     role_in: UserRoleIn,
 ) -> UserOut:
-    current_user.authorize("manage_user_role")
     return await service.manage_roles(identifier, role_in)

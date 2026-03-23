@@ -10,8 +10,9 @@ from alembic.config import Config
 from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_secret
+from src.enums import Permission
 from src.models.company import Company
-from src.models.permission import Permission
+from src.models.permission import Permission as PermissionModel
 from src.models.role import Role
 from src.models.user import User
 
@@ -32,79 +33,79 @@ INIT_AUTH_DATA: dict = {
     ],
     "permissions": [
         {
-            "name": "read_company",
+            "name": "read:company",
             "description": "Allows the user to read company accounts.",
         },
         {
-            "name": "create_company",
+            "name": "create:company",
             "description": "Allows the user to create new company accounts.",
         },
         {
-            "name": "update_company",
+            "name": "update:company",
             "description": "Allows the user to update company accounts.",
         },
         {
-            "name": "delete_company",
+            "name": "delete:company",
             "description": "Allows the user to delete company accounts.",
         },
         {
-            "name": "manage_company_user",
+            "name": "manage:company_user",
             "description": "Allows the user to manage companies' users.",
         },
         {
-            "name": "read_user",
+            "name": "read:user",
             "description": "Allows the user to read users.",
         },
         {
-            "name": "create_user",
+            "name": "create:user",
             "description": "Allows the user to create new users.",
         },
         {
-            "name": "update_user",
+            "name": "update:user",
             "description": "Allows the user to update users.",
         },
         {
-            "name": "delete_user",
+            "name": "delete:user",
             "description": "Allows the user to delete users.",
         },
         {
-            "name": "read_role",
+            "name": "read:role",
             "description": "Allows the user to read roles.",
         },
         {
-            "name": "create_role",
+            "name": "create:role",
             "description": "Allows the user to create new roles.",
         },
         {
-            "name": "update_role",
+            "name": "update:role",
             "description": "Allows the user to update roles.",
         },
         {
-            "name": "delete_role",
+            "name": "delete:role",
             "description": "Allows the user to delete roles.",
         },
         {
-            "name": "manage_user_role",
+            "name": "manage:user_role",
             "description": "Allows the user to manage users' roles.",
         },
         {
-            "name": "read_permission",
+            "name": "read:permission",
             "description": "Allows the user to read permissions.",
         },
         {
-            "name": "create_permission",
+            "name": "create:permission",
             "description": "Allows the user to create new permissions.",
         },
         {
-            "name": "update_permission",
+            "name": "update:permission",
             "description": "Allows the user to update permissions.",
         },
         {
-            "name": "delete_permission",
+            "name": "delete:permission",
             "description": "Allows the user to delete permissions.",
         },
         {
-            "name": "manage_role_permission",
+            "name": "manage:role_permission",
             "description": "Allows the user to manage roles' permissions.",
         },
     ],
@@ -112,32 +113,12 @@ INIT_AUTH_DATA: dict = {
         {
             "name": "admin",
             "description": "Full access to all system features and settings.",
-            "permissions": [
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-            ],
+            "permissions": list(Permission),
         },
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
-            "permissions": [6, 7],
+            "permissions": [Permission.READ_USER, Permission.CREATE_USER],
         },
     ],
     "users": [
@@ -178,7 +159,7 @@ async def up() -> None:
         permissions = []
         for permission in INIT_AUTH_DATA["permissions"]:
             permissions.append(
-                Permission(
+                PermissionModel(
                     name=permission["name"], description=permission["description"]
                 )
             )
@@ -192,8 +173,8 @@ async def up() -> None:
                     description=role["description"],
                     permissions=[
                         permission
-                        for idx, permission in enumerate(permissions, 1)
-                        if idx in role["permissions"]
+                        for permission in permissions
+                        if permission.name in role["permissions"]
                     ],
                 )
             )

@@ -16,4 +16,7 @@ class TimestampMixin:
         onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
+
+
+class DeleteTimestampMixin:
     deleted_at: Mapped[DateTime] = mapped_column(DateTime, default=None, nullable=True)
