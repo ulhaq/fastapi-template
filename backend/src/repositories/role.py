@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.permission import Permission
 from src.models.role import Role
 from src.repositories.abc import ResourceRepositoryABC
-from src.repositories.base import CompanyScopedRepository
+from src.repositories.base import TenantScopedRepository
 
 
 class RoleRepositoryABC(ResourceRepositoryABC[Role], ABC):
@@ -20,7 +20,7 @@ class RoleRepositoryABC(ResourceRepositoryABC[Role], ABC):
     ) -> None: ...
 
 
-class RoleRepository(CompanyScopedRepository[Role], RoleRepositoryABC):
+class RoleRepository(TenantScopedRepository[Role], RoleRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Role, db)
 

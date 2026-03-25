@@ -42,7 +42,7 @@ class UserService(
         current_user: Annotated[Auth, Depends(authenticate)],
     ):
         self.repo = repos.user
-        self.repo.set_company_scope(current_user.company_id)
+        self.repo.set_tenant_scope(current_user.tenant_id)
         self.current_user = current_user
         super().__init__(repos)
 
@@ -107,7 +107,7 @@ class UserService(
             name=schema_in.name,
             email=schema_in.email,
             password=hashed_pw,
-            company_id=self.current_user.company_id,
+            tenant_id=self.current_user.tenant_id,
         )
 
         user = copy.copy(user)
@@ -149,11 +149,11 @@ class UserService(
         user = await self.get(identifier)
 
         if schema_in.role_ids:
-            self.repos.role.set_company_scope(self.current_user.company_id)
+            self.repos.role.set_tenant_scope(self.current_user.tenant_id)
             roles = await self.repos.role.filter_by_ids(schema_in.role_ids)
             if len(roles) != len(schema_in.role_ids):
                 raise PermissionDeniedException(
-                    "One or more roles do not belong to your company"
+                    "One or more roles do not belong to your tenant"
                 )
 
         current_roles = {role.id for role in user.roles}
@@ -175,20 +175,18 @@ class UserService(
 
         user = await self.get(identifier)
 
-        target_company = await self.repos.company.get(schema_in.company_id)
-        if not target_company:
+        target_tenant = await self.repos.tenant.get(schema_in.tenant_id)
+        if not target_tenant:
             raise NotFoundException(
-                f"Company not found. [identifier={schema_in.company_id}]"
+                f"Tenant not found. [identifier={schema_in.tenant_id}]"
             )
 
-        if user.company_id == schema_in.company_id:
-            raise PermissionDeniedException(
-                "User already belongs to the target company"
-            )
+        if user.tenant_id == schema_in.tenant_id:
+            raise PermissionDeniedException("User already belongs to the target tenant")
 
         if user.roles:
             await self.repo.remove_roles(user, *[role.id for role in user.roles])
 
-        user = await self.repo.update(user, company_id=schema_in.company_id)
+        user = await self.repo.update(user, tenant_id=schema_in.tenant_id)
 
         return UserOut.model_validate(user)

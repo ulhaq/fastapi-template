@@ -20,8 +20,8 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert len(rs["items"]) == 17
     assert rs["items"][0]["id"] == 1
-    assert rs["items"][0]["name"] == "read:company"
-    assert rs["items"][0]["description"] == "Allows the user to read company accounts."
+    assert rs["items"][0]["name"] == "read:tenant"
+    assert rs["items"][0]["description"] == "Allows the user to read tenant accounts."
     assert rs["items"][0]["created_at"]
     assert rs["items"][0]["updated_at"]
 
@@ -122,8 +122,8 @@ def test_retrieve_a_permission(admin_authenticated: TestClient) -> None:
     rs = response.json()
 
     assert rs["id"] == 1
-    assert rs["name"] == "read:company"
-    assert rs["description"] == "Allows the user to read company accounts."
+    assert rs["name"] == "read:tenant"
+    assert rs["description"] == "Allows the user to read tenant accounts."
     assert rs["created_at"]
     assert rs["updated_at"]
 

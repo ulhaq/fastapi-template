@@ -64,4 +64,4 @@ class UserRoleIn(BaseModel):
 
 
 class UserTransferIn(BaseModel):
-    company_id: int
+    tenant_id: int

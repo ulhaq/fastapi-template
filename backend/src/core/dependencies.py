@@ -22,7 +22,7 @@ async def authenticate(
             id=0,
             name="",
             email="",
-            company_id=0,
+            tenant_id=0,
             permissions=[p.value for p in Permission],
             roles=[],
         )

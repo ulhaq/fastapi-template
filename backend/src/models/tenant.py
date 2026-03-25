@@ -14,15 +14,15 @@ if TYPE_CHECKING:
 # pylint: disable=too-few-public-methods
 
 
-class Company(Base, DeleteTimestampMixin, TimestampMixin):
-    __tablename__ = "company"
+class Tenant(Base, DeleteTimestampMixin, TimestampMixin):
+    __tablename__ = "tenant"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
 
     users: Mapped[list["User"]] = relationship(
-        back_populates="company", lazy="joined", passive_deletes=True
+        back_populates="tenant", lazy="joined", passive_deletes=True
     )
     roles: Mapped[list["Role"]] = relationship(
-        back_populates="company", passive_deletes=True
+        back_populates="tenant", passive_deletes=True
     )

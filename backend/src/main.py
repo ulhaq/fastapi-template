@@ -20,7 +20,7 @@ from src.core.limiter import limiter
 from src.core.logging import LOGGING_CONFIG
 from src.core.middlewares import ErrorHandlingMiddleware
 from src.enums import ErrorCode
-from src.routers import auth, company, permission, role, user
+from src.routers import auth, permission, role, tenant, user
 from src.schemas.common import ErrorResponse, ValidationDetail, ValidationErrorResponse
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -151,7 +151,7 @@ async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
 
 
 app.include_router(auth.router, tags=["Authentication"], prefix="/v1")
-app.include_router(company.router, tags=["Companies"], prefix="/v1")
+app.include_router(tenant.router, tags=["Tenants"], prefix="/v1")
 app.include_router(user.router, tags=["Users"], prefix="/v1")
 app.include_router(role.router, tags=["Roles"], prefix="/v1")
 app.include_router(permission.router, tags=["Permissions"], prefix="/v1")

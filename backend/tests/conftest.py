@@ -14,7 +14,7 @@ from src.core.security import hash_secret
 from src.enums import PERMISSION_DESCRIPTIONS
 from src.enums import Permission as PermissionEnum
 from src.main import app
-from src.models.company import Company
+from src.models.tenant import Tenant
 from src.models.role import Role
 from src.models.permission import Permission
 from src.models.user import User
@@ -42,10 +42,10 @@ async def prepare_database() -> AsyncGenerator[None]:
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestSessionLocal() as session:
-        companies = []
-        for company in INIT_AUTH_DATA["companies"]:
-            companies.append(Company(name=company["name"]))
-        session.add_all(companies)
+        tenants = []
+        for tenant in INIT_AUTH_DATA["tenants"]:
+            tenants.append(Tenant(name=tenant["name"]))
+        session.add_all(tenants)
 
         permissions = []
         for permission in PermissionEnum:
@@ -63,7 +63,7 @@ async def prepare_database() -> AsyncGenerator[None]:
                 Role(
                     name=role["name"],
                     description=role["description"],
-                    company=companies[role["company"] - 1],
+                    tenant=tenants[role["tenant"] - 1],
                     permissions=[
                         permission
                         for permission in permissions
@@ -80,7 +80,7 @@ async def prepare_database() -> AsyncGenerator[None]:
                     name=user["name"],
                     email=user["email"],
                     password=hash_secret(user["password"]),
-                    company=companies[user["company"] - 1],
+                    tenant=tenants[user["tenant"] - 1],
                     roles=[
                         role
                         for idx, role in enumerate(roles, 1)
@@ -129,7 +129,7 @@ def standard_authenticated(client: TestClient) -> TestClient:
 
 
 @pytest.fixture
-def company2_admin_authenticated() -> Generator[TestClient, None, None]:
+def tenant2_admin_authenticated() -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         rs = c.post(
             "/v1/auth/token",

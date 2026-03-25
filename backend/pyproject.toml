@@ -45,4 +45,4 @@ max-line-length = 88
 min-similarity-lines=7
 
 [tool.pylint."MESSAGES CONTROL"]
-disable = "missing-function-docstring,missing-class-docstring,missing-module-docstring"
+disable = "missing-function-docstring,missing-class-docstring,missing-module-docstring,wrong-import-order,wrong-import-position,ungrouped-imports"

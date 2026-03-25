@@ -54,11 +54,11 @@ class ErrorCode(Enum):
 
 
 class Permission(StrEnum):
-    READ_COMPANY = "read:company"
-    CREATE_COMPANY = "create:company"
-    UPDATE_COMPANY = "update:company"
-    DELETE_COMPANY = "delete:company"
-    MANAGE_COMPANY_USER = "manage:company_user"
+    READ_TENANT = "read:tenant"
+    CREATE_TENANT = "create:tenant"
+    UPDATE_TENANT = "update:tenant"
+    DELETE_TENANT = "delete:tenant"
+    MANAGE_TENANT_USER = "manage:tenant_user"
     READ_USER = "read:user"
     CREATE_USER = "create:user"
     UPDATE_USER = "update:user"
@@ -74,16 +74,16 @@ class Permission(StrEnum):
 
 
 PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
-    Permission.READ_COMPANY: "Allows the user to read company accounts.",
-    Permission.CREATE_COMPANY: "Allows the user to create new company accounts.",
-    Permission.UPDATE_COMPANY: "Allows the user to update company accounts.",
-    Permission.DELETE_COMPANY: "Allows the user to delete company accounts.",
-    Permission.MANAGE_COMPANY_USER: "Allows the user to manage companies' users.",
+    Permission.READ_TENANT: "Allows the user to read tenant accounts.",
+    Permission.CREATE_TENANT: "Allows the user to create new tenant accounts.",
+    Permission.UPDATE_TENANT: "Allows the user to update tenant accounts.",
+    Permission.DELETE_TENANT: "Allows the user to delete tenant accounts.",
+    Permission.MANAGE_TENANT_USER: "Allows the user to manage tenants' users.",
     Permission.READ_USER: "Allows the user to read users.",
     Permission.CREATE_USER: "Allows the user to create new users.",
     Permission.UPDATE_USER: "Allows the user to update users.",
     Permission.DELETE_USER: "Allows the user to delete users.",
-    Permission.TRANSFER_USER: "Allows the user to transfer users between companies.",
+    Permission.TRANSFER_USER: "Allows the user to transfer users between tenants.",
     Permission.READ_ROLE: "Allows the user to read roles.",
     Permission.CREATE_ROLE: "Allows the user to create new roles.",
     Permission.UPDATE_ROLE: "Allows the user to update roles.",

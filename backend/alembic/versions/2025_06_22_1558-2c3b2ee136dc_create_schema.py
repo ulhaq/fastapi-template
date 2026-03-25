@@ -22,7 +22,7 @@ def upgrade() -> None:
     # Standalone tables (no foreign keys)
 
     op.create_table(
-        "company",
+        "tenant",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
@@ -30,7 +30,7 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_company_name"), "company", ["name"])
+    op.create_index(op.f("ix_tenant_name"), "tenant", ["name"])
 
     op.create_table(
         "permission",
@@ -54,14 +54,14 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("email", sa.String(), nullable=False),
         sa.Column("password", sa.String(), nullable=False),
-        sa.Column("company_id", sa.Integer(), nullable=False),
+        sa.Column("tenant_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["company_id"],
-            ["company.id"],
-            name="fk_user_company_id_company",
+            ["tenant_id"],
+            ["tenant.id"],
+            name="fk_user_tenant_id_tenant",
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
@@ -74,18 +74,18 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
-        sa.Column("company_id", sa.Integer(), nullable=False),
+        sa.Column("tenant_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["company_id"],
-            ["company.id"],
-            name="fk_role_company_id_company",
+            ["tenant_id"],
+            ["tenant.id"],
+            name="fk_role_tenant_id_tenant",
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("company_id", "name", name="uq_role_company_name"),
+        sa.UniqueConstraint("tenant_id", "name", name="uq_role_tenant_name"),
     )
     op.create_index(op.f("ix_role_name"), "role", ["name"])
 
@@ -168,5 +168,5 @@ def downgrade() -> None:
     op.drop_table("user")
     op.drop_index(op.f("ix_permission_name"), table_name="permission")
     op.drop_table("permission")
-    op.drop_index(op.f("ix_company_name"), table_name="company")
-    op.drop_table("company")
+    op.drop_index(op.f("ix_tenant_name"), table_name="tenant")
+    op.drop_table("tenant")

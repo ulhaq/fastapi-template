@@ -4,10 +4,10 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
-from src.repositories.company import CompanyRepository
 from src.repositories.permission import PermissionRepository
 from src.repositories.refresh_token import RefreshTokenRepository
 from src.repositories.role import RoleRepository
+from src.repositories.tenant import TenantRepository
 from src.repositories.user import UserRepository
 
 
@@ -16,17 +16,17 @@ class RepositoryManager:
 
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> None:
         self.db = db
-        self._company: CompanyRepository | None = None
+        self._tenant: TenantRepository | None = None
         self._user: UserRepository | None = None
         self._role: RoleRepository | None = None
         self._permission: PermissionRepository | None = None
         self._refresh_token: RefreshTokenRepository | None = None
 
     @property
-    def company(self) -> CompanyRepository:
-        if self._company is None:
-            self._company = CompanyRepository(self.db)
-        return self._company
+    def tenant(self) -> TenantRepository:
+        if self._tenant is None:
+            self._tenant = TenantRepository(self.db)
+        return self._tenant
 
     @property
     def user(self) -> UserRepository:

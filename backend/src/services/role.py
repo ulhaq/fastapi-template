@@ -22,7 +22,7 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
         current_user: Annotated[Auth, Depends(authenticate)],
     ) -> None:
         self.repo = repos.role
-        self.repo.set_company_scope(current_user.company_id)
+        self.repo.set_tenant_scope(current_user.tenant_id)
         self.current_user = current_user
         super().__init__(repos)
 

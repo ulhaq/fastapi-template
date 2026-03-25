@@ -12,9 +12,9 @@ from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_secret
 from src.enums import Permission
-from src.models.company import Company
 from src.models.permission import Permission as PermissionModel
 from src.models.role import Role
+from src.models.tenant import Tenant
 from src.models.user import User
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -24,12 +24,12 @@ log = logging.getLogger(__name__)
 alembic_cfg = Config(os.getcwd() + "/alembic.ini")
 
 INIT_AUTH_DATA: dict = {
-    "companies": [
+    "tenants": [
         {
-            "name": "Company 1",
+            "name": "Tenant 1",
         },
         {
-            "name": "Company 2",
+            "name": "Tenant 2",
         },
     ],
     "roles": [
@@ -37,25 +37,25 @@ INIT_AUTH_DATA: dict = {
             "name": "admin",
             "description": "Full access to all system features and settings.",
             "permissions": list(Permission),
-            "company": 1,
+            "tenant": 1,
         },
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
             "permissions": [Permission.READ_USER, Permission.CREATE_USER],
-            "company": 1,
+            "tenant": 1,
         },
         {
             "name": "admin",
             "description": "Full access to all system features and settings.",
             "permissions": list(Permission),
-            "company": 2,
+            "tenant": 2,
         },
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
             "permissions": [Permission.READ_USER, Permission.CREATE_USER],
-            "company": 2,
+            "tenant": 2,
         },
     ],
     "users": [
@@ -63,28 +63,28 @@ INIT_AUTH_DATA: dict = {
             "name": "Admin",
             "email": "admin@example.org",
             "password": "password",
-            "company": 1,
+            "tenant": 1,
             "roles": [1],
         },
         {
             "name": "Standard",
             "email": "standard@example.org",
             "password": "password",
-            "company": 1,
+            "tenant": 1,
             "roles": [2],
         },
         {
             "name": "No Roles",
             "email": "no_roles@example.org",
             "password": "password",
-            "company": 1,
+            "tenant": 1,
             "roles": [],
         },
         {
             "name": "Admin 2",
             "email": "admin2@example.org",
             "password": "password",
-            "company": 2,
+            "tenant": 2,
             "roles": [3],
         },
     ],
@@ -95,10 +95,10 @@ async def up() -> None:
     upgrade(alembic_cfg, "head")
 
     async with ASYNC_SESSION_LOCAL() as session:
-        companies = []
-        for company in INIT_AUTH_DATA["companies"]:
-            companies.append(Company(name=company["name"]))
-        session.add_all(companies)
+        tenants = []
+        for tenant in INIT_AUTH_DATA["tenants"]:
+            tenants.append(Tenant(name=tenant["name"]))
+        session.add_all(tenants)
 
         rs = await session.execute(select(PermissionModel))
         permissions = list(rs.scalars().all())
@@ -109,7 +109,7 @@ async def up() -> None:
                 Role(
                     name=role["name"],
                     description=role["description"],
-                    company=companies[role["company"] - 1],
+                    tenant=tenants[role["tenant"] - 1],
                     permissions=[
                         permission
                         for permission in permissions
@@ -126,7 +126,7 @@ async def up() -> None:
                     name=user["name"],
                     email=user["email"],
                     password=hash_secret(user["password"]),
-                    company=companies[user["company"] - 1],
+                    tenant=tenants[user["tenant"] - 1],
                     roles=[
                         role
                         for idx, role in enumerate(roles, 1)

@@ -9,8 +9,8 @@ from tests.utils import (
 )
 
 
-def test_get_all_companies(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/v1/companies")
+def test_get_all_tenants(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/tenants")
     assert response.status_code == 200
     rs = response.json()
     assert rs["page_number"] == 1
@@ -19,7 +19,7 @@ def test_get_all_companies(admin_authenticated: TestClient) -> None:
 
     assert len(rs["items"]) == 1
     assert rs["items"][0]["id"] == 1
-    assert rs["items"][0]["name"] == "Company 1"
+    assert rs["items"][0]["name"] == "Tenant 1"
     assert rs["items"][0]["created_at"]
     assert rs["items"][0]["updated_at"]
 
@@ -31,7 +31,7 @@ def test_get_all_companies(admin_authenticated: TestClient) -> None:
         pytest.param(2, 10, 0, 1),
     ],
 )
-def test_paginate_companies(
+def test_paginate_tenants(
     page_number: int,
     page_size: int,
     page_total: int,
@@ -39,7 +39,7 @@ def test_paginate_companies(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.get(
-        f"/v1/companies?page_number={page_number}&page_size{page_size}"
+        f"/v1/tenants?page_number={page_number}&page_size{page_size}"
     )
     assert response.status_code == 200
     rs = response.json()
@@ -60,8 +60,8 @@ def test_paginate_companies(
         pytest.param("-updated_at"),
     ],
 )
-def test_sort_companies(sort: str, admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get(f"/v1/companies?sort={sort}")
+def test_sort_tenants(sort: str, admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get(f"/v1/tenants?sort={sort}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -74,7 +74,7 @@ def test_sort_companies(sort: str, admin_authenticated: TestClient) -> None:
         pytest.param(["id"], [[1]], ["eq"], 1),
         pytest.param(["id"], [[0, 1]], ["between"], 1),
         pytest.param(["id"], [[1, 2]], ["between"], 1),
-        pytest.param(["name"], [["Company 1"]], ["eq"], 1),
+        pytest.param(["name"], [["Tenant 1"]], ["eq"], 1),
         pytest.param(["name"], [["a", "d"]], ["co"], 1),
         pytest.param(
             ["created_at"],
@@ -84,7 +84,7 @@ def test_sort_companies(sort: str, admin_authenticated: TestClient) -> None:
         ),
     ],
 )
-def test_filter_companies(
+def test_filter_tenants(
     fields: list[str],
     values: list[list],
     operators: list[str],
@@ -97,7 +97,7 @@ def test_filter_companies(
     for field, value, op in filter_data:
         filters[field] = {"v": [*value], "op": op}
 
-    response = admin_authenticated.get(f"/v1/companies?filters={json.dumps(filters)}")
+    response = admin_authenticated.get(f"/v1/tenants?filters={json.dumps(filters)}")
     assert response.status_code == 200
     rs = response.json()
 
@@ -106,135 +106,135 @@ def test_filter_companies(
     assert_filtering_of_items_list(rs["items"], filter_data)
 
 
-def test_create_a_company(admin_authenticated: TestClient) -> None:
+def test_create_a_tenant(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/v1/companies",
+        "/v1/tenants",
         json={
-            "name": "test company",
+            "name": "test tenant",
         },
     )
     assert response.status_code == 201
     rs = response.json()
     assert rs["id"] == 3
-    assert rs["name"] == "test company"
+    assert rs["name"] == "test tenant"
 
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
-def test_patch_a_company(admin_authenticated: TestClient) -> None:
+def test_patch_a_tenant(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.patch(
-        "/v1/companies/1",
-        json={"name": "Patched Company"},
+        "/v1/tenants/1",
+        json={"name": "Patched Tenant"},
     )
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Patched Company"
+    assert rs["name"] == "Patched Tenant"
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
-def test_patch_a_company_with_partial_body(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.patch("/v1/companies/1", json={})
+def test_patch_a_tenant_with_partial_body(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/tenants/1", json={})
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Company 1"
+    assert rs["name"] == "Tenant 1"
 
 
-def test_update_a_company(admin_authenticated: TestClient) -> None:
+def test_update_a_tenant(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.put(
-        "/v1/companies/1",
+        "/v1/tenants/1",
         json={
-            "name": "Updated Company",
+            "name": "Updated Tenant",
         },
     )
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Updated Company"
+    assert rs["name"] == "Updated Tenant"
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
-def test_retrieve_a_company(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/v1/companies/1")
+def test_retrieve_a_tenant(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/tenants/1")
     assert response.status_code == 200
     rs = response.json()
 
     assert rs["id"] == 1
-    assert rs["name"] == "Company 1"
+    assert rs["name"] == "Tenant 1"
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
-def test_delete_a_company(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.delete("/v1/companies/1")
+def test_delete_a_tenant(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.delete("/v1/tenants/1")
     assert response.status_code == 204
 
-    response = admin_authenticated.get("/v1/companies/1")
+    response = admin_authenticated.get("/v1/tenants/1")
     assert response.status_code == 404
 
 
-def test_cannot_access_other_company(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/v1/companies/2")
+def test_cannot_access_other_tenant(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/tenants/2")
     assert response.status_code == 403
 
     response = admin_authenticated.put(
-        "/v1/companies/2", json={"name": "Hacked"}
+        "/v1/tenants/2", json={"name": "Hacked"}
     )
     assert response.status_code == 403
 
     response = admin_authenticated.patch(
-        "/v1/companies/2", json={"name": "Hacked"}
+        "/v1/tenants/2", json={"name": "Hacked"}
     )
     assert response.status_code == 403
 
-    response = admin_authenticated.delete("/v1/companies/2")
+    response = admin_authenticated.delete("/v1/tenants/2")
     assert response.status_code == 403
 
 
-def test_cannot_create_a_company_with_already_existing_name(
+def test_cannot_create_a_tenant_with_already_existing_name(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.post(
-        "/v1/companies",
+        "/v1/tenants",
         json={
-            "name": "Company 1",
+            "name": "Tenant 1",
         },
     )
     assert response.status_code == 409
     rs = response.json()
-    assert rs["msg"] == "Company already exists. [name=Company 1]"
+    assert rs["msg"] == "Tenant already exists. [name=Tenant 1]"
 
 
-def test_cannot_patch_a_company_while_unauthorized(
+def test_cannot_patch_a_tenant_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.patch(
-        "/v1/companies/1",
-        json={"name": "Patched Company"},
+        "/v1/tenants/1",
+        json={"name": "Patched Tenant"},
     )
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-def test_cannot_get_companies_while_unauthorized(
+def test_cannot_get_tenants_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/v1/companies")
+    response = standard_authenticated.get("/v1/tenants")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-def test_cannot_update_a_company_while_unauthorized(
+def test_cannot_update_a_tenant_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.put(
-        "/v1/companies/1",
+        "/v1/tenants/1",
         json={
             "name": "Administrator",
             "description": "Full access to all system features and settings.",
@@ -245,19 +245,19 @@ def test_cannot_update_a_company_while_unauthorized(
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-def test_cannot_retrieve_a_company_while_unauthorized(
+def test_cannot_retrieve_a_tenant_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/v1/companies/1")
+    response = standard_authenticated.get("/v1/tenants/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-def test_cannot_delete_a_company_while_unauthorized(
+def test_cannot_delete_a_tenant_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.delete("/v1/companies/1")
+    response = standard_authenticated.delete("/v1/tenants/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"

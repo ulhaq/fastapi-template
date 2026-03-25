@@ -24,7 +24,7 @@ from src.core.security import (
 )
 from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager
-from src.schemas.company import CompanyIn, CompanyOut
+from src.schemas.tenant import TenantIn, TenantOut
 from src.schemas.user import EmailIn, ResetPasswordIn
 from src.services.base import BaseService
 from src.services.utils import send_email
@@ -36,30 +36,30 @@ class AuthService(BaseService):
     def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
         super().__init__(repos)
 
-    async def register_company(
-        self, company_in: CompanyIn, schedule_task: Callable
-    ) -> CompanyOut:
-        if await self.repos.user.get_by_email(company_in.email):
+    async def register_tenant(
+        self, tenant_in: TenantIn, schedule_task: Callable
+    ) -> TenantOut:
+        if await self.repos.user.get_by_email(tenant_in.email):
             raise AlreadyExistsException(
-                f"Account already exists. [email={company_in.email}]",
+                f"Account already exists. [email={tenant_in.email}]",
                 error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
             )
 
-        company = await self.repos.company.create(
-            commit=False, **company_in.model_dump(include={"name"})
+        tenant = await self.repos.tenant.create(
+            commit=False, **tenant_in.model_dump(include={"name"})
         )
 
-        hashed_pw = hash_secret(company_in.password)
+        hashed_pw = hash_secret(tenant_in.password)
 
         user = await self.repos.user.create(
             commit=False,
-            name=company_in.name,
-            email=company_in.email,
+            name=tenant_in.name,
+            email=tenant_in.email,
             password=hashed_pw,
-            company=company,
+            tenant=tenant,
         )
 
-        company_out = CompanyOut.model_validate(company)
+        tenant_out = TenantOut.model_validate(tenant)
         user_email, user_name = user.email, user.name
 
         await self.repos.commit()
@@ -75,7 +75,7 @@ class AuthService(BaseService):
             },
         )
 
-        return company_out
+        return tenant_out
 
     async def get_access_token(self, username: str, password: str) -> Token:
         user = authenticate_user(password, await self.repos.user.get_by_email(username))

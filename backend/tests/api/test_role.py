@@ -154,7 +154,7 @@ def test_create_a_role(admin_authenticated: TestClient) -> None:
     assert rs["id"] == 5
     assert rs["name"] == "test role"
     assert rs["description"] == "description of test role"
-    assert rs["company_id"] == 1
+    assert rs["tenant_id"] == 1
 
     assert rs["permissions"] == []
 
@@ -243,11 +243,11 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     assert rs["created_at"]
     assert rs["updated_at"]
 
-    read_company_id = next(p["id"] for p in all_perms if p["name"] == "read:company")
+    read_tenant_id = next(p["id"] for p in all_perms if p["name"] == "read:tenant")
     response = admin_authenticated.post(
         "/v1/roles/1/permissions",
         json={
-            "permission_ids": [read_company_id],
+            "permission_ids": [read_tenant_id],
         },
     )
     assert response.status_code == 200
@@ -256,10 +256,10 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     assert rs["name"] == "admin"
 
     assert len(rs["permissions"]) == 1
-    assert rs["permissions"][0]["name"] == "read:company"
+    assert rs["permissions"][0]["name"] == "read:tenant"
     assert (
         rs["permissions"][0]["description"]
-        == "Allows the user to read company accounts."
+        == "Allows the user to read tenant accounts."
     )
 
     assert rs["created_at"]
