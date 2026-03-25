@@ -6,6 +6,7 @@ from pydantic import (
     ConfigDict,
     EmailStr,
     Field,
+    StringConstraints,
     model_validator,
 )
 
@@ -30,7 +31,7 @@ class UserOut(UserBase, Timestamp):
 
 
 class UserIn(UserBase):
-    password: Annotated[str, Field(min_length=6)]
+    password: Annotated[str, Field(min_length=8)]
 
 
 class UserPatch(BaseModel):
@@ -39,17 +40,17 @@ class UserPatch(BaseModel):
 
 
 class EmailIn(BaseModel):
-    email: EmailStr
+    email: Annotated[EmailStr, StringConstraints(to_lower=True)]
 
 
 class ResetPasswordIn(BaseModel):
     token: Annotated[str, Field()]
-    password: Annotated[str, Field(min_length=6)]
+    password: Annotated[str, Field(min_length=8)]
 
 
 class ChangePasswordIn(BaseModel):
     password: Annotated[str, Field(min_length=1)]
-    new_password: Annotated[str, Field(min_length=6)]
+    new_password: Annotated[str, Field(min_length=8)]
     confirm_password: Annotated[str, Field()]
 
     @model_validator(mode="after")

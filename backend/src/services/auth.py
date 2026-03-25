@@ -78,7 +78,9 @@ class AuthService(BaseService):
         return tenant_out
 
     async def get_access_token(self, username: str, password: str) -> Token:
-        user = authenticate_user(password, await self.repos.user.get_by_email(username))
+        user = authenticate_user(
+            password, await self.repos.user.get_by_email(username.lower())
+        )
 
         if not user:
             raise NotAuthenticatedException(
@@ -203,6 +205,7 @@ class AuthService(BaseService):
                 )
 
             await self.repos.user.delete_password_reset_token(commit=False, user=user)
+            await self.repos.refresh_token.delete_by_user(user)
 
             hashed_pw = hash_secret(reset_password_in.password)
 

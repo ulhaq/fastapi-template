@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
 from src.schemas.common import Timestamp
 
@@ -16,8 +16,8 @@ class TenantOut(TenantBase, Timestamp):
 
 
 class TenantIn(TenantBase):
-    email: EmailStr
-    password: Annotated[str, Field(min_length=6)]
+    email: Annotated[EmailStr, StringConstraints(to_lower=True)]
+    password: Annotated[str, Field(min_length=8)]
 
 
 class TenantPatch(BaseModel):

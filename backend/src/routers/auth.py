@@ -59,6 +59,7 @@ async def get_access_token(
 
 
 @router.post("/refresh", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
 async def refresh_access_token(
     request: Request,
     response: Response,
@@ -91,7 +92,10 @@ async def request_password_reset(
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
 async def reset_password(
-    service: Annotated[AuthService, Depends()], reset_password_in: ResetPasswordIn
+    request: Request,  # pylint: disable=unused-argument
+    service: Annotated[AuthService, Depends()],
+    reset_password_in: ResetPasswordIn,
 ) -> None:
     await service.reset_password(reset_password_in)

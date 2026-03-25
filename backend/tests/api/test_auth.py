@@ -3,6 +3,8 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
+from src.core.limiter import limiter
+
 
 def test_register_an_account(client: TestClient) -> None:
     response = client.post(
@@ -291,3 +293,74 @@ def test_second_login_invalidates_previous_refresh_token(client: TestClient) -> 
     client.cookies.set("refresh_token", first_refresh_token)
     response = client.post("v1/auth/refresh")
     assert response.status_code == 401
+
+
+def test_register_rate_limit(client: TestClient) -> None:
+    limiter._storage.reset()
+    with patch.object(limiter, "enabled", True):
+        for _ in range(5):
+            client.post(
+                "/v1/auth/register",
+                json={"name": "u", "email": "x@example.org", "password": "password"},
+            )
+        response = client.post(
+            "/v1/auth/register",
+            json={"name": "u", "email": "x@example.org", "password": "password"},
+        )
+    assert response.status_code == 429
+
+
+def test_token_rate_limit(client: TestClient) -> None:
+    limiter._storage.reset()
+    with patch.object(limiter, "enabled", True):
+        for _ in range(10):
+            client.post(
+                "v1/auth/token",
+                data={"username": "admin@example.org", "password": "wrong"},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        response = client.post(
+            "v1/auth/token",
+            data={"username": "admin@example.org", "password": "wrong"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+    assert response.status_code == 429
+
+
+def test_refresh_rate_limit(client: TestClient) -> None:
+    limiter._storage.reset()
+    with patch.object(limiter, "enabled", True):
+        for _ in range(10):
+            client.post("v1/auth/refresh", cookies={"refresh_token": "invalid"})
+        response = client.post("v1/auth/refresh", cookies={"refresh_token": "invalid"})
+    assert response.status_code == 429
+
+
+def test_reset_password_request_rate_limit(client: TestClient) -> None:
+    limiter._storage.reset()
+    with patch.object(limiter, "enabled", True):
+        for _ in range(5):
+            client.post(
+                "v1/auth/reset-password/request",
+                json={"email": "nobody@example.org"},
+            )
+        response = client.post(
+            "v1/auth/reset-password/request",
+            json={"email": "nobody@example.org"},
+        )
+    assert response.status_code == 429
+
+
+def test_reset_password_rate_limit(client: TestClient) -> None:
+    limiter._storage.reset()
+    with patch.object(limiter, "enabled", True):
+        for _ in range(5):
+            client.post(
+                "v1/auth/reset-password",
+                json={"token": "invalid", "password": "password1"},
+            )
+        response = client.post(
+            "v1/auth/reset-password",
+            json={"token": "invalid", "password": "password1"},
+        )
+    assert response.status_code == 429
