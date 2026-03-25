@@ -63,13 +63,32 @@ class Permission(StrEnum):
     CREATE_USER = "create:user"
     UPDATE_USER = "update:user"
     DELETE_USER = "delete:user"
+    TRANSFER_USER = "transfer:user"
     READ_ROLE = "read:role"
     CREATE_ROLE = "create:role"
     UPDATE_ROLE = "update:role"
     DELETE_ROLE = "delete:role"
     MANAGE_USER_ROLE = "manage:user_role"
     READ_PERMISSION = "read:permission"
-    CREATE_PERMISSION = "create:permission"
-    UPDATE_PERMISSION = "update:permission"
-    DELETE_PERMISSION = "delete:permission"
     MANAGE_ROLE_PERMISSION = "manage:role_permission"
+
+
+PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
+    Permission.READ_COMPANY: "Allows the user to read company accounts.",
+    Permission.CREATE_COMPANY: "Allows the user to create new company accounts.",
+    Permission.UPDATE_COMPANY: "Allows the user to update company accounts.",
+    Permission.DELETE_COMPANY: "Allows the user to delete company accounts.",
+    Permission.MANAGE_COMPANY_USER: "Allows the user to manage companies' users.",
+    Permission.READ_USER: "Allows the user to read users.",
+    Permission.CREATE_USER: "Allows the user to create new users.",
+    Permission.UPDATE_USER: "Allows the user to update users.",
+    Permission.DELETE_USER: "Allows the user to delete users.",
+    Permission.TRANSFER_USER: "Allows the user to transfer users between companies.",
+    Permission.READ_ROLE: "Allows the user to read roles.",
+    Permission.CREATE_ROLE: "Allows the user to create new roles.",
+    Permission.UPDATE_ROLE: "Allows the user to update roles.",
+    Permission.DELETE_ROLE: "Allows the user to delete roles.",
+    Permission.MANAGE_USER_ROLE: "Allows the user to manage users' roles.",
+    Permission.READ_PERMISSION: "Allows the user to read permissions.",
+    Permission.MANAGE_ROLE_PERMISSION: "Allows the user to manage roles' permissions.",
+}

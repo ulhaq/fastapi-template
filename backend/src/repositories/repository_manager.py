@@ -16,26 +16,41 @@ class RepositoryManager:
 
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> None:
         self.db = db
+        self._company: CompanyRepository | None = None
+        self._user: UserRepository | None = None
+        self._role: RoleRepository | None = None
+        self._permission: PermissionRepository | None = None
+        self._refresh_token: RefreshTokenRepository | None = None
 
     @property
     def company(self) -> CompanyRepository:
-        return CompanyRepository(self.db)
+        if self._company is None:
+            self._company = CompanyRepository(self.db)
+        return self._company
 
     @property
     def user(self) -> UserRepository:
-        return UserRepository(self.db)
+        if self._user is None:
+            self._user = UserRepository(self.db)
+        return self._user
 
     @property
     def role(self) -> RoleRepository:
-        return RoleRepository(self.db)
+        if self._role is None:
+            self._role = RoleRepository(self.db)
+        return self._role
 
     @property
     def permission(self) -> PermissionRepository:
-        return PermissionRepository(self.db)
+        if self._permission is None:
+            self._permission = PermissionRepository(self.db)
+        return self._permission
 
     @property
     def refresh_token(self) -> RefreshTokenRepository:
-        return RefreshTokenRepository(self.db)
+        if self._refresh_token is None:
+            self._refresh_token = RefreshTokenRepository(self.db)
+        return self._refresh_token
 
     async def commit(self) -> None:
         await self.db.commit()

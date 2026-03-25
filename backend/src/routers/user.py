@@ -12,6 +12,7 @@ from src.schemas.user import (
     UserOut,
     UserPatch,
     UserRoleIn,
+    UserTransferIn,
 )
 from src.services.user import UserService
 
@@ -71,3 +72,13 @@ async def manage_roles_of_a_user(
     role_in: UserRoleIn,
 ) -> UserOut:
     return await service.manage_roles(identifier, role_in)
+
+
+@router.post("/{identifier}/transfer", status_code=status.HTTP_200_OK)
+async def transfer_a_user(
+    service: Annotated[UserService, Depends()],
+    _: Annotated[Auth, Depends(require_permission(Permission.TRANSFER_USER))],
+    identifier: Annotated[int, Path()],
+    transfer_in: UserTransferIn,
+) -> UserOut:
+    return await service.transfer_user(identifier, transfer_in)

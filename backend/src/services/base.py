@@ -89,9 +89,7 @@ class ResourceService[
         if validation_callback:
             await validation_callback()
 
-        return await self.repo.update(
-            model, **schema_in.model_dump(exclude_unset=True)
-        )
+        return await self.repo.update(model, **schema_in.model_dump(exclude_unset=True))
 
     async def delete(
         self,

@@ -2,11 +2,22 @@ import json
 from fastapi.testclient import TestClient
 import pytest
 
+from src.enums import PERMISSION_DESCRIPTIONS, Permission
 from tests.utils import (
     assert_filtering_of_items_list,
     assert_pagination,
     assert_sorting_of_items_list,
 )
+
+TOTAL_PERMISSIONS = len(Permission)
+
+
+def _assert_all_permissions(permissions: list[dict]) -> None:
+    assert len(permissions) == TOTAL_PERMISSIONS
+    perm_names = {p["name"] for p in permissions}
+    assert perm_names == {p.value for p in Permission}
+    for p in permissions:
+        assert p["description"] == PERMISSION_DESCRIPTIONS[Permission(p["name"])]
 
 
 def test_get_all_roles(admin_authenticated: TestClient) -> None:
@@ -25,121 +36,7 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
         == "Full access to all system features and settings."
     )
 
-    assert len(rs["items"][0]["permissions"]) == 19
-    assert rs["items"][0]["permissions"][0]["id"] == 1
-    assert rs["items"][0]["permissions"][0]["name"] == "read:company"
-    assert (
-        rs["items"][0]["permissions"][0]["description"]
-        == "Allows the user to read company accounts."
-    )
-    assert rs["items"][0]["permissions"][1]["id"] == 2
-    assert rs["items"][0]["permissions"][1]["name"] == "create:company"
-    assert (
-        rs["items"][0]["permissions"][1]["description"]
-        == "Allows the user to create new company accounts."
-    )
-    assert rs["items"][0]["permissions"][2]["id"] == 3
-    assert rs["items"][0]["permissions"][2]["name"] == "update:company"
-    assert (
-        rs["items"][0]["permissions"][2]["description"]
-        == "Allows the user to update company accounts."
-    )
-    assert rs["items"][0]["permissions"][3]["id"] == 4
-    assert rs["items"][0]["permissions"][3]["name"] == "delete:company"
-    assert (
-        rs["items"][0]["permissions"][3]["description"]
-        == "Allows the user to delete company accounts."
-    )
-    assert rs["items"][0]["permissions"][4]["id"] == 5
-    assert rs["items"][0]["permissions"][4]["name"] == "manage:company_user"
-    assert (
-        rs["items"][0]["permissions"][4]["description"]
-        == "Allows the user to manage companies' users."
-    )
-    assert rs["items"][0]["permissions"][5]["id"] == 6
-    assert rs["items"][0]["permissions"][5]["name"] == "read:user"
-    assert (
-        rs["items"][0]["permissions"][5]["description"]
-        == "Allows the user to read users."
-    )
-    assert rs["items"][0]["permissions"][6]["id"] == 7
-    assert rs["items"][0]["permissions"][6]["name"] == "create:user"
-    assert (
-        rs["items"][0]["permissions"][6]["description"]
-        == "Allows the user to create new users."
-    )
-    assert rs["items"][0]["permissions"][7]["id"] == 8
-    assert rs["items"][0]["permissions"][7]["name"] == "update:user"
-    assert (
-        rs["items"][0]["permissions"][7]["description"]
-        == "Allows the user to update users."
-    )
-    assert rs["items"][0]["permissions"][8]["id"] == 9
-    assert rs["items"][0]["permissions"][8]["name"] == "delete:user"
-    assert (
-        rs["items"][0]["permissions"][8]["description"]
-        == "Allows the user to delete users."
-    )
-    assert rs["items"][0]["permissions"][9]["id"] == 10
-    assert rs["items"][0]["permissions"][9]["name"] == "read:role"
-    assert (
-        rs["items"][0]["permissions"][9]["description"]
-        == "Allows the user to read roles."
-    )
-    assert rs["items"][0]["permissions"][10]["id"] == 11
-    assert rs["items"][0]["permissions"][10]["name"] == "create:role"
-    assert (
-        rs["items"][0]["permissions"][10]["description"]
-        == "Allows the user to create new roles."
-    )
-    assert rs["items"][0]["permissions"][11]["id"] == 12
-    assert rs["items"][0]["permissions"][11]["name"] == "update:role"
-    assert (
-        rs["items"][0]["permissions"][11]["description"]
-        == "Allows the user to update roles."
-    )
-    assert rs["items"][0]["permissions"][12]["id"] == 13
-    assert rs["items"][0]["permissions"][12]["name"] == "delete:role"
-    assert (
-        rs["items"][0]["permissions"][12]["description"]
-        == "Allows the user to delete roles."
-    )
-    assert rs["items"][0]["permissions"][13]["id"] == 14
-    assert rs["items"][0]["permissions"][13]["name"] == "manage:user_role"
-    assert (
-        rs["items"][0]["permissions"][13]["description"]
-        == "Allows the user to manage users' roles."
-    )
-    assert rs["items"][0]["permissions"][14]["id"] == 15
-    assert rs["items"][0]["permissions"][14]["name"] == "read:permission"
-    assert (
-        rs["items"][0]["permissions"][14]["description"]
-        == "Allows the user to read permissions."
-    )
-    assert rs["items"][0]["permissions"][15]["id"] == 16
-    assert rs["items"][0]["permissions"][15]["name"] == "create:permission"
-    assert (
-        rs["items"][0]["permissions"][15]["description"]
-        == "Allows the user to create new permissions."
-    )
-    assert rs["items"][0]["permissions"][16]["id"] == 17
-    assert rs["items"][0]["permissions"][16]["name"] == "update:permission"
-    assert (
-        rs["items"][0]["permissions"][16]["description"]
-        == "Allows the user to update permissions."
-    )
-    assert rs["items"][0]["permissions"][17]["id"] == 18
-    assert rs["items"][0]["permissions"][17]["name"] == "delete:permission"
-    assert (
-        rs["items"][0]["permissions"][17]["description"]
-        == "Allows the user to delete permissions."
-    )
-    assert rs["items"][0]["permissions"][18]["id"] == 19
-    assert rs["items"][0]["permissions"][18]["name"] == "manage:role_permission"
-    assert (
-        rs["items"][0]["permissions"][18]["description"]
-        == "Allows the user to manage roles' permissions."
-    )
+    _assert_all_permissions(rs["items"][0]["permissions"])
     assert rs["items"][0]["created_at"]
     assert rs["items"][0]["updated_at"]
 
@@ -147,18 +44,8 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
     assert rs["items"][1]["name"] == "standard"
     assert rs["items"][1]["description"] == "Access to manage and view own resources."
     assert len(rs["items"][1]["permissions"]) == 2
-    assert rs["items"][1]["permissions"][0]["id"] == 6
-    assert rs["items"][1]["permissions"][0]["name"] == "read:user"
-    assert (
-        rs["items"][1]["permissions"][0]["description"]
-        == "Allows the user to read users."
-    )
-    assert rs["items"][1]["permissions"][1]["id"] == 7
-    assert rs["items"][1]["permissions"][1]["name"] == "create:user"
-    assert (
-        rs["items"][1]["permissions"][1]["description"]
-        == "Allows the user to create new users."
-    )
+    standard_perm_names = {p["name"] for p in rs["items"][1]["permissions"]}
+    assert standard_perm_names == {"read:user", "create:user"}
     assert rs["items"][1]["created_at"]
     assert rs["items"][1]["updated_at"]
 
@@ -315,114 +202,7 @@ def test_update_a_role(admin_authenticated: TestClient) -> None:
     assert rs["name"] == "Administrator"
     assert rs["description"] == "Full access to all system features and settings."
 
-    assert len(rs["permissions"]) == 19
-    assert rs["permissions"][0]["id"] == 1
-    assert rs["permissions"][0]["name"] == "read:company"
-    assert (
-        rs["permissions"][0]["description"]
-        == "Allows the user to read company accounts."
-    )
-
-    assert rs["permissions"][1]["id"] == 2
-    assert rs["permissions"][1]["name"] == "create:company"
-    assert (
-        rs["permissions"][1]["description"]
-        == "Allows the user to create new company accounts."
-    )
-
-    assert rs["permissions"][2]["id"] == 3
-    assert rs["permissions"][2]["name"] == "update:company"
-    assert (
-        rs["permissions"][2]["description"]
-        == "Allows the user to update company accounts."
-    )
-
-    assert rs["permissions"][3]["id"] == 4
-    assert rs["permissions"][3]["name"] == "delete:company"
-    assert (
-        rs["permissions"][3]["description"]
-        == "Allows the user to delete company accounts."
-    )
-
-    assert rs["permissions"][4]["id"] == 5
-    assert rs["permissions"][4]["name"] == "manage:company_user"
-    assert (
-        rs["permissions"][4]["description"]
-        == "Allows the user to manage companies' users."
-    )
-
-    assert rs["permissions"][5]["id"] == 6
-    assert rs["permissions"][5]["name"] == "read:user"
-    assert rs["permissions"][5]["description"] == "Allows the user to read users."
-
-    assert rs["permissions"][6]["id"] == 7
-    assert rs["permissions"][6]["name"] == "create:user"
-    assert rs["permissions"][6]["description"] == "Allows the user to create new users."
-
-    assert rs["permissions"][7]["id"] == 8
-    assert rs["permissions"][7]["name"] == "update:user"
-    assert rs["permissions"][7]["description"] == "Allows the user to update users."
-
-    assert rs["permissions"][8]["id"] == 9
-    assert rs["permissions"][8]["name"] == "delete:user"
-    assert rs["permissions"][8]["description"] == "Allows the user to delete users."
-
-    assert rs["permissions"][9]["id"] == 10
-    assert rs["permissions"][9]["name"] == "read:role"
-    assert rs["permissions"][9]["description"] == "Allows the user to read roles."
-
-    assert rs["permissions"][10]["id"] == 11
-    assert rs["permissions"][10]["name"] == "create:role"
-    assert (
-        rs["permissions"][10]["description"] == "Allows the user to create new roles."
-    )
-
-    assert rs["permissions"][11]["id"] == 12
-    assert rs["permissions"][11]["name"] == "update:role"
-    assert rs["permissions"][11]["description"] == "Allows the user to update roles."
-
-    assert rs["permissions"][12]["id"] == 13
-    assert rs["permissions"][12]["name"] == "delete:role"
-    assert rs["permissions"][12]["description"] == "Allows the user to delete roles."
-
-    assert rs["permissions"][13]["id"] == 14
-    assert rs["permissions"][13]["name"] == "manage:user_role"
-    assert (
-        rs["permissions"][13]["description"]
-        == "Allows the user to manage users' roles."
-    )
-
-    assert rs["permissions"][14]["id"] == 15
-    assert rs["permissions"][14]["name"] == "read:permission"
-    assert (
-        rs["permissions"][14]["description"] == "Allows the user to read permissions."
-    )
-
-    assert rs["permissions"][15]["id"] == 16
-    assert rs["permissions"][15]["name"] == "create:permission"
-    assert (
-        rs["permissions"][15]["description"]
-        == "Allows the user to create new permissions."
-    )
-
-    assert rs["permissions"][16]["id"] == 17
-    assert rs["permissions"][16]["name"] == "update:permission"
-    assert (
-        rs["permissions"][16]["description"] == "Allows the user to update permissions."
-    )
-
-    assert rs["permissions"][17]["id"] == 18
-    assert rs["permissions"][17]["name"] == "delete:permission"
-    assert (
-        rs["permissions"][17]["description"] == "Allows the user to delete permissions."
-    )
-
-    assert rs["permissions"][18]["id"] == 19
-    assert rs["permissions"][18]["name"] == "manage:role_permission"
-    assert (
-        rs["permissions"][18]["description"]
-        == "Allows the user to manage roles' permissions."
-    )
+    _assert_all_permissions(rs["permissions"])
 
     assert rs["created_at"]
     assert rs["updated_at"]
@@ -437,218 +217,45 @@ def test_retrieve_a_role(admin_authenticated: TestClient) -> None:
     assert rs["name"] == "admin"
     assert rs["description"] == "Full access to all system features and settings."
 
-    assert len(rs["permissions"]) == 19
-    assert rs["permissions"][0]["id"] == 1
-    assert rs["permissions"][0]["name"] == "read:company"
-    assert (
-        rs["permissions"][0]["description"]
-        == "Allows the user to read company accounts."
-    )
-
-    assert rs["permissions"][1]["id"] == 2
-    assert rs["permissions"][1]["name"] == "create:company"
-    assert (
-        rs["permissions"][1]["description"]
-        == "Allows the user to create new company accounts."
-    )
-
-    assert rs["permissions"][2]["id"] == 3
-    assert rs["permissions"][2]["name"] == "update:company"
-    assert (
-        rs["permissions"][2]["description"]
-        == "Allows the user to update company accounts."
-    )
-
-    assert rs["permissions"][3]["id"] == 4
-    assert rs["permissions"][3]["name"] == "delete:company"
-    assert (
-        rs["permissions"][3]["description"]
-        == "Allows the user to delete company accounts."
-    )
-
-    assert rs["permissions"][4]["id"] == 5
-    assert rs["permissions"][4]["name"] == "manage:company_user"
-    assert (
-        rs["permissions"][4]["description"]
-        == "Allows the user to manage companies' users."
-    )
-
-    assert rs["permissions"][5]["id"] == 6
-    assert rs["permissions"][5]["name"] == "read:user"
-    assert rs["permissions"][5]["description"] == "Allows the user to read users."
-
-    assert rs["permissions"][6]["id"] == 7
-    assert rs["permissions"][6]["name"] == "create:user"
-    assert rs["permissions"][6]["description"] == "Allows the user to create new users."
-
-    assert rs["permissions"][7]["id"] == 8
-    assert rs["permissions"][7]["name"] == "update:user"
-    assert rs["permissions"][7]["description"] == "Allows the user to update users."
-
-    assert rs["permissions"][8]["id"] == 9
-    assert rs["permissions"][8]["name"] == "delete:user"
-    assert rs["permissions"][8]["description"] == "Allows the user to delete users."
-
-    assert rs["permissions"][9]["id"] == 10
-    assert rs["permissions"][9]["name"] == "read:role"
-    assert rs["permissions"][9]["description"] == "Allows the user to read roles."
-
-    assert rs["permissions"][10]["id"] == 11
-    assert rs["permissions"][10]["name"] == "create:role"
-    assert (
-        rs["permissions"][10]["description"] == "Allows the user to create new roles."
-    )
-
-    assert rs["permissions"][11]["id"] == 12
-    assert rs["permissions"][11]["name"] == "update:role"
-    assert rs["permissions"][11]["description"] == "Allows the user to update roles."
-
-    assert rs["permissions"][12]["id"] == 13
-    assert rs["permissions"][12]["name"] == "delete:role"
-    assert rs["permissions"][12]["description"] == "Allows the user to delete roles."
-
-    assert rs["permissions"][13]["id"] == 14
-    assert rs["permissions"][13]["name"] == "manage:user_role"
-    assert (
-        rs["permissions"][13]["description"]
-        == "Allows the user to manage users' roles."
-    )
-
-    assert rs["permissions"][14]["id"] == 15
-    assert rs["permissions"][14]["name"] == "read:permission"
-    assert (
-        rs["permissions"][14]["description"] == "Allows the user to read permissions."
-    )
-
-    assert rs["permissions"][15]["id"] == 16
-    assert rs["permissions"][15]["name"] == "create:permission"
-    assert (
-        rs["permissions"][15]["description"]
-        == "Allows the user to create new permissions."
-    )
-
-    assert rs["permissions"][16]["id"] == 17
-    assert rs["permissions"][16]["name"] == "update:permission"
-    assert (
-        rs["permissions"][16]["description"] == "Allows the user to update permissions."
-    )
-
-    assert rs["permissions"][17]["id"] == 18
-    assert rs["permissions"][17]["name"] == "delete:permission"
-    assert (
-        rs["permissions"][17]["description"] == "Allows the user to delete permissions."
-    )
-
-    assert rs["permissions"][18]["id"] == 19
-    assert rs["permissions"][18]["name"] == "manage:role_permission"
-    assert (
-        rs["permissions"][18]["description"]
-        == "Allows the user to manage roles' permissions."
-    )
+    _assert_all_permissions(rs["permissions"])
 
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
 def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/permissions?page_size=50")
+    all_perms = response.json()["items"]
+    user_perm_ids = [p["id"] for p in all_perms if "user" in p["name"] or "role" in p["name"] or "permission" in p["name"]]
+
     response = admin_authenticated.post(
         "/v1/roles/1/permissions",
         json={
-            "permission_ids": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+            "permission_ids": user_perm_ids,
         },
     )
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
     assert rs["name"] == "admin"
-    assert rs["description"] == "Full access to all system features and settings."
-
-    assert len(rs["permissions"]) == 14
-    assert rs["permissions"][0]["id"] == 6
-    assert rs["permissions"][0]["name"] == "read:user"
-    assert rs["permissions"][0]["description"] == "Allows the user to read users."
-
-    assert rs["permissions"][1]["id"] == 7
-    assert rs["permissions"][1]["name"] == "create:user"
-    assert rs["permissions"][1]["description"] == "Allows the user to create new users."
-
-    assert rs["permissions"][2]["id"] == 8
-    assert rs["permissions"][2]["name"] == "update:user"
-    assert rs["permissions"][2]["description"] == "Allows the user to update users."
-
-    assert rs["permissions"][3]["id"] == 9
-    assert rs["permissions"][3]["name"] == "delete:user"
-    assert rs["permissions"][3]["description"] == "Allows the user to delete users."
-
-    assert rs["permissions"][4]["id"] == 10
-    assert rs["permissions"][4]["name"] == "read:role"
-    assert rs["permissions"][4]["description"] == "Allows the user to read roles."
-
-    assert rs["permissions"][5]["id"] == 11
-    assert rs["permissions"][5]["name"] == "create:role"
-    assert rs["permissions"][5]["description"] == "Allows the user to create new roles."
-
-    assert rs["permissions"][6]["id"] == 12
-    assert rs["permissions"][6]["name"] == "update:role"
-    assert rs["permissions"][6]["description"] == "Allows the user to update roles."
-
-    assert rs["permissions"][7]["id"] == 13
-    assert rs["permissions"][7]["name"] == "delete:role"
-    assert rs["permissions"][7]["description"] == "Allows the user to delete roles."
-
-    assert rs["permissions"][8]["id"] == 14
-    assert rs["permissions"][8]["name"] == "manage:user_role"
-    assert (
-        rs["permissions"][8]["description"] == "Allows the user to manage users' roles."
-    )
-
-    assert rs["permissions"][9]["id"] == 15
-    assert rs["permissions"][9]["name"] == "read:permission"
-    assert rs["permissions"][9]["description"] == "Allows the user to read permissions."
-
-    assert rs["permissions"][10]["id"] == 16
-    assert rs["permissions"][10]["name"] == "create:permission"
-    assert (
-        rs["permissions"][10]["description"]
-        == "Allows the user to create new permissions."
-    )
-
-    assert rs["permissions"][11]["id"] == 17
-    assert rs["permissions"][11]["name"] == "update:permission"
-    assert (
-        rs["permissions"][11]["description"] == "Allows the user to update permissions."
-    )
-
-    assert rs["permissions"][12]["id"] == 18
-    assert rs["permissions"][12]["name"] == "delete:permission"
-    assert (
-        rs["permissions"][12]["description"] == "Allows the user to delete permissions."
-    )
-
-    assert rs["permissions"][13]["id"] == 19
-    assert rs["permissions"][13]["name"] == "manage:role_permission"
-    assert (
-        rs["permissions"][13]["description"]
-        == "Allows the user to manage roles' permissions."
-    )
+    assert len(rs["permissions"]) == len(user_perm_ids)
 
     assert rs["created_at"]
     assert rs["updated_at"]
 
+    read_company_id = next(p["id"] for p in all_perms if p["name"] == "read:company")
     response = admin_authenticated.post(
         "/v1/roles/1/permissions",
         json={
-            "permission_ids": [1],
+            "permission_ids": [read_company_id],
         },
     )
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
     assert rs["name"] == "admin"
-    assert rs["description"] == "Full access to all system features and settings."
 
     assert len(rs["permissions"]) == 1
-    assert rs["permissions"][0]["id"] == 1
     assert rs["permissions"][0]["name"] == "read:company"
     assert (
         rs["permissions"][0]["description"]

@@ -61,3 +61,7 @@ class ChangePasswordIn(BaseModel):
 
 class UserRoleIn(BaseModel):
     role_ids: list[int] = Field(default_factory=list)
+
+
+class UserTransferIn(BaseModel):
+    company_id: int

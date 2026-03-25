@@ -12,7 +12,7 @@ from src.routers.query_options import (
     SortQuery,
 )
 from src.schemas.common import PageQueryParams, PaginatedResponse
-from src.schemas.permission import PermissionIn, PermissionOut, PermissionPatch
+from src.schemas.permission import PermissionOut
 from src.services.permission import PermissionService
 
 # pylint: disable=too-many-arguments
@@ -41,35 +41,6 @@ async def get_all_permissions(
     )
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
-async def create_a_permission(
-    service: Annotated[PermissionService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.CREATE_PERMISSION))],
-    permission_in: PermissionIn,
-) -> PermissionOut:
-    return await service.create_permission(permission_in)
-
-
-@router.put("/{identifier}", status_code=status.HTTP_200_OK)
-async def update_a_permission(
-    service: Annotated[PermissionService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.UPDATE_PERMISSION))],
-    identifier: Annotated[int, Path()],
-    permission_in: PermissionIn,
-) -> PermissionOut:
-    return await service.update_permission(identifier, permission_in)
-
-
-@router.patch("/{identifier}", status_code=status.HTTP_200_OK)
-async def patch_a_permission(
-    service: Annotated[PermissionService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.UPDATE_PERMISSION))],
-    identifier: Annotated[int, Path()],
-    permission_in: PermissionPatch,
-) -> PermissionOut:
-    return await service.patch_permission(identifier, permission_in)
-
-
 @router.get("/{identifier}", status_code=status.HTTP_200_OK)
 async def retrieve_a_permission(
     service: Annotated[PermissionService, Depends()],
@@ -77,12 +48,3 @@ async def retrieve_a_permission(
     identifier: Annotated[int, Path()],
 ) -> PermissionOut:
     return await service.get_permission(identifier)
-
-
-@router.delete("/{identifier}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_a_permission(
-    service: Annotated[PermissionService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.DELETE_PERMISSION))],
-    identifier: Annotated[int, Path()],
-) -> None:
-    await service.delete_permission(identifier)

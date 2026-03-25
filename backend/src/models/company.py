@@ -20,5 +20,9 @@ class Company(Base, DeleteTimestampMixin, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
 
-    users: Mapped[list["User"]] = relationship(back_populates="company", lazy="joined")
-    roles: Mapped[list["Role"]] = relationship(back_populates="company")
+    users: Mapped[list["User"]] = relationship(
+        back_populates="company", lazy="joined", passive_deletes=True
+    )
+    roles: Mapped[list["Role"]] = relationship(
+        back_populates="company", passive_deletes=True
+    )

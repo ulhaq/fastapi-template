@@ -21,7 +21,10 @@ class Permission(Base, DeleteTimestampMixin, TimestampMixin):
     description: Mapped[str] = mapped_column(String, nullable=True)
 
     roles: Mapped[list["Role"]] = relationship(
-        "Role", secondary="role_permission", back_populates="permissions"
+        "Role",
+        secondary="role_permission",
+        back_populates="permissions",
+        passive_deletes=True,
     )
 
 
@@ -32,5 +35,9 @@ class RolePermission(Base, TimestampMixin):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    role_id: Mapped[int] = mapped_column(Integer, ForeignKey("role.id"))
-    permission_id: Mapped[int] = mapped_column(Integer, ForeignKey("permission.id"))
+    role_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("role.id", ondelete="CASCADE")
+    )
+    permission_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("permission.id", ondelete="CASCADE")
+    )

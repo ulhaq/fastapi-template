@@ -317,9 +317,7 @@ class CompanyScopedRepository[ModelType: Base](SQLResourceRepository[ModelType])
 
     def _apply_company_scope(self, stmt: Select) -> Select:
         if self._company_id is not None:
-            return stmt.filter(
-                getattr(self.model, "company_id") == self._company_id
-            )
+            return stmt.filter(getattr(self.model, "company_id") == self._company_id)
         return stmt
 
     async def get_one(
@@ -381,9 +379,7 @@ class CompanyScopedRepository[ModelType: Base](SQLResourceRepository[ModelType])
         return rs.unique().scalars().all()
 
     async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
-        stmt = select(
-            exists().where(getattr(self.model, "id") == identifier)
-        )
+        stmt = select(exists().where(getattr(self.model, "id") == identifier))
         stmt = self._apply_company_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 

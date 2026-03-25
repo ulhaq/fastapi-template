@@ -11,6 +11,8 @@ from sqlalchemy import StaticPool
 
 from src.core.database import Base, get_db
 from src.core.security import hash_secret
+from src.enums import PERMISSION_DESCRIPTIONS
+from src.enums import Permission as PermissionEnum
 from src.main import app
 from src.models.company import Company
 from src.models.role import Role
@@ -46,10 +48,11 @@ async def prepare_database() -> AsyncGenerator[None]:
         session.add_all(companies)
 
         permissions = []
-        for permission in INIT_AUTH_DATA["permissions"]:
+        for permission in PermissionEnum:
             permissions.append(
                 Permission(
-                    name=permission["name"], description=permission["description"]
+                    name=permission.value,
+                    description=PERMISSION_DESCRIPTIONS[permission],
                 )
             )
         session.add_all(permissions)
@@ -123,3 +126,17 @@ def standard_authenticated(client: TestClient) -> TestClient:
     client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
 
     return client
+
+
+@pytest.fixture
+def company2_admin_authenticated() -> Generator[TestClient, None, None]:
+    with TestClient(app) as c:
+        rs = c.post(
+            "/v1/auth/token",
+            data={"username": "admin2@example.org", "password": "password"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        ).json()
+
+        c.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
+
+        yield c

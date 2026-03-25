@@ -25,13 +25,17 @@ class User(Base, DeleteTimestampMixin, TimestampMixin):
     password: Mapped[str] = mapped_column(String, nullable=False)
     company_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("company.id", name="fk_user_company_id_company"),
+        ForeignKey("company.id", name="fk_user_company_id_company", ondelete="CASCADE"),
         nullable=False,
     )
 
     company: Mapped["Company"] = relationship("Company", back_populates="users")
     roles: Mapped[list["Role"]] = relationship(
-        "Role", secondary="user_role", back_populates="users", lazy="joined"
+        "Role",
+        secondary="user_role",
+        back_populates="users",
+        lazy="joined",
+        passive_deletes=True,
     )
     password_reset_token: Mapped["PasswordResetToken"] = relationship(
         back_populates="user", cascade="all, delete-orphan"

@@ -8,7 +8,7 @@ from src.models.password_reset_token import PasswordResetToken
 from src.models.role import Role
 from src.models.user import User
 from src.repositories.abc import ResourceRepositoryABC
-from src.repositories.base import SQLResourceRepository
+from src.repositories.base import CompanyScopedRepository
 
 
 class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
@@ -41,7 +41,7 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
     ) -> None: ...
 
 
-class UserRepository(SQLResourceRepository[User], UserRepositoryABC):
+class UserRepository(CompanyScopedRepository[User], UserRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(User, db)
 

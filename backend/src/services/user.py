@@ -8,6 +8,7 @@ from src.core.config import settings
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
+    NotFoundException,
     PermissionDeniedException,
 )
 from src.core.security import Auth, authenticate_user, hash_secret, sign
@@ -22,6 +23,7 @@ from src.schemas.user import (
     UserOut,
     UserPatch,
     UserRoleIn,
+    UserTransferIn,
 )
 from src.services.base import ResourceService
 from src.services.utils import send_email
@@ -40,6 +42,7 @@ class UserService(
         current_user: Annotated[Auth, Depends(authenticate)],
     ):
         self.repo = repos.user
+        self.repo.set_company_scope(current_user.company_id)
         self.current_user = current_user
         super().__init__(repos)
 
@@ -135,11 +138,6 @@ class UserService(
         return UserOut.model_validate(user)
 
     async def delete_user(self, identifier: int) -> None:
-        user = await self.get(identifier)
-        if user.company_id != self.current_user.company_id:
-            raise PermissionDeniedException(
-                "You are not allowed to delete users from other companies"
-            )
         await super().delete(identifier)
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
@@ -149,18 +147,14 @@ class UserService(
             )
 
         user = await self.get(identifier)
-        if user.company_id != self.current_user.company_id:
-            raise PermissionDeniedException(
-                "You are not allowed to manage roles of users from other companies"
-            )
 
         if schema_in.role_ids:
+            self.repos.role.set_company_scope(self.current_user.company_id)
             roles = await self.repos.role.filter_by_ids(schema_in.role_ids)
-            for role in roles:
-                if role.company_id != self.current_user.company_id:
-                    raise PermissionDeniedException(
-                        f"Role does not belong to your company. [role_id={role.id}]"
-                    )
+            if len(roles) != len(schema_in.role_ids):
+                raise PermissionDeniedException(
+                    "One or more roles do not belong to your company"
+                )
 
         current_roles = {role.id for role in user.roles}
         schema_in_role_ids = set(schema_in.role_ids)
@@ -170,5 +164,31 @@ class UserService(
 
         if roles_to_remove := current_roles - schema_in_role_ids:
             await self.repo.remove_roles(user, *roles_to_remove)
+
+        return UserOut.model_validate(user)
+
+    async def transfer_user(
+        self, identifier: int, schema_in: UserTransferIn
+    ) -> UserOut:
+        if self.current_user.id == identifier:
+            raise PermissionDeniedException("You are not allowed to transfer yourself")
+
+        user = await self.get(identifier)
+
+        target_company = await self.repos.company.get(schema_in.company_id)
+        if not target_company:
+            raise NotFoundException(
+                f"Company not found. [identifier={schema_in.company_id}]"
+            )
+
+        if user.company_id == schema_in.company_id:
+            raise PermissionDeniedException(
+                "User already belongs to the target company"
+            )
+
+        if user.roles:
+            await self.repo.remove_roles(user, *[role.id for role in user.roles])
+
+        user = await self.repo.update(user, company_id=schema_in.company_id)
 
         return UserOut.model_validate(user)

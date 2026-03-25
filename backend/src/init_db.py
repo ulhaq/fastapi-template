@@ -6,6 +6,7 @@ import sys
 
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
+from sqlalchemy import select
 
 from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.logging import LOGGING_CONFIG
@@ -29,84 +30,6 @@ INIT_AUTH_DATA: dict = {
         },
         {
             "name": "Company 2",
-        },
-    ],
-    "permissions": [
-        {
-            "name": "read:company",
-            "description": "Allows the user to read company accounts.",
-        },
-        {
-            "name": "create:company",
-            "description": "Allows the user to create new company accounts.",
-        },
-        {
-            "name": "update:company",
-            "description": "Allows the user to update company accounts.",
-        },
-        {
-            "name": "delete:company",
-            "description": "Allows the user to delete company accounts.",
-        },
-        {
-            "name": "manage:company_user",
-            "description": "Allows the user to manage companies' users.",
-        },
-        {
-            "name": "read:user",
-            "description": "Allows the user to read users.",
-        },
-        {
-            "name": "create:user",
-            "description": "Allows the user to create new users.",
-        },
-        {
-            "name": "update:user",
-            "description": "Allows the user to update users.",
-        },
-        {
-            "name": "delete:user",
-            "description": "Allows the user to delete users.",
-        },
-        {
-            "name": "read:role",
-            "description": "Allows the user to read roles.",
-        },
-        {
-            "name": "create:role",
-            "description": "Allows the user to create new roles.",
-        },
-        {
-            "name": "update:role",
-            "description": "Allows the user to update roles.",
-        },
-        {
-            "name": "delete:role",
-            "description": "Allows the user to delete roles.",
-        },
-        {
-            "name": "manage:user_role",
-            "description": "Allows the user to manage users' roles.",
-        },
-        {
-            "name": "read:permission",
-            "description": "Allows the user to read permissions.",
-        },
-        {
-            "name": "create:permission",
-            "description": "Allows the user to create new permissions.",
-        },
-        {
-            "name": "update:permission",
-            "description": "Allows the user to update permissions.",
-        },
-        {
-            "name": "delete:permission",
-            "description": "Allows the user to delete permissions.",
-        },
-        {
-            "name": "manage:role_permission",
-            "description": "Allows the user to manage roles' permissions.",
         },
     ],
     "roles": [
@@ -157,6 +80,13 @@ INIT_AUTH_DATA: dict = {
             "company": 1,
             "roles": [],
         },
+        {
+            "name": "Admin 2",
+            "email": "admin2@example.org",
+            "password": "password",
+            "company": 2,
+            "roles": [3],
+        },
     ],
 }
 
@@ -170,14 +100,8 @@ async def up() -> None:
             companies.append(Company(name=company["name"]))
         session.add_all(companies)
 
-        permissions = []
-        for permission in INIT_AUTH_DATA["permissions"]:
-            permissions.append(
-                PermissionModel(
-                    name=permission["name"], description=permission["description"]
-                )
-            )
-        session.add_all(permissions)
+        rs = await session.execute(select(PermissionModel))
+        permissions = list(rs.scalars().all())
 
         roles = []
         for role in INIT_AUTH_DATA["roles"]:
