@@ -63,7 +63,6 @@ class Permission(StrEnum):
     CREATE_USER = "create:user"
     UPDATE_USER = "update:user"
     DELETE_USER = "delete:user"
-    TRANSFER_USER = "transfer:user"
     READ_ROLE = "read:role"
     CREATE_ROLE = "create:role"
     UPDATE_ROLE = "update:role"
@@ -83,7 +82,6 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.CREATE_USER: "Allows the user to create new users.",
     Permission.UPDATE_USER: "Allows the user to update users.",
     Permission.DELETE_USER: "Allows the user to delete users.",
-    Permission.TRANSFER_USER: "Allows the user to transfer users between tenants.",
     Permission.READ_ROLE: "Allows the user to read roles.",
     Permission.CREATE_ROLE: "Allows the user to create new roles.",
     Permission.UPDATE_ROLE: "Allows the user to update roles.",

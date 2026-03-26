@@ -16,7 +16,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TenantIn"
+                "$ref": "#/components/schemas/UserIn"
               }
             }
           },
@@ -28,7 +28,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TenantOut"
+                  "$ref": "#/components/schemas/UserOut"
                 }
               }
             }
@@ -915,25 +915,31 @@
         ]
       }
     },
-    "/v1/users": {
-      "post": {
+    "/v1/users/{identifier}": {
+      "get": {
         "tags": [
           "Users"
         ],
-        "summary": "Create A User",
-        "operationId": "create_a_user_v1_users_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserIn"
-              }
+        "summary": "Get A User",
+        "operationId": "get_a_user_v1_users__identifier__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Identifier"
             }
-          },
-          "required": true
-        },
+          }
+        ],
         "responses": {
-          "201": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -962,16 +968,19 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
-      }
-    },
-    "/v1/users/{identifier}": {
+        }
+      },
       "delete": {
         "tags": [
           "Users"
@@ -1031,41 +1040,25 @@
         }
       }
     },
-    "/v1/users/{identifier}/roles": {
+    "/v1/users": {
       "post": {
         "tags": [
           "Users"
         ],
-        "summary": "Manage Roles Of A User",
-        "operationId": "manage_roles_of_a_user_v1_users__identifier__roles_post",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "identifier",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Identifier"
-            }
-          }
-        ],
+        "summary": "Create A User",
+        "operationId": "create_a_user_v1_users_post",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserRoleIn"
+                "$ref": "#/components/schemas/UserIn"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -1095,16 +1088,21 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
       }
     },
-    "/v1/users/{identifier}/transfer": {
+    "/v1/users/{identifier}/roles": {
       "post": {
         "tags": [
           "Users"
         ],
-        "summary": "Transfer A User",
-        "operationId": "transfer_a_user_v1_users__identifier__transfer_post",
+        "summary": "Manage Roles Of A User",
+        "operationId": "manage_roles_of_a_user_v1_users__identifier__roles_post",
         "security": [
           {
             "OAuth2PasswordBearer": []
@@ -1126,7 +1124,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserTransferIn"
+                "$ref": "#/components/schemas/UserRoleIn"
               }
             }
           }
@@ -1911,7 +1909,7 @@
           },
           "new_password": {
             "type": "string",
-            "minLength": 6,
+            "minLength": 8,
             "title": "New Password"
           },
           "confirm_password": {
@@ -2132,7 +2130,7 @@
           },
           "password": {
             "type": "string",
-            "minLength": 6,
+            "minLength": 8,
             "title": "Password"
           }
         },
@@ -2282,32 +2280,6 @@
         ],
         "title": "TenantBase"
       },
-      "TenantIn": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Name"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 6,
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "email",
-          "password"
-        ],
-        "title": "TenantIn"
-      },
       "TenantOut": {
         "properties": {
           "created_at": {
@@ -2421,7 +2393,7 @@
           },
           "password": {
             "type": "string",
-            "minLength": 6,
+            "minLength": 8,
             "title": "Password"
           }
         },
@@ -2459,7 +2431,6 @@
           },
           "email": {
             "type": "string",
-            "format": "email",
             "title": "Email"
           },
           "id": {
@@ -2526,19 +2497,6 @@
         },
         "type": "object",
         "title": "UserRoleIn"
-      },
-      "UserTransferIn": {
-        "properties": {
-          "tenant_id": {
-            "type": "integer",
-            "title": "Tenant Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "tenant_id"
-        ],
-        "title": "UserTransferIn"
       },
       "ValidationError": {
         "properties": {

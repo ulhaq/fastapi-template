@@ -10,9 +10,7 @@ def test_cannot_get_other_tenant(tenant2_admin_authenticated: TestClient) -> Non
 
 
 def test_cannot_update_other_tenant(tenant2_admin_authenticated: TestClient) -> None:
-    response = tenant2_admin_authenticated.put(
-        "/v1/tenants/1", json={"name": "Hacked"}
-    )
+    response = tenant2_admin_authenticated.put("/v1/tenants/1", json={"name": "Hacked"})
     assert response.status_code == 403
 
 
@@ -57,15 +55,6 @@ def test_cannot_manage_roles_of_other_tenant_user(
     assert response.status_code == 404
 
 
-def test_cannot_transfer_other_tenant_user(
-    tenant2_admin_authenticated: TestClient,
-) -> None:
-    response = tenant2_admin_authenticated.post(
-        "/v1/users/1/transfer", json={"tenant_id": 2}
-    )
-    assert response.status_code == 404
-
-
 # --- Role isolation ---
 
 
@@ -88,9 +77,7 @@ def test_cannot_update_other_tenant_role(
 def test_cannot_patch_other_tenant_role(
     tenant2_admin_authenticated: TestClient,
 ) -> None:
-    response = tenant2_admin_authenticated.patch(
-        "/v1/roles/1", json={"name": "hacked"}
-    )
+    response = tenant2_admin_authenticated.patch("/v1/roles/1", json={"name": "hacked"})
     assert response.status_code == 404
 
 
@@ -133,47 +120,5 @@ def test_cannot_assign_other_tenant_role_to_own_user(
     admin_authenticated: TestClient,
 ) -> None:
     # Role 3 belongs to Tenant 2; user 2 belongs to Tenant 1
-    response = admin_authenticated.post(
-        "/v1/users/2/roles", json={"role_ids": [3]}
-    )
+    response = admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [3]})
     assert response.status_code == 403
-
-
-# --- User transfer ---
-
-
-def test_transfer_user_strips_roles(admin_authenticated: TestClient) -> None:
-    # User 2 (standard) has role 2 in Tenant 1
-    response = admin_authenticated.post(
-        "/v1/users/2/transfer", json={"tenant_id": 2}
-    )
-    assert response.status_code == 200
-    rs = response.json()
-    assert rs["roles"] == []
-
-
-def test_cannot_transfer_self(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.post(
-        "/v1/users/1/transfer", json={"tenant_id": 2}
-    )
-    assert response.status_code == 403
-    rs = response.json()
-    assert rs["msg"] == "You are not allowed to transfer yourself"
-
-
-def test_cannot_transfer_to_nonexistent_tenant(
-    admin_authenticated: TestClient,
-) -> None:
-    response = admin_authenticated.post(
-        "/v1/users/2/transfer", json={"tenant_id": 999}
-    )
-    assert response.status_code == 404
-
-
-def test_cannot_transfer_to_same_tenant(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.post(
-        "/v1/users/2/transfer", json={"tenant_id": 1}
-    )
-    assert response.status_code == 403
-    rs = response.json()
-    assert rs["msg"] == "User already belongs to the target tenant"

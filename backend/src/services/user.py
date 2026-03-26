@@ -6,11 +6,7 @@ from fastapi import Depends
 
 from src.core.config import settings
 from src.core.dependencies import authenticate
-from src.core.exceptions import (
-    AlreadyExistsException,
-    NotFoundException,
-    PermissionDeniedException,
-)
+from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
 from src.core.security import Auth, authenticate_user, hash_secret, sign
 from src.enums import ErrorCode, Permission
 from src.models.user import User
@@ -23,7 +19,6 @@ from src.schemas.user import (
     UserOut,
     UserPatch,
     UserRoleIn,
-    UserTransferIn,
 )
 from src.services.base import ResourceService
 from src.services.utils import send_email
@@ -196,30 +191,5 @@ class UserService(
 
         if roles_to_remove := current_roles - schema_in_role_ids:
             await self.repo.remove_roles(user, *roles_to_remove)
-
-        return UserOut.model_validate(user)
-
-    async def transfer_user(
-        self, identifier: int, schema_in: UserTransferIn
-    ) -> UserOut:
-        if self.current_user.id == identifier:
-            raise PermissionDeniedException("You are not allowed to transfer yourself")
-
-        user = await self.get(identifier)
-        await self._assert_not_last_admin(user)
-
-        target_tenant = await self.repos.tenant.get(schema_in.tenant_id)
-        if not target_tenant:
-            raise NotFoundException(
-                f"Tenant not found. [identifier={schema_in.tenant_id}]"
-            )
-
-        if user.tenant_id == schema_in.tenant_id:
-            raise PermissionDeniedException("User already belongs to the target tenant")
-
-        if user.roles:
-            await self.repo.remove_roles(user, *[role.id for role in user.roles])
-
-        user = await self.repo.update(user, tenant_id=schema_in.tenant_id)
 
         return UserOut.model_validate(user)
