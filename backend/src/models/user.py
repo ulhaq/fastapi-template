@@ -1,16 +1,17 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.models.mixins import DeleteTimestampMixin, TimestampMixin
-from src.models.tenant import Tenant
 
 if TYPE_CHECKING:
     from src.models.password_reset_token import PasswordResetToken
     from src.models.refresh_token import RefreshToken
     from src.models.role import Role
+    from src.models.tenant import Tenant
+    from src.models.user_tenant import UserTenant
 
 
 # pylint: disable=too-few-public-methods
@@ -23,13 +24,22 @@ class User(Base, DeleteTimestampMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
-    tenant_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("tenant.id", name="fk_user_tenant_id_tenant", ondelete="CASCADE"),
-        nullable=False,
-    )
 
-    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="users")
+    tenants: Mapped[list["Tenant"]] = relationship(
+        "Tenant",
+        secondary="user_tenant",
+        back_populates="users",
+        lazy="selectin",
+        passive_deletes=True,
+    )
+    user_tenants: Mapped[list["UserTenant"]] = relationship(
+        "UserTenant",
+        lazy="selectin",
+        passive_deletes=True,
+        cascade="all, delete-orphan",
+        foreign_keys="[UserTenant.user_id]",
+        overlaps="tenants,users",
+    )
     roles: Mapped[list["Role"]] = relationship(
         "Role",
         secondary="user_role",

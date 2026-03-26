@@ -4,10 +4,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, stat
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.core.config import settings
+from src.core.dependencies import authenticate
 from src.core.limiter import limiter
-from src.core.security import Token
+from src.core.security import Auth, Token
 from src.schemas.user import EmailIn, ResetPasswordIn, UserIn, UserOut
-from src.services.auth import AuthService
+from src.services.auth import AuthService, SwitchTenantIn
 
 router = APIRouter(prefix="/auth")
 
@@ -98,3 +99,15 @@ async def reset_password(
     reset_password_in: ResetPasswordIn,
 ) -> None:
     await service.reset_password(reset_password_in)
+
+
+@router.post("/switch-tenant", status_code=status.HTTP_200_OK)
+async def switch_tenant(
+    response: Response,
+    service: Annotated[AuthService, Depends()],
+    current_user: Annotated[Auth, Depends(authenticate)],
+    switch_in: SwitchTenantIn,
+) -> Token:
+    token = await service.switch_tenant(current_user, switch_in.tenant_id)
+    _set_refresh_token_cookie(response, token.refresh_token)
+    return token

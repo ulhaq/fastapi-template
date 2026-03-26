@@ -1,15 +1,17 @@
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import Select, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.password_reset_token import PasswordResetToken
 from src.models.permission import Permission
 from src.models.role import Role
 from src.models.user import User
+from src.models.user_tenant import UserTenant
 from src.repositories.abc import ResourceRepositoryABC
-from src.repositories.base import TenantScopedRepository
+from src.repositories.base import SQLResourceRepository, TenantScopedRepository
 
 
 class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
@@ -52,6 +54,17 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
 class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(User, db)
+
+    def _apply_tenant_scope(self, stmt: Select) -> Select:
+        if self._tenant_id is not None:
+            stmt = stmt.join(UserTenant, UserTenant.user_id == User.id).filter(
+                UserTenant.tenant_id == self._tenant_id
+            )
+        return stmt
+
+    async def create(self, *, commit: bool = True, **kwargs: Any) -> User:
+        # Skip TenantScopedRepository.create — User has no tenant_id column.
+        return await SQLResourceRepository.create(self, commit=commit, **kwargs)
 
     async def get_by_email(
         self, email: str, include_deleted: bool = False

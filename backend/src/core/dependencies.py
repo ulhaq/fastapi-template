@@ -32,6 +32,10 @@ async def authenticate(
 
     payload = decode_token(token)
     user_id = int(payload.get("sub", 0))
+    tenant_id = int(payload.get("tid", 0))
+
+    if not tenant_id:
+        raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
     user = await db.scalar(
         select(User).where(User.id == user_id, User.deleted_at.is_(None))
@@ -40,7 +44,7 @@ async def authenticate(
     if not user:
         raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
-    return Auth.from_user_model(user)
+    return Auth.from_user_model(user, tenant_id)
 
 
 def require_permission(permission: Permission) -> Callable:

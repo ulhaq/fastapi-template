@@ -21,7 +21,11 @@ class Tenant(Base, DeleteTimestampMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
 
     users: Mapped[list["User"]] = relationship(
-        back_populates="tenant", lazy="joined", passive_deletes=True
+        "User",
+        secondary="user_tenant",
+        back_populates="tenants",
+        lazy="selectin",
+        passive_deletes=True,
     )
     roles: Mapped[list["Role"]] = relationship(
         back_populates="tenant", passive_deletes=True

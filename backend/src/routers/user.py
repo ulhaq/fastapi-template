@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Path, status
 from src.core.dependencies import require_permission
 from src.core.security import Auth
 from src.enums import Permission
+from src.schemas.tenant import TenantOut
 from src.schemas.user import (
     ChangePasswordIn,
     UserBase,
@@ -21,6 +22,13 @@ router = APIRouter(prefix="/users")
 @router.get("/me", status_code=status.HTTP_200_OK)
 async def get_authenticated_user(service: Annotated[UserService, Depends()]) -> UserOut:
     return await service.get_authenticated_user()
+
+
+@router.get("/me/tenants", status_code=status.HTTP_200_OK)
+async def get_my_tenants(
+    service: Annotated[UserService, Depends()],
+) -> list[TenantOut]:
+    return await service.get_my_tenants()
 
 
 @router.put("/me", status_code=status.HTTP_200_OK)

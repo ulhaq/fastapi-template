@@ -13,6 +13,7 @@ from src.routers.query_options import (
 )
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.tenant import TenantBase, TenantOut, TenantPatch
+from src.schemas.user import UserOut
 from src.services.tenant import TenantService
 
 # pylint: disable=too-many-arguments
@@ -86,3 +87,36 @@ async def delete_a_tenant(
     identifier: Annotated[int, Path()],
 ) -> None:
     await service.delete_tenant(identifier)
+
+
+@router.post(
+    "/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def add_user_to_tenant(
+    service: Annotated[TenantService, Depends()],
+    _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_TENANT_USER))],
+    tenant_id: Annotated[int, Path()],
+    user_id: Annotated[int, Path()],
+) -> None:
+    await service.add_user_to_tenant(tenant_id, user_id)
+
+
+@router.delete(
+    "/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def remove_user_from_tenant(
+    service: Annotated[TenantService, Depends()],
+    _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_TENANT_USER))],
+    tenant_id: Annotated[int, Path()],
+    user_id: Annotated[int, Path()],
+) -> None:
+    await service.remove_user_from_tenant(tenant_id, user_id)
+
+
+@router.get("/{tenant_id}/users", status_code=status.HTTP_200_OK)
+async def get_tenant_users(
+    service: Annotated[TenantService, Depends()],
+    _: Annotated[Auth, Depends(require_permission(Permission.READ_USER))],
+    tenant_id: Annotated[int, Path()],
+) -> list[UserOut]:
+    return await service.get_tenant_users(tenant_id)

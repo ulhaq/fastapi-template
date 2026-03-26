@@ -12,6 +12,7 @@ from src.enums import ErrorCode, Permission
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.user import UserRepository
+from src.schemas.tenant import TenantOut
 from src.schemas.user import (
     ChangePasswordIn,
     UserBase,
@@ -41,8 +42,24 @@ class UserService(
         self.current_user = current_user
         super().__init__(repos)
 
+    def _user_out(self, user: User) -> UserOut:
+        tenant_roles = [r for r in user.roles if r.tenant_id == self.current_user.tenant_id]
+        return UserOut.model_validate(
+            {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "created_at": user.created_at,
+                "updated_at": user.updated_at,
+                "roles": tenant_roles,
+            }
+        )
+
     async def _assert_not_last_admin(self, user: User) -> None:
-        user_permissions = {p.name for role in user.roles for p in role.permissions}
+        tenant_roles = [
+            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        ]
+        user_permissions = {p.name for role in tenant_roles for p in role.permissions}
         if Permission.MANAGE_USER_ROLE.value not in user_permissions:
             return
         if not await self.repo.has_other_user_with_permission(
@@ -54,7 +71,7 @@ class UserService(
             )
 
     async def get_authenticated_user(self) -> UserOut:
-        return UserOut.model_validate(await self.get(self.current_user.id))
+        return self._user_out(await self.get(self.current_user.id))
 
     async def update_profile(self, schema_in: UserBase) -> UserOut:
         async def validate() -> None:
@@ -67,9 +84,7 @@ class UserService(
 
         auth = self.current_user
 
-        return UserOut.model_validate(
-            await super().update(auth.id, schema_in, validate)
-        )
+        return self._user_out(await super().update(auth.id, schema_in, validate))
 
     async def patch_profile(self, schema_in: UserPatch) -> UserOut:
         async def validate() -> None:
@@ -81,9 +96,7 @@ class UserService(
                         error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
                     )
 
-        return UserOut.model_validate(
-            await super().patch(self.current_user.id, schema_in, validate)
-        )
+        return self._user_out(await super().patch(self.current_user.id, schema_in, validate))
 
     async def change_password(self, schema_in: ChangePasswordIn) -> UserOut:
         auth = self.current_user
@@ -97,10 +110,10 @@ class UserService(
 
         hashed_pw = hash_secret(schema_in.new_password)
 
-        return UserOut.model_validate(await self.repo.update(user, password=hashed_pw))
+        return self._user_out(await self.repo.update(user, password=hashed_pw))
 
     async def get_user(self, identifier: int, include_deleted: bool = False) -> UserOut:
-        return UserOut.model_validate(
+        return self._user_out(
             await super().get(identifier, include_deleted=include_deleted)
         )
 
@@ -116,9 +129,15 @@ class UserService(
         await validate()
 
         user = await self.repo.create(
+            commit=False,
             name=schema_in.name,
             email=schema_in.email,
             password=hashed_pw,
+        )
+
+        await self.repos.user_tenant.create(
+            commit=False,
+            user_id=user.id,
             tenant_id=self.current_user.tenant_id,
         )
 
@@ -147,12 +166,18 @@ class UserService(
             },
         )
 
-        return UserOut.model_validate(user)
+        return self._user_out(user)
 
     async def delete_user(self, identifier: int) -> None:
         user = await self.get(identifier)
         await self._assert_not_last_admin(user)
         await self.repo.delete(user)
+
+    async def get_my_tenants(self) -> list[TenantOut]:
+        memberships = await self.repos.user_tenant.get_all_for_user(self.current_user.id)
+        tenant_ids = [m.tenant_id for m in memberships]
+        tenants = await self.repos.tenant.filter_by_ids(tenant_ids)
+        return [TenantOut.model_validate(t) for t in tenants]
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
         if self.current_user.id == identifier:
@@ -172,9 +197,12 @@ class UserService(
                 )
 
         manage_permission = Permission.MANAGE_USER_ROLE.value
+        tenant_user_roles = [
+            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        ]
         user_has_manage_permission = any(
             manage_permission in {p.name for p in role.permissions}
-            for role in user.roles
+            for role in tenant_user_roles
         )
         new_roles_have_manage_permission = any(
             manage_permission in {p.name for p in role.permissions}
@@ -183,7 +211,7 @@ class UserService(
         if user_has_manage_permission and not new_roles_have_manage_permission:
             await self._assert_not_last_admin(user)
 
-        current_roles = {role.id for role in user.roles}
+        current_roles = {role.id for role in tenant_user_roles}
         schema_in_role_ids = set(schema_in.role_ids)
 
         if roles_to_add := schema_in_role_ids - current_roles:
@@ -192,4 +220,4 @@ class UserService(
         if roles_to_remove := current_roles - schema_in_role_ids:
             await self.repo.remove_roles(user, *roles_to_remove)
 
-        return UserOut.model_validate(user)
+        return self._user_out(user)

@@ -27,20 +27,21 @@ class Auth(BaseModel):
     permissions: list[str]
 
     @classmethod
-    def from_user_model(cls, user_model: User) -> Self:
+    def from_user_model(cls, user_model: User, active_tenant_id: int) -> Self:
+        tenant_roles = [r for r in user_model.roles if r.tenant_id == active_tenant_id]
         return cls(
             id=user_model.id,
             name=user_model.name,
             email=user_model.email,
-            tenant_id=user_model.tenant_id,
+            tenant_id=active_tenant_id,
             permissions=list(
                 dict.fromkeys(
                     permission.name
-                    for role in user_model.roles
+                    for role in tenant_roles
                     for permission in role.permissions
                 )
             ),
-            roles=[role.name for role in user_model.roles],
+            roles=[role.name for role in tenant_roles],
         )
 
     def has_permission(self, permission_name: str) -> bool:
@@ -68,6 +69,7 @@ class JWTTokenClaims(BaseModel):
 
     name: str | None = None
     email: str | None = None
+    tid: int | None = None
 
 
 type SignSalt = Literal["reset-password"]
@@ -120,7 +122,13 @@ def decode_token(token: str) -> dict:
         raise NotAuthenticatedException(headers=BEARER_HEADERS) from exc
 
 
-def create_token(user: User, expiry: int, *, include_user_claims: bool = True) -> str:
+def create_token(
+    user: User,
+    expiry: int,
+    *,
+    include_user_claims: bool = True,
+    tenant_id: int | None = None,
+) -> str:
     claims = JWTTokenClaims(
         iss=settings.app_name,
         aud=settings.app_name,
@@ -132,6 +140,7 @@ def create_token(user: User, expiry: int, *, include_user_claims: bool = True) -
     if include_user_claims:
         claims.name = user.name
         claims.email = user.email
+        claims.tid = tenant_id
     return encode(
         claims.model_dump(exclude_none=True),
         settings.app_secret.get_secret_value(),

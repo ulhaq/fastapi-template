@@ -3,6 +3,7 @@ import os
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 from collections.abc import AsyncGenerator, Generator
+from datetime import UTC, datetime
 from httpx import Headers
 import pytest
 from fastapi.testclient import TestClient
@@ -18,6 +19,7 @@ from src.models.tenant import Tenant
 from src.models.role import Role
 from src.models.permission import Permission
 from src.models.user import User
+from src.models.user_tenant import UserTenant
 from src.init_db import INIT_AUTH_DATA
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -80,7 +82,6 @@ async def prepare_database() -> AsyncGenerator[None]:
                     name=user["name"],
                     email=user["email"],
                     password=hash_secret(user["password"]),
-                    tenant=tenants[user["tenant"] - 1],
                     roles=[
                         role
                         for idx, role in enumerate(roles, 1)
@@ -89,6 +90,19 @@ async def prepare_database() -> AsyncGenerator[None]:
                 )
             )
         session.add_all(users)
+
+        await session.flush()
+
+        user_tenants = []
+        for user_data, user in zip(INIT_AUTH_DATA["users"], users):
+            user_tenants.append(
+                UserTenant(
+                    user_id=user.id,
+                    tenant_id=tenants[user_data["tenant"] - 1].id,
+                    last_active_at=datetime.now(UTC),
+                )
+            )
+        session.add_all(user_tenants)
 
         await session.commit()
     yield

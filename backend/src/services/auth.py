@@ -4,15 +4,18 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends
+from pydantic import BaseModel
 
 from src.core.config import settings
 from src.core.exceptions import (
     AlreadyExistsException,
     NotAuthenticatedException,
     NotFoundException,
+    PermissionDeniedException,
 )
 from src.core.security import (
     BEARER_HEADERS,
+    Auth,
     Token,
     authenticate_user,
     create_token,
@@ -55,7 +58,13 @@ class AuthService(BaseService):
             name=user_in.name,
             email=user_in.email,
             password=hashed_pw,
-            tenant=tenant,
+        )
+
+        await self.repos.user_tenant.create(
+            commit=False,
+            user_id=user.id,
+            tenant_id=tenant.id,
+            last_active_at=datetime.now(UTC),
         )
 
         permissions = await self.repos.permission.get_all()
@@ -100,7 +109,18 @@ class AuthService(BaseService):
                 headers=BEARER_HEADERS,
             )
 
-        access_token = create_token(user, settings.auth_access_token_expiry)
+        membership = await self.repos.user_tenant.get_active_tenant_for_user(user.id)
+        if not membership:
+            raise NotAuthenticatedException(
+                error_code=ErrorCode.LOGIN_FAILED,
+                headers=BEARER_HEADERS,
+            )
+
+        await self.repos.user_tenant.update_last_active(membership, commit=False)
+
+        access_token = create_token(
+            user, settings.auth_access_token_expiry, tenant_id=membership.tenant_id
+        )
         refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False
         )
@@ -137,9 +157,15 @@ class AuthService(BaseService):
         if not stored_token or not verify_secret(refresh_token, stored_token.token):
             raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
+        membership = await self.repos.user_tenant.get_active_tenant_for_user(user.id)
+        if not membership:
+            raise NotAuthenticatedException(headers=BEARER_HEADERS)
+
         await self.repos.refresh_token.delete_by_user(user)
 
-        new_access_token = create_token(user, settings.auth_access_token_expiry)
+        new_access_token = create_token(
+            user, settings.auth_access_token_expiry, tenant_id=membership.tenant_id
+        )
         new_refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False
         )
@@ -153,6 +179,40 @@ class AuthService(BaseService):
 
         return Token(
             access_token=new_access_token,
+            refresh_token=new_refresh_token,
+        )
+
+    async def switch_tenant(self, current_user: Auth, tenant_id: int) -> Token:
+        user = await self.repos.user.get(current_user.id)
+        if not user:
+            raise NotAuthenticatedException(headers=BEARER_HEADERS)
+
+        membership = await self.repos.user_tenant.get_by_user_and_tenant(
+            current_user.id, tenant_id
+        )
+        if not membership:
+            raise PermissionDeniedException("You are not a member of this tenant")
+
+        await self.repos.user_tenant.update_last_active(membership, commit=False)
+
+        access_token = create_token(
+            user, settings.auth_access_token_expiry, tenant_id=tenant_id
+        )
+        new_refresh_token = create_token(
+            user, settings.auth_refresh_token_expiry, include_user_claims=False
+        )
+
+        expires_at = datetime.now(UTC) + timedelta(
+            seconds=settings.auth_refresh_token_expiry
+        )
+        await self.repos.refresh_token.delete_by_user(user)
+        await self.repos.refresh_token.create(
+            user, hash_secret(new_refresh_token), expires_at
+        )
+        await self.repos.commit()
+
+        return Token(
+            access_token=access_token,
             refresh_token=new_refresh_token,
         )
 

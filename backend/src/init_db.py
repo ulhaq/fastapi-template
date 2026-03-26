@@ -3,6 +3,7 @@ import logging
 import logging.config
 import os
 import sys
+from datetime import UTC, datetime
 
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
@@ -16,6 +17,7 @@ from src.models.permission import Permission as PermissionModel
 from src.models.role import Role
 from src.models.tenant import Tenant
 from src.models.user import User
+from src.models.user_tenant import UserTenant
 
 logging.config.dictConfig(LOGGING_CONFIG)
 log = logging.getLogger(__name__)
@@ -126,7 +128,6 @@ async def up() -> None:
                     name=user["name"],
                     email=user["email"],
                     password=hash_secret(user["password"]),
-                    tenant=tenants[user["tenant"] - 1],
                     roles=[
                         role
                         for idx, role in enumerate(roles, 1)
@@ -135,6 +136,19 @@ async def up() -> None:
                 )
             )
         session.add_all(users)
+
+        await session.flush()
+
+        user_tenants = []
+        for user_data, user in zip(INIT_AUTH_DATA["users"], users):
+            user_tenants.append(
+                UserTenant(
+                    user_id=user.id,
+                    tenant_id=tenants[user_data["tenant"] - 1].id,
+                    last_active_at=datetime.now(UTC),
+                )
+            )
+        session.add_all(user_tenants)
 
         await session.commit()
 

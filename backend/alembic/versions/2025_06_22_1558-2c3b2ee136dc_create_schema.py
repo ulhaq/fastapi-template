@@ -54,16 +54,9 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("email", sa.String(), nullable=False),
         sa.Column("password", sa.String(), nullable=False),
-        sa.Column("tenant_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["tenant_id"],
-            ["tenant.id"],
-            name="fk_user_tenant_id_tenant",
-            ondelete="CASCADE",
-        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
     )
@@ -90,6 +83,20 @@ def upgrade() -> None:
     op.create_index(op.f("ix_role_name"), "role", ["name"])
 
     # Junction tables
+
+    op.create_table(
+        "user_tenant",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("tenant_id", sa.Integer(), nullable=False),
+        sa.Column("last_active_at", sa.DateTime(), nullable=True),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("user_id", "tenant_id", name="uq_user_tenant"),
+    )
 
     op.create_table(
         "user_role",
@@ -162,6 +169,7 @@ def downgrade() -> None:
     op.drop_table("password_reset_token")
     op.drop_table("role_permission")
     op.drop_table("user_role")
+    op.drop_table("user_tenant")
     op.drop_index(op.f("ix_role_name"), table_name="role")
     op.drop_table("role")
     op.drop_index(op.f("ix_user_name"), table_name="user")

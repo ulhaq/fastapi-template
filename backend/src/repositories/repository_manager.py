@@ -9,6 +9,7 @@ from src.repositories.refresh_token import RefreshTokenRepository
 from src.repositories.role import RoleRepository
 from src.repositories.tenant import TenantRepository
 from src.repositories.user import UserRepository
+from src.repositories.user_tenant import UserTenantRepository
 
 
 class RepositoryManager:
@@ -21,6 +22,7 @@ class RepositoryManager:
         self._role: RoleRepository | None = None
         self._permission: PermissionRepository | None = None
         self._refresh_token: RefreshTokenRepository | None = None
+        self._user_tenant: UserTenantRepository | None = None
 
     @property
     def tenant(self) -> TenantRepository:
@@ -51,6 +53,12 @@ class RepositoryManager:
         if self._refresh_token is None:
             self._refresh_token = RefreshTokenRepository(self.db)
         return self._refresh_token
+
+    @property
+    def user_tenant(self) -> UserTenantRepository:
+        if self._user_tenant is None:
+            self._user_tenant = UserTenantRepository(self.db)
+        return self._user_tenant
 
     async def commit(self) -> None:
         await self.db.commit()
