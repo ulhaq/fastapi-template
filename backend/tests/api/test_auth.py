@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
 from src.core.limiter import limiter
+from src.enums import Permission
 
 
 def test_register_an_account(client: TestClient) -> None:
@@ -11,17 +12,61 @@ def test_register_an_account(client: TestClient) -> None:
         "/v1/auth/register",
         json={
             "name": "new user",
-            "email": "new_user@testing.com",
+            "email": "new_user@example.org",
             "password": "password",
         },
     )
     assert response.status_code == 201
     rs = response.json()
-    assert rs["id"] == 3
+    assert rs["id"] == 5
     assert rs["name"] == "new user"
-
+    assert rs["email"] == "new_user@example.org"
+    assert rs["roles"][0]["name"] == "Admin"
     assert rs["created_at"]
     assert rs["updated_at"]
+
+
+def test_registered_user_can_login(client: TestClient) -> None:
+    client.post(
+        "/v1/auth/register",
+        json={
+            "name": "new user",
+            "email": "new_user@example.org",
+            "password": "password",
+        },
+    )
+    response = client.post(
+        "v1/auth/token",
+        data={"username": "new_user@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+
+
+def test_registered_user_has_admin_role_with_all_permissions(
+    client: TestClient,
+) -> None:
+    client.post(
+        "/v1/auth/register",
+        json={
+            "name": "new user",
+            "email": "new_user@example.org",
+            "password": "password",
+        },
+    )
+    token = client.post(
+        "v1/auth/token",
+        data={"username": "new_user@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()["access_token"]
+
+    response = client.get("/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    rs = response.json()
+    assert len(rs["roles"]) == 1
+    assert rs["roles"][0]["name"] == "Admin"
+    assert len(rs["roles"][0]["permissions"]) == len(list(Permission))
 
 
 def test_get_access_token(client: TestClient) -> None:

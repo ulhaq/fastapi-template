@@ -12,7 +12,7 @@ from src.core.exceptions import (
     PermissionDeniedException,
 )
 from src.core.security import Auth, authenticate_user, hash_secret, sign
-from src.enums import ErrorCode
+from src.enums import ErrorCode, Permission
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.user import UserRepository
@@ -45,6 +45,18 @@ class UserService(
         self.repo.set_tenant_scope(current_user.tenant_id)
         self.current_user = current_user
         super().__init__(repos)
+
+    async def _assert_not_last_admin(self, user: User) -> None:
+        user_permissions = {p.name for role in user.roles for p in role.permissions}
+        if Permission.MANAGE_USER_ROLE.value not in user_permissions:
+            return
+        if not await self.repo.has_other_user_with_permission(
+            Permission.MANAGE_USER_ROLE.value, exclude_user_id=user.id
+        ):
+            raise PermissionDeniedException(
+                "Cannot perform this action: tenant must retain at least one "
+                "user with role management access"
+            )
 
     async def get_authenticated_user(self) -> UserOut:
         return UserOut.model_validate(await self.get(self.current_user.id))
@@ -92,6 +104,11 @@ class UserService(
 
         return UserOut.model_validate(await self.repo.update(user, password=hashed_pw))
 
+    async def get_user(self, identifier: int, include_deleted: bool = False) -> UserOut:
+        return UserOut.model_validate(
+            await super().get(identifier, include_deleted=include_deleted)
+        )
+
     async def create_user(self, schema_in: UserIn, schedule_task: Callable) -> UserOut:
         async def validate() -> None:
             if await self.repo.get_by_email(schema_in.email):
@@ -138,7 +155,9 @@ class UserService(
         return UserOut.model_validate(user)
 
     async def delete_user(self, identifier: int) -> None:
-        await super().delete(identifier)
+        user = await self.get(identifier)
+        await self._assert_not_last_admin(user)
+        await self.repo.delete(user)
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
         if self.current_user.id == identifier:
@@ -147,14 +166,27 @@ class UserService(
             )
 
         user = await self.get(identifier)
+        new_roles = []
 
         if schema_in.role_ids:
             self.repos.role.set_tenant_scope(self.current_user.tenant_id)
-            roles = await self.repos.role.filter_by_ids(schema_in.role_ids)
-            if len(roles) != len(schema_in.role_ids):
+            new_roles = await self.repos.role.filter_by_ids(schema_in.role_ids)
+            if len(new_roles) != len(schema_in.role_ids):
                 raise PermissionDeniedException(
                     "One or more roles do not belong to your tenant"
                 )
+
+        manage_permission = Permission.MANAGE_USER_ROLE.value
+        user_has_manage_permission = any(
+            manage_permission in {p.name for p in role.permissions}
+            for role in user.roles
+        )
+        new_roles_have_manage_permission = any(
+            manage_permission in {p.name for p in role.permissions}
+            for role in new_roles
+        )
+        if user_has_manage_permission and not new_roles_have_manage_permission:
+            await self._assert_not_last_admin(user)
 
         current_roles = {role.id for role in user.roles}
         schema_in_role_ids = set(schema_in.role_ids)
@@ -174,6 +206,7 @@ class UserService(
             raise PermissionDeniedException("You are not allowed to transfer yourself")
 
         user = await self.get(identifier)
+        await self._assert_not_last_admin(user)
 
         target_tenant = await self.repos.tenant.get(schema_in.tenant_id)
         if not target_tenant:

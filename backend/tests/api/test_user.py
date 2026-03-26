@@ -142,6 +142,33 @@ def test_change_authenticated_user_password(
     assert rs["email"] == "admin@example.org"
 
 
+def test_retrieve_a_user(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/users/2")
+    assert response.status_code == 200
+    rs = response.json()
+
+    assert rs["id"] == 2
+    assert rs["name"] == "Standard"
+    assert rs["email"] == "standard@example.org"
+    assert len(rs["roles"]) == 1
+    assert rs["roles"][0]["id"] == 2
+    assert rs["roles"][0]["name"] == "standard"
+    assert rs["roles"][0]["description"] == "Access to manage and view own resources."
+
+    permissions = rs["roles"][0]["permissions"]
+    assert len(permissions) == 2
+
+    permission_names = {p["name"] for p in permissions}
+    assert permission_names == {"read:user", "create:user"}
+
+    for p in permissions:
+        assert p["name"] in PERMISSION_DESCRIPTIONS
+        assert p["description"] == PERMISSION_DESCRIPTIONS[Permission(p["name"])]
+
+    assert rs["created_at"]
+    assert rs["updated_at"]
+
+
 def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
         "/v1/users/2/roles",
@@ -206,6 +233,53 @@ def test_delete_a_user(admin_authenticated: TestClient) -> None:
     assert response.status_code == 204
 
 
+def test_can_delete_admin_when_another_exists(admin_authenticated: TestClient) -> None:
+    admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [1]})
+
+    response = admin_authenticated.delete("/v1/users/2")
+    assert response.status_code == 204
+
+
+def test_transfer_a_user(
+    admin_authenticated: TestClient, tenant2_admin_authenticated: TestClient
+) -> None:
+    response = tenant2_admin_authenticated.get("/v1/users/2")
+    assert response.status_code == 404
+
+    response = admin_authenticated.post("/v1/users/2/transfer", json={"tenant_id": 2})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 2
+    assert rs["name"] == "Standard"
+    assert rs["email"] == "standard@example.org"
+    assert rs["roles"] == []
+
+    response = admin_authenticated.get("/v1/users/2")
+    assert response.status_code == 404
+
+    response = tenant2_admin_authenticated.get("/v1/users/2")
+    assert response.status_code == 200
+    assert response.json()["id"] == 2
+
+
+def test_transfer_a_user_strips_their_roles(admin_authenticated: TestClient) -> None:
+    admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [1, 2]})
+
+    response = admin_authenticated.post("/v1/users/2/transfer", json={"tenant_id": 2})
+    assert response.status_code == 200
+    assert response.json()["roles"] == []
+
+
+def test_cannot_delete_last_admin(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.delete("/v1/users/1")
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == (
+        "Cannot perform this action: tenant must retain at least one "
+        "user with role management access"
+    )
+
+
 def test_cannot_manage_own_roles(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
         "/v1/users/1/roles",
@@ -244,6 +318,38 @@ def test_cannot_delete_a_user_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.delete("/v1/users/1")
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "You are not authorized to perform this action"
+
+
+def test_cannot_transfer_yourself(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.post("/v1/users/1/transfer", json={"tenant_id": 2})
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "You are not allowed to transfer yourself"
+
+
+def test_cannot_transfer_to_same_tenant(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.post("/v1/users/2/transfer", json={"tenant_id": 1})
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "User already belongs to the target tenant"
+
+
+def test_cannot_transfer_to_nonexistent_tenant(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.post("/v1/users/2/transfer", json={"tenant_id": 999})
+    assert response.status_code == 404
+    rs = response.json()
+    assert rs["msg"] == "Tenant not found. [identifier=999]"
+
+
+def test_cannot_transfer_a_user_without_permission(
+    standard_authenticated: TestClient,
+) -> None:
+    response = standard_authenticated.post(
+        "/v1/users/3/transfer", json={"tenant_id": 2}
+    )
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"

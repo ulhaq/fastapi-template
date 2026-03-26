@@ -33,7 +33,9 @@ async def authenticate(
     payload = decode_token(token)
     user_id = int(payload.get("sub", 0))
 
-    user = await db.scalar(select(User).where(User.id == user_id))
+    user = await db.scalar(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
 
     if not user:
         raise NotAuthenticatedException(headers=BEARER_HEADERS)

@@ -20,7 +20,7 @@ class UserBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: Annotated[str, Field(min_length=1)]
-    email: EmailStr
+    email: Annotated[EmailStr, StringConstraints(to_lower=True)]
 
 
 class UserOut(UserBase, Timestamp):

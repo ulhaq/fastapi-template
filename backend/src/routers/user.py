@@ -45,6 +45,15 @@ async def change_password_of_authenticated_user(
     return await service.change_password(change_password_in)
 
 
+@router.get("/{identifier}", status_code=status.HTTP_200_OK)
+async def get_a_user(
+    service: Annotated[UserService, Depends()],
+    _: Annotated[Auth, Depends(require_permission(Permission.READ_USER))],
+    identifier: Annotated[int, Path()],
+) -> UserOut:
+    return await service.get_user(identifier)
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_a_user(
     bg_tasks: BackgroundTasks,

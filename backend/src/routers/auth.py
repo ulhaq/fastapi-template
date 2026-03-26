@@ -6,8 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from src.core.config import settings
 from src.core.limiter import limiter
 from src.core.security import Token
-from src.schemas.tenant import TenantIn, TenantOut
-from src.schemas.user import EmailIn, ResetPasswordIn
+from src.schemas.user import EmailIn, ResetPasswordIn, UserIn, UserOut
 from src.services.auth import AuthService
 
 router = APIRouter(prefix="/auth")
@@ -40,9 +39,9 @@ async def create_an_account(
     request: Request,  # pylint: disable=unused-argument
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
-    tenant_in: TenantIn,
-) -> TenantOut:
-    return await service.register_tenant(tenant_in, bg_tasks.add_task)
+    user_in: UserIn,
+) -> UserOut:
+    return await service.register_tenant(user_in, bg_tasks.add_task)
 
 
 @router.post("/token", status_code=status.HTTP_200_OK)

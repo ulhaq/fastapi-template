@@ -5,6 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.password_reset_token import PasswordResetToken
+from src.models.permission import Permission
 from src.models.role import Role
 from src.models.user import User
 from src.repositories.abc import ResourceRepositoryABC
@@ -13,7 +14,9 @@ from src.repositories.base import TenantScopedRepository
 
 class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
     @abstractmethod
-    async def get_by_email(self, email: str) -> User | None: ...
+    async def get_by_email(
+        self, email: str, include_deleted: bool = False
+    ) -> User | None: ...
 
     @abstractmethod
     async def add_roles(
@@ -40,13 +43,21 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
         self, *, commit: bool = True, user: User
     ) -> None: ...
 
+    @abstractmethod
+    async def has_other_user_with_permission(
+        self, permission: str, exclude_user_id: int
+    ) -> bool: ...
+
 
 class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(User, db)
 
-    async def get_by_email(self, email: str) -> User | None:
+    async def get_by_email(
+        self, email: str, include_deleted: bool = False
+    ) -> User | None:
         stmt = select(User).where(User.email == email)
+        stmt = self._include_deleted(stmt, include_deleted)
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
@@ -83,3 +94,17 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
         await self.db.execute(stmt)
 
         await self.save(commit=commit)
+
+    async def has_other_user_with_permission(
+        self, permission: str, exclude_user_id: int
+    ) -> bool:
+        stmt = (
+            select(User)
+            .join(User.roles)
+            .join(Role.permissions)
+            .where(User.id != exclude_user_id, Permission.name == permission)
+        )
+        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._include_deleted(stmt)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none() is not None

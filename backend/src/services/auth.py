@@ -24,8 +24,7 @@ from src.core.security import (
 )
 from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager
-from src.schemas.tenant import TenantIn, TenantOut
-from src.schemas.user import EmailIn, ResetPasswordIn
+from src.schemas.user import EmailIn, ResetPasswordIn, UserIn, UserOut
 from src.services.base import BaseService
 from src.services.utils import send_email
 
@@ -37,29 +36,42 @@ class AuthService(BaseService):
         super().__init__(repos)
 
     async def register_tenant(
-        self, tenant_in: TenantIn, schedule_task: Callable
-    ) -> TenantOut:
-        if await self.repos.user.get_by_email(tenant_in.email):
+        self, user_in: UserIn, schedule_task: Callable
+    ) -> UserOut:
+        if await self.repos.user.get_by_email(user_in.email):
             raise AlreadyExistsException(
-                f"Account already exists. [email={tenant_in.email}]",
+                f"Account already exists. [email={user_in.email}]",
                 error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
             )
 
         tenant = await self.repos.tenant.create(
-            commit=False, **tenant_in.model_dump(include={"name"})
+            commit=False, name=f"{user_in.name}'s Tenant"
         )
 
-        hashed_pw = hash_secret(tenant_in.password)
+        hashed_pw = hash_secret(user_in.password)
 
         user = await self.repos.user.create(
             commit=False,
-            name=tenant_in.name,
-            email=tenant_in.email,
+            name=user_in.name,
+            email=user_in.email,
             password=hashed_pw,
             tenant=tenant,
         )
 
-        tenant_out = TenantOut.model_validate(tenant)
+        permissions = await self.repos.permission.get_all()
+
+        admin_role = await self.repos.role.create(
+            commit=False,
+            name="Admin",
+            description="Full access to all system features and settings.",
+            tenant=tenant,
+        )
+        await self.repos.role.add_permissions(
+            admin_role, *[p.id for p in permissions], commit=False
+        )
+        await self.repos.user.add_roles(user, admin_role.id, commit=False)
+
+        user_out = UserOut.model_validate(user)
         user_email, user_name = user.email, user.name
 
         await self.repos.commit()
@@ -75,7 +87,7 @@ class AuthService(BaseService):
             },
         )
 
-        return tenant_out
+        return user_out
 
     async def get_access_token(self, username: str, password: str) -> Token:
         user = authenticate_user(
