@@ -2,6 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, status
 
+from src.routers.query_options import (
+    FiltersQuery,
+    PageNumberQuery,
+    PageSizeQuery,
+    SortQuery,
+)
+from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.core.dependencies import require_permission
 from src.core.security import Auth
 from src.enums import Permission
@@ -52,13 +59,25 @@ async def change_password_of_authenticated_user(
     return await service.change_password(change_password_in)
 
 
-@router.get("/{identifier}", status_code=status.HTTP_200_OK)
-async def get_a_user(
+@router.get("", status_code=status.HTTP_200_OK)
+async def get_all_roles(
+    *,
     service: Annotated[UserService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.READ_USER))],
-    identifier: Annotated[int, Path()],
-) -> UserOut:
-    return await service.get_user(identifier)
+    sort: SortQuery,
+    filters: FiltersQuery,
+    page_size: PageSizeQuery = 10,
+    page_number: PageNumberQuery = 1,
+) -> PaginatedResponse[UserOut]:
+    return await service.paginate(
+        UserOut,
+        PageQueryParams(
+            sort=sort,
+            filters=filters,
+            page_size=page_size,
+            page_number=page_number,
+        ),
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -69,6 +88,15 @@ async def create_a_user(
     user_in: UserIn,
 ) -> UserOut:
     return await service.create_user(user_in, bg_tasks.add_task)
+
+
+@router.get("/{identifier}", status_code=status.HTTP_200_OK)
+async def get_a_user(
+    service: Annotated[UserService, Depends()],
+    _: Annotated[Auth, Depends(require_permission(Permission.READ_USER))],
+    identifier: Annotated[int, Path()],
+) -> UserOut:
+    return await service.get_user(identifier)
 
 
 @router.delete("/{identifier}", status_code=status.HTTP_204_NO_CONTENT)

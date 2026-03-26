@@ -7,8 +7,8 @@ from src.core.config import settings
 from src.core.dependencies import authenticate
 from src.core.limiter import limiter
 from src.core.security import Auth, Token
-from src.schemas.user import EmailIn, ResetPasswordIn, UserIn, UserOut
-from src.services.auth import AuthService, SwitchTenantIn
+from src.schemas.user import EmailIn, ResetPasswordIn, UserIn, UserOut, SwitchTenantIn
+from src.services.auth import AuthService
 
 router = APIRouter(prefix="/auth")
 

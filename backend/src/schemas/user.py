@@ -43,6 +43,10 @@ class EmailIn(BaseModel):
     email: Annotated[EmailStr, StringConstraints(to_lower=True)]
 
 
+class SwitchTenantIn(BaseModel):
+    tenant_id: int
+
+
 class ResetPasswordIn(BaseModel):
     token: Annotated[str, Field()]
     password: Annotated[str, Field(min_length=8)]

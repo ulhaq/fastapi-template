@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends
-from pydantic import BaseModel
 
 from src.core.config import settings
 from src.core.exceptions import (
