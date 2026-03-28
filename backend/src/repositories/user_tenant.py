@@ -46,4 +46,6 @@ class UserTenantRepository(SQLResourceRepository[UserTenant]):
     async def update_last_active(
         self, membership: UserTenant, *, commit: bool = True
     ) -> UserTenant:
-        return await self.update(membership, last_active_at=datetime.now(UTC), commit=commit)
+        return await self.update(
+            membership, last_active_at=datetime.now(UTC), commit=commit
+        )

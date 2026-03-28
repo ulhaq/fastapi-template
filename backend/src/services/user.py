@@ -12,6 +12,7 @@ from src.enums import ErrorCode, Permission
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.user import UserRepository
+from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.tenant import TenantOut
 from src.schemas.user import (
     ChangePasswordIn,
@@ -43,7 +44,9 @@ class UserService(
         super().__init__(repos)
 
     def _user_out(self, user: User) -> UserOut:
-        tenant_roles = [r for r in user.roles if r.tenant_id == self.current_user.tenant_id]
+        tenant_roles = [
+            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        ]
         return UserOut.model_validate(
             {
                 "id": user.id,
@@ -69,6 +72,26 @@ class UserService(
                 "Cannot perform this action: tenant must retain at least one "
                 "user with role management access"
             )
+
+    async def paginate(
+        self,
+        schema_out: type[UserOut],
+        page_query_params: PageQueryParams,
+        include_deleted: bool = False,
+    ) -> PaginatedResponse[UserOut]:
+        items, total = await self.repo.paginate(
+            sort=page_query_params.sort,
+            filters=page_query_params.filters,
+            page_size=page_query_params.page_size,
+            page_number=page_query_params.page_number,
+            include_deleted=include_deleted,
+        )
+        return PaginatedResponse(
+            items=[self._user_out(item) for item in items],
+            page_number=page_query_params.page_number,
+            page_size=page_query_params.page_size,
+            total=total,
+        )
 
     async def get_authenticated_user(self) -> UserOut:
         return self._user_out(await self.get(self.current_user.id))
@@ -96,7 +119,9 @@ class UserService(
                         error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
                     )
 
-        return self._user_out(await super().patch(self.current_user.id, schema_in, validate))
+        return self._user_out(
+            await super().patch(self.current_user.id, schema_in, validate)
+        )
 
     async def change_password(self, schema_in: ChangePasswordIn) -> UserOut:
         auth = self.current_user
@@ -174,7 +199,9 @@ class UserService(
         await self.repo.delete(user)
 
     async def get_my_tenants(self) -> list[TenantOut]:
-        memberships = await self.repos.user_tenant.get_all_for_user(self.current_user.id)
+        memberships = await self.repos.user_tenant.get_all_for_user(
+            self.current_user.id
+        )
         tenant_ids = [m.tenant_id for m in memberships]
         tenants = await self.repos.tenant.filter_by_ids(tenant_ids)
         return [TenantOut.model_validate(t) for t in tenants]

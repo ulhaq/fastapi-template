@@ -2,6 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, status
 
+from src.core.dependencies import require_permission
+from src.core.security import Auth
+from src.enums import Permission
 from src.routers.query_options import (
     FiltersQuery,
     PageNumberQuery,
@@ -9,9 +12,6 @@ from src.routers.query_options import (
     SortQuery,
 )
 from src.schemas.common import PageQueryParams, PaginatedResponse
-from src.core.dependencies import require_permission
-from src.core.security import Auth
-from src.enums import Permission
 from src.schemas.tenant import TenantOut
 from src.schemas.user import (
     ChangePasswordIn,
