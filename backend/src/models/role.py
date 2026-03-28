@@ -17,9 +17,6 @@ if TYPE_CHECKING:
 
 class Role(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "role"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "name", name="uq_role_tenant_name"),
-    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)

@@ -66,6 +66,7 @@ class JWTTokenClaims(BaseModel):
     exp: int
     iat: int
     jti: str
+    roles: list[str]
 
     name: str | None = None
     email: str | None = None
@@ -136,6 +137,7 @@ def create_token(
         exp=int(time() + expiry),
         iat=int(time()),
         jti=str(uuid4()),
+        roles=[role.name for role in user.roles],
     )
     if include_user_claims:
         claims.name = user.name

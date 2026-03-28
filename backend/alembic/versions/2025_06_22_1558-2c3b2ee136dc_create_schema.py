@@ -78,7 +78,6 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("tenant_id", "name", name="uq_role_tenant_name"),
     )
     op.create_index(op.f("ix_role_name"), "role", ["name"])
 

@@ -26,16 +26,6 @@ def test_cannot_delete_other_tenant(tenant2_admin_authenticated: TestClient) -> 
     assert response.status_code == 403
 
 
-def test_tenants_list_only_shows_own_tenant(
-    tenant2_admin_authenticated: TestClient,
-) -> None:
-    response = tenant2_admin_authenticated.get("/v1/tenants")
-    assert response.status_code == 200
-    rs = response.json()
-    assert rs["total"] == 1
-    assert rs["items"][0]["name"] == "Tenant 2"
-
-
 # --- User isolation ---
 
 

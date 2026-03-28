@@ -21,27 +21,6 @@ from src.services.tenant import TenantService
 router = APIRouter(prefix="/tenants")
 
 
-@router.get("", status_code=status.HTTP_200_OK)
-async def get_all_tenants(
-    *,
-    service: Annotated[TenantService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.READ_TENANT))],
-    sort: SortQuery,
-    filters: FiltersQuery,
-    page_size: PageSizeQuery = 10,
-    page_number: PageNumberQuery = 1,
-) -> PaginatedResponse[TenantOut]:
-    return await service.paginate(
-        TenantOut,
-        PageQueryParams(
-            sort=sort,
-            filters=filters,
-            page_size=page_size,
-            page_number=page_number,
-        ),
-    )
-
-
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_a_tenant(
     service: Annotated[TenantService, Depends()],
@@ -89,9 +68,7 @@ async def delete_a_tenant(
     await service.delete_tenant(identifier)
 
 
-@router.post(
-    "/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.post("/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def add_user_to_tenant(
     service: Annotated[TenantService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_TENANT_USER))],
@@ -101,9 +78,7 @@ async def add_user_to_tenant(
     await service.add_user_to_tenant(tenant_id, user_id)
 
 
-@router.delete(
-    "/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_user_from_tenant(
     service: Annotated[TenantService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_TENANT_USER))],

@@ -268,9 +268,7 @@ def test_switch_tenant_context_changes(
 def test_cannot_switch_to_tenant_not_a_member_of(
     admin_authenticated: TestClient,
 ) -> None:
-    response = admin_authenticated.post(
-        "/v1/auth/switch-tenant", json={"tenant_id": 2}
-    )
+    response = admin_authenticated.post("/v1/auth/switch-tenant", json={"tenant_id": 2})
     assert response.status_code == 403
 
 
@@ -356,9 +354,11 @@ def test_login_selects_first_tenant_when_none_active(
 ) -> None:
     # admin@example.org only belongs to Tenant 1 with last_active_at set from seeding
     token = _login(client, "admin@example.org")
-    response = client.get("/v1/tenants", headers=_auth_headers(token))
+    response = client.get("/v1/users/me/tenants", headers=_auth_headers(token))
     assert response.status_code == 200
-    assert response.json()["items"][0]["name"] == "Tenant 1"
+    rs = response.json()
+    assert len(rs) == 1
+    assert rs[0]["name"] == "Tenant 1"
 
 
 # ---------------------------------------------------------------------------

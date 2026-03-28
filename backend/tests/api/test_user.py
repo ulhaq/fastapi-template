@@ -107,6 +107,16 @@ def test_update_authenticated_user_profile(
     assert rs["email"] == "new@testing.com"
 
 
+def test_user_tenants_list_only_shows_own_tenant(
+    tenant2_admin_authenticated: TestClient,
+) -> None:
+    response = tenant2_admin_authenticated.get("/v1/users/me/tenants")
+    assert response.status_code == 200
+    rs = response.json()
+    assert len(rs) == 1
+    assert rs[0]["name"] == "Tenant 2"
+
+
 def test_change_authenticated_user_password(
     admin_authenticated: TestClient, client: TestClient
 ) -> None:

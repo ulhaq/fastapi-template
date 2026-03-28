@@ -1,4 +1,4 @@
-import copy
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends
@@ -50,29 +50,47 @@ class TenantService(
         page_query_params: PageQueryParams,
         include_deleted: bool = False,
     ) -> PaginatedResponse[TenantOut]:
-        tenant = await self.get(
-            self.current_user.tenant_id, include_deleted=include_deleted
-        )
-        items = (
-            [schema_out.model_validate(tenant)]
-            if page_query_params.page_number == 1
-            else []
-        )
-        return PaginatedResponse(
-            items=items,
-            page_number=page_query_params.page_number,
-            page_size=page_query_params.page_size,
-            total=1,
+        return await super().paginate(
+            schema_out=schema_out,
+            page_query_params=page_query_params,
+            include_deleted=include_deleted,
         )
 
     async def create_tenant(self, schema_in: TenantBase) -> TenantOut:
-        async def validate() -> None:
-            if await self.repo.get_one_by_name(schema_in.name):
-                raise AlreadyExistsException(
-                    f"Tenant already exists. [name={schema_in.name}]"
-                )
+        if await self.repo.get_one_by_name(schema_in.name):
+            raise AlreadyExistsException(
+                f"Tenant already exists. [name={schema_in.name}]"
+            )
 
-        return TenantOut.model_validate(await super().create(schema_in, validate))
+        tenant = await self.repo.create(commit=False, name=schema_in.name)
+
+        user = await self.repos.user.get(self.current_user.id)
+
+        await self.repos.user_tenant.create(
+            commit=False,
+            user_id=user.id,
+            tenant_id=tenant.id,
+            last_active_at=datetime.now(UTC),
+        )
+
+        permissions = await self.repos.permission.get_all()
+
+        admin_role = await self.repos.role.create(
+            commit=False,
+            name="Admin",
+            description="Full access to all system features and settings.",
+            tenant=tenant,
+        )
+        await self.repos.role.add_permissions(
+            admin_role, *[p.id for p in permissions], commit=False
+        )
+        await self.repos.user.add_roles(user, admin_role.id, commit=False)
+
+        tenant_out = TenantOut.model_validate(tenant)
+
+        await self.repos.commit()
+
+        return tenant_out
 
     async def update_tenant(self, identifier: int, schema_in: TenantBase) -> TenantOut:
         async def validate() -> None:
