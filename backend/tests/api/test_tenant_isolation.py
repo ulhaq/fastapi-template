@@ -9,11 +9,6 @@ def test_cannot_get_other_tenant(tenant2_admin_authenticated: TestClient) -> Non
     assert response.status_code == 403
 
 
-def test_cannot_update_other_tenant(tenant2_admin_authenticated: TestClient) -> None:
-    response = tenant2_admin_authenticated.put("/v1/tenants/1", json={"name": "Hacked"})
-    assert response.status_code == 403
-
-
 def test_cannot_patch_other_tenant(tenant2_admin_authenticated: TestClient) -> None:
     response = tenant2_admin_authenticated.patch(
         "/v1/tenants/1", json={"name": "Hacked"}
@@ -52,15 +47,6 @@ def test_cannot_get_other_tenant_role(
     tenant2_admin_authenticated: TestClient,
 ) -> None:
     response = tenant2_admin_authenticated.get("/v1/roles/1")
-    assert response.status_code == 404
-
-
-def test_cannot_update_other_tenant_role(
-    tenant2_admin_authenticated: TestClient,
-) -> None:
-    response = tenant2_admin_authenticated.put(
-        "/v1/roles/1", json={"name": "hacked", "description": "hacked"}
-    )
     assert response.status_code == 404
 
 

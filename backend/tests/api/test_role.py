@@ -30,11 +30,12 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
 
     assert len(rs["items"]) == 2
     assert rs["items"][0]["id"] == 1
-    assert rs["items"][0]["name"] == "admin"
+    assert rs["items"][0]["name"] == "Owner"
     assert (
         rs["items"][0]["description"]
         == "Full access to all system features and settings."
     )
+    assert rs["items"][0]["is_protected"] is True
 
     _assert_all_permissions(rs["items"][0]["permissions"])
     assert rs["items"][0]["created_at"]
@@ -43,6 +44,7 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
     assert rs["items"][1]["id"] == 2
     assert rs["items"][1]["name"] == "standard"
     assert rs["items"][1]["description"] == "Access to manage and view own resources."
+    assert rs["items"][1]["is_protected"] is False
     assert len(rs["items"][1]["permissions"]) == 2
     standard_perm_names = {p["name"] for p in rs["items"][1]["permissions"]}
     assert standard_perm_names == {"read:user", "create:user"}
@@ -108,8 +110,8 @@ def test_sort_roles(sort: str, admin_authenticated: TestClient) -> None:
         pytest.param(["id"], [[1, 2]], ["between"], 2),
         pytest.param(["id"], [[2, 3]], ["between"], 1),
         pytest.param(["id", "name"], [[1], ["a"]], ["eq", "co"], 2),
-        pytest.param(["name"], [["admin"]], ["eq"], 1),
-        pytest.param(["name"], [["a", "d"]], ["co"], 2),
+        pytest.param(["name"], [["Owner"]], ["eq"], 1),
+        pytest.param(["name"], [["n"]], ["co"], 2),
         pytest.param(["description"], [["access"]], ["ico"], 2),
         pytest.param(
             ["created_at"],
@@ -164,48 +166,28 @@ def test_create_a_role(admin_authenticated: TestClient) -> None:
 
 def test_patch_a_role(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.patch(
-        "/v1/roles/1",
+        "/v1/roles/2",
         json={
-            "name": "Administrator",
-            "description": "Full Access",
+            "name": "Basic",
+            "description": "Basic Access",
         },
     )
     assert response.status_code == 200
     rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "Administrator"
-    assert rs["description"] == "Full Access"
+    assert rs["id"] == 2
+    assert rs["name"] == "Basic"
+    assert rs["description"] == "Basic Access"
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
 def test_patch_a_role_with_partial_body(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.patch("/v1/roles/1", json={})
+    response = admin_authenticated.patch("/v1/roles/2", json={})
     assert response.status_code == 200
     rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "admin"
-    assert rs["description"] == "Full access to all system features and settings."
-
-
-def test_update_a_role(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.put(
-        "/v1/roles/1",
-        json={
-            "name": "Administrator",
-            "description": "Full access to all system features and settings.",
-        },
-    )
-    assert response.status_code == 200
-    rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "Administrator"
-    assert rs["description"] == "Full access to all system features and settings."
-
-    _assert_all_permissions(rs["permissions"])
-
-    assert rs["created_at"]
-    assert rs["updated_at"]
+    assert rs["id"] == 2
+    assert rs["name"] == "standard"
+    assert rs["description"] == "Access to manage and view own resources."
 
 
 def test_retrieve_a_role(admin_authenticated: TestClient) -> None:
@@ -214,8 +196,9 @@ def test_retrieve_a_role(admin_authenticated: TestClient) -> None:
     rs = response.json()
 
     assert rs["id"] == 1
-    assert rs["name"] == "admin"
+    assert rs["name"] == "Owner"
     assert rs["description"] == "Full access to all system features and settings."
+    assert rs["is_protected"] is True
 
     _assert_all_permissions(rs["permissions"])
 
@@ -229,15 +212,15 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     user_perm_ids = [p["id"] for p in all_perms if "user" in p["name"] or "role" in p["name"] or "permission" in p["name"]]
 
     response = admin_authenticated.post(
-        "/v1/roles/1/permissions",
+        "/v1/roles/2/permissions",
         json={
             "permission_ids": user_perm_ids,
         },
     )
     assert response.status_code == 200
     rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "admin"
+    assert rs["id"] == 2
+    assert rs["name"] == "standard"
     assert len(rs["permissions"]) == len(user_perm_ids)
 
     assert rs["created_at"]
@@ -245,15 +228,15 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
 
     read_tenant_id = next(p["id"] for p in all_perms if p["name"] == "read:tenant")
     response = admin_authenticated.post(
-        "/v1/roles/1/permissions",
+        "/v1/roles/2/permissions",
         json={
             "permission_ids": [read_tenant_id],
         },
     )
     assert response.status_code == 200
     rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "admin"
+    assert rs["id"] == 2
+    assert rs["name"] == "standard"
 
     assert len(rs["permissions"]) == 1
     assert rs["permissions"][0]["name"] == "read:tenant"
@@ -287,13 +270,38 @@ def test_cannot_create_a_role_with_already_existing_name(
     response = admin_authenticated.post(
         "/v1/roles",
         json={
-            "name": "admin",
+            "name": "Owner",
             "description": "description of test role",
         },
     )
     assert response.status_code == 409
     rs = response.json()
-    assert rs["msg"] == "Role already exists. [name=admin]"
+    assert rs["msg"] == "Role already exists. [name=Owner]"
+
+
+def test_cannot_patch_protected_role(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/roles/1", json={"name": "Hacked"})
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["error_code"] == "protected_role_modification"
+
+
+def test_cannot_delete_protected_role(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.delete("/v1/roles/1")
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["error_code"] == "protected_role_modification"
+
+
+def test_cannot_manage_permissions_of_protected_role(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.post(
+        "/v1/roles/1/permissions", json={"permission_ids": [1]}
+    )
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["error_code"] == "protected_role_modification"
 
 
 def test_cannot_patch_a_role_while_unauthorized(
@@ -312,21 +320,6 @@ def test_cannot_get_roles_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.get("/v1/roles")
-    assert response.status_code == 403
-    rs = response.json()
-    assert rs["msg"] == "You are not authorized to perform this action"
-
-
-def test_cannot_update_a_role_while_unauthorized(
-    standard_authenticated: TestClient,
-) -> None:
-    response = standard_authenticated.put(
-        "/v1/roles/1",
-        json={
-            "name": "Administrator",
-            "description": "Full access to all system features and settings.",
-        },
-    )
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"

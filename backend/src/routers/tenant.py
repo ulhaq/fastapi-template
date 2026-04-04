@@ -5,6 +5,13 @@ from fastapi import APIRouter, Depends, Path, status
 from src.core.dependencies import require_permission
 from src.core.security import Auth
 from src.enums import Permission
+from src.routers.query_options import (
+    FiltersQuery,
+    PageNumberQuery,
+    PageSizeQuery,
+    SortQuery,
+)
+from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.tenant import TenantBase, TenantOut, TenantPatch
 from src.schemas.user import UserOut
 from src.services.tenant import TenantService
@@ -14,23 +21,19 @@ from src.services.tenant import TenantService
 router = APIRouter(prefix="/tenants")
 
 
+@router.get("", status_code=status.HTTP_200_OK)
+async def get_all_tenants(
+    service: Annotated[TenantService, Depends()],
+) -> list[TenantOut]:
+    return await service.get_all_tenants()
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_a_tenant(
     service: Annotated[TenantService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.CREATE_TENANT))],
     tenant_in: TenantBase,
 ) -> TenantOut:
     return await service.create_tenant(tenant_in)
-
-
-@router.put("/{identifier}", status_code=status.HTTP_200_OK)
-async def update_a_tenant(
-    service: Annotated[TenantService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.UPDATE_TENANT))],
-    identifier: Annotated[int, Path()],
-    tenant_in: TenantBase,
-) -> TenantOut:
-    return await service.update_tenant(identifier, tenant_in)
 
 
 @router.patch("/{identifier}", status_code=status.HTTP_200_OK)
@@ -83,8 +86,18 @@ async def remove_user_from_tenant(
 
 @router.get("/{tenant_id}/users", status_code=status.HTTP_200_OK)
 async def get_tenant_users(
+    *,
     service: Annotated[TenantService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.READ_USER))],
     tenant_id: Annotated[int, Path()],
-) -> list[UserOut]:
-    return await service.get_tenant_users(tenant_id)
+    sort: SortQuery,
+    filters: FiltersQuery,
+    page_size: PageSizeQuery = 10,
+    page_number: PageNumberQuery = 1,
+) -> PaginatedResponse[UserOut]:
+    return await service.get_tenant_users(
+        tenant_id,
+        PageQueryParams(
+            sort=sort, filters=filters, page_size=page_size, page_number=page_number
+        ),
+    )

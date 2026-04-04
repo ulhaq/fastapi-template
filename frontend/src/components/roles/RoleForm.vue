@@ -1,252 +1,88 @@
 <template>
-  <v-btn color="white" variant="elevated" @click="openForm">
-    {{ t('roles.add') }}
-  </v-btn>
-  <v-dialog v-model="open" max-width="768" persistent>
-    <v-stepper
-      v-model="step"
-      :editable="isEditing"
-      hide-actions
-      :items="[t('roles.title'), t('permissions.title')]"
-    >
-      <template #item.1>
-        <v-form ref="roleForm" @submit.prevent="submit">
-          <v-card>
-            <v-card-title>
-              <span class="text-h6">{{ title }}</span>
-            </v-card-title>
+  <Dialog :open="open" @update:open="$emit('update:open', $event)">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>{{ isEdit ? $t('roles.form.editTitle') : $t('roles.form.createTitle') }}</DialogTitle>
+        <DialogDescription>
+          {{ isEdit ? $t('roles.form.editDescription') : $t('roles.form.createDescription') }}
+        </DialogDescription>
+      </DialogHeader>
 
-            <v-card-text>
-              <v-row>
-                <v-col>
-                  <v-text-field
-                    v-model="roleStore.role.name"
-                    :label="t('common.name')"
-                    :rules="[rules.required(), rules.minLength(1)]"
-                  />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <v-text-field
-                    v-model="roleStore.role.description"
-                    :label="t('common.description')"
-                    :rules="[rules.required()]"
-                  />
-                </v-col>
-              </v-row>
-            </v-card-text>
+      <form @submit.prevent="onSubmit" class="space-y-4">
+        <div class="space-y-2">
+          <Label>{{ $t('common.name') }}</Label>
+          <Input v-model="form.name" :placeholder="$t('roles.form.namePlaceholder')" :disabled="isLoading" />
+          <p v-if="errors.name" class="text-xs text-destructive">{{ errors.name }}</p>
+        </div>
+        <div class="space-y-2">
+          <Label>{{ $t('common.description') }} <span class="text-muted-foreground">({{ $t('common.optional') }})</span></Label>
+          <Textarea v-model="form.description" :placeholder="$t('roles.form.descriptionPlaceholder')" :disabled="isLoading" rows="3" />
+        </div>
 
-            <v-card-actions
-              class="d-flex flex-wrap justify-end flex-column-reverse flex-sm-row"
-            >
-              <v-btn
-                color="error"
-                :text="t('common.cancel')"
-                variant="plain"
-                @click="closeForm"
-              />
-              <v-btn
-                color="white"
-                :text="t('common.saveAndNext')"
-                variant="elevated"
-                @click="addRoleAndNextStep"
-              />
-              <v-btn
-                color="white"
-                :text="t('common.save')"
-                type="submit"
-                variant="elevated"
-              />
-            </v-card-actions>
-          </v-card>
-        </v-form>
-      </template>
-      <template #item.2>
-        <v-card>
-          <v-card-title>
-            <span class="text-h6">{{
-              t('roles.form.permissionAssignmentTitle', {
-                role: roleStore.role.name,
-              })
-            }}</span>
-          </v-card-title>
+        <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
 
-          <v-card-text>
-            <permission-table
-              v-model="selectedPermissions"
-              :headers="permissionHeaders"
-              :toolbar-spacer="false"
-            >
-              <template #toolbar.action />
-            </permission-table>
-          </v-card-text>
-
-          <v-card-actions
-            class="d-flex flex-wrap justify-end flex-column-reverse flex-sm-row"
-          >
-            <v-btn
-              color="error"
-              :text="t('common.close')"
-              variant="plain"
-              @click="closeForm"
-            />
-            <v-btn
-              color="white"
-              :text="assignPermissionBtnText"
-              variant="elevated"
-              @click="assignPermissionsToRole"
-            />
-          </v-card-actions>
-        </v-card>
-      </template>
-    </v-stepper>
-
-    <loading v-model="roleStore.loading" />
-  </v-dialog>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="$emit('update:open', false)" :disabled="isLoading">{{ $t('common.cancel') }}</Button>
+          <Button type="submit" :disabled="isLoading">
+            <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
+            {{ isEdit ? $t('common.saveChanges') : $t('common.create') }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
 </template>
 
-<script setup>
-import { computed, ref, watch } from 'vue'
+<script setup lang="ts">
+import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRules } from 'vuetify/labs/rules'
-import { useMessageStore } from '@/stores/message'
-import { useRoleStore } from '@/stores/role'
+import { Loader2 } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { rolesApi } from '@/api/roles'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+import type { RoleOut } from '@/types'
+
+const props = defineProps<{ open: boolean; role?: RoleOut | null }>()
+const emit = defineEmits<{ 'update:open': [boolean]; saved: [] }>()
 
 const { t } = useI18n()
-const rules = useRules()
-const messageStore = useMessageStore()
-const roleStore = useRoleStore()
+const { resolveError, resolveFieldErrors } = useErrorHandler()
+const isEdit = computed(() => !!props.role)
+const form = reactive({ name: '', description: '' })
+const errors = reactive({ name: '' })
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-const permissionHeaders = computed(() => [
-  { title: t('common.name'), key: 'name' },
-  { title: t('common.description'), key: 'description' },
-])
+watch(() => props.role, (r) => {
+  form.name = r?.name ?? ''
+  form.description = r?.description ?? ''
+  errors.name = ''
+  errorMessage.value = ''
+}, { immediate: true })
 
-const roleForm = ref(null)
-
-const step = ref(1)
-const open = ref(false)
-const selectedPermissions = ref([])
-
-const roleId = ref(null)
-
-watch(
-  () => roleStore.role,
-  (val) => {
-    if (val.id && !open.value) {
-      roleStore.setRole({ ...val })
-      roleId.value = val.id
-      selectedPermissions.value = val.permissions.map(
-        (permission) => permission.id,
-      )
-      step.value = 1
-      open.value = true
+async function onSubmit() {
+  errors.name = form.name.trim() ? '' : t('common.nameRequired')
+  if (errors.name) return
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    const payload = { name: form.name, description: form.description || null }
+    if (isEdit.value && props.role) {
+      await rolesApi.patch(props.role.id, payload)
+    } else {
+      await rolesApi.create(payload)
     }
-  },
-  { immediate: true },
-)
-
-watch(open, (val) => {
-  if (!val) {
-    roleStore.resetRole()
-    roleId.value = null
-    step.value = 1
-    selectedPermissions.value = []
+    emit('update:open', false)
+    emit('saved')
+  } catch (err: unknown) {
+    const fieldErrors = resolveFieldErrors(err)
+    errorMessage.value = fieldErrors['body__name'] ?? resolveError(err)
+  } finally {
+    isLoading.value = false
   }
-})
-
-const title = computed(() => {
-  return roleId.value ? t('roles.form.editTitle') : t('roles.form.addTitle')
-})
-
-const isEditing = computed(() => {
-  return roleId.value != null
-})
-
-const assignPermissionBtnText = computed(() => {
-  if (
-    selectedPermissions.value.length > 0 ||
-    (selectedPermissions.value.length == 0 &&
-      (roleStore.role.permissions?.length == 0 ||
-        roleStore.role.permission_ids?.length == 0))
-  ) {
-    return t('roles.form.assignPermissionsToRole', {
-      number: selectedPermissions.value.length || '',
-    })
-  }
-  return t('roles.form.removeAllPermissions')
-})
-
-function openForm() {
-  open.value = true
-}
-
-function closeForm() {
-  open.value = false
-  roleStore.loading = false
-}
-
-async function submit() {
-  const { valid } = await roleForm.value.validate()
-  if (!valid) return
-  messageStore.clearErrors()
-
-  if (isEditing.value) {
-    await roleStore.updateRole(roleStore.role)
-
-    messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
-  } else {
-    await roleStore.createRole(roleStore.role)
-
-    messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
-  }
-
-  closeForm()
-}
-
-async function addRoleAndNextStep() {
-  const { valid } = await roleForm.value.validate()
-  if (!valid) return
-  messageStore.clearErrors()
-
-  let rs
-
-  if (isEditing.value) {
-    rs = await roleStore.updateRole(roleStore.role)
-
-    messageStore.add({ text: t('roles.form.updateSuccess'), type: 'success' })
-  } else {
-    rs = await roleStore.createRole(roleStore.role)
-
-    messageStore.add({ text: t('roles.form.addSuccess'), type: 'success' })
-  }
-
-  roleId.value = rs.id
-  step.value = 2
-}
-
-async function assignPermissionsToRole() {
-  messageStore.clearErrors()
-
-  const rs = await roleStore.managePermissions(
-    roleId.value,
-    selectedPermissions.value,
-  )
-  if (rs.permissions.length > 0) {
-    messageStore.add({
-      text: t('roles.form.assignedPermissionsSuccess', {
-        number: selectedPermissions.value.length,
-      }),
-      type: 'success',
-    })
-  } else {
-    messageStore.add({
-      text: t('roles.form.unassignedPermissionsSuccess'),
-      type: 'success',
-    })
-  }
-
-  closeForm()
 }
 </script>

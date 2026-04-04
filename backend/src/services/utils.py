@@ -17,38 +17,41 @@ def send_email(
     email_template: str,
     data: dict | None = None,
 ) -> None:
-    if data is None:
-        data = {}
-    data = {
-        "app_name": settings.app_name,
-        "info_email": settings.email_from_address,
-        "user_name": user_name,
-    } | data
+    try:
+        if data is None:
+            data = {}
+        data = {
+            "app_name": settings.app_name,
+            "info_email": settings.email_from_address,
+            "user_name": user_name,
+        } | data
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = Address(
-        settings.email_from_name, addr_spec=settings.email_from_address
-    )
-    msg["To"] = Address(user_name, addr_spec=address)
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = Address(
+            settings.email_from_name, addr_spec=settings.email_from_address
+        )
+        msg["To"] = Address(user_name, addr_spec=address)
 
-    template_html = templates.get_template(f"emails/{email_template}.html").render(
-        **data
-    )
+        template_html = templates.get_template(f"emails/{email_template}.html").render(
+            **data
+        )
 
-    msg.set_content(
-        "This is an HTML email. Please view it in an HTML-compatible client."
-    )
-    msg.add_alternative(template_html, subtype="html")
+        msg.set_content(
+            "This is an HTML email. Please view it in an HTML-compatible client."
+        )
+        msg.add_alternative(template_html, subtype="html")
 
-    with SMTP(settings.email_host, settings.email_port) as smtp:
-        if settings.email_tls:
-            smtp.ehlo()
-            if smtp.has_extn("STARTTLS"):
-                smtp.starttls()
+        with SMTP(settings.email_host, settings.email_port) as smtp:
+            if settings.email_tls:
                 smtp.ehlo()
-        if settings.email_user and settings.email_password:
-            smtp.login(settings.email_user, settings.email_password)
-        smtp.send_message(msg)
+                if smtp.has_extn("STARTTLS"):
+                    smtp.starttls()
+                    smtp.ehlo()
+            if settings.email_user and settings.email_password:
+                smtp.login(settings.email_user, settings.email_password)
+            smtp.send_message(msg)
 
-    log.info("Email sent. [template=%s, ctx=%s]", email_template, data)
+        log.info("Email sent. [template=%s, ctx=%s]", email_template, data)
+    except Exception:  # pylint: disable=broad-exception-caught
+        log.exception("Failed to send email. [template=%s, address=%s]", email_template, address)

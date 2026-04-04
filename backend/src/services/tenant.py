@@ -1,8 +1,11 @@
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends
 
+from src.billing.abc import BillingProviderABC
+from src.billing.dependencies import BillingProviderDep
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
@@ -10,14 +13,61 @@ from src.core.exceptions import (
     PermissionDeniedException,
 )
 from src.core.security import Auth
-from src.enums import Permission
+from src.enums import OWNER_ROLE_NAME, Permission
 from src.models.tenant import Tenant
+from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.tenant import TenantRepository
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.tenant import TenantBase, TenantOut, TenantPatch
 from src.schemas.user import UserOut
 from src.services.base import ResourceService
+
+log = logging.getLogger(__name__)
+
+
+async def _setup_new_tenant(
+    repos: RepositoryManager,
+    provider: BillingProviderABC,
+    tenant: Tenant,
+    user: User,
+    user_email: str,
+) -> None:
+    permissions = await repos.permission.get_all()
+    owner_role = await repos.role.create(
+        name=OWNER_ROLE_NAME,
+        description="Full access to all system features and settings.",
+        is_protected=True,
+        tenant=tenant,
+    )
+    await repos.role.add_permissions(owner_role, *[p.id for p in permissions])
+    await repos.user.add_roles(user, owner_role.id)
+
+    free_price = await repos.plan_price.get_free_price()
+    if free_price and free_price.external_price_id:
+        external_customer_id = await provider.get_or_create_customer(
+            tenant_id=tenant.id,
+            tenant_name=tenant.name,
+            email=user_email,
+        )
+        ext_sub = await provider.create_subscription(
+            external_customer_id=external_customer_id,
+            external_price_id=free_price.external_price_id,
+        )
+        await repos.subscription.create(
+            tenant_id=tenant.id,
+            plan_price_id=free_price.id,
+            external_subscription_id=ext_sub.external_subscription_id,
+            external_customer_id=external_customer_id,
+            status=ext_sub.status,
+            current_period_start=ext_sub.current_period_start,
+            current_period_end=ext_sub.current_period_end,
+        )
+    else:
+        log.warning(
+            "No free plan found - skipping auto-subscription for tenant %s",
+            tenant.id,
+        )
 
 
 class TenantService(
@@ -29,9 +79,11 @@ class TenantService(
         self,
         repos: Annotated[RepositoryManager, Depends()],
         current_user: Annotated[Auth, Depends(authenticate)],
+        provider: BillingProviderDep,
     ) -> None:
         self.repo = repos.tenant
         self.current_user = current_user
+        self.provider = provider
         super().__init__(repos)
 
     async def get(self, identifier: int, include_deleted: bool = False) -> Tenant:
@@ -56,54 +108,39 @@ class TenantService(
             include_deleted=include_deleted,
         )
 
+    async def get_all_tenants(self) -> list[TenantOut]:
+        memberships = await self.repos.user_tenant.get_all_for_user(
+            self.current_user.id
+        )
+        tenant_ids = [m.tenant_id for m in memberships]
+        tenants = await self.repos.tenant.filter_by_ids(tenant_ids)
+        tenant_map = {t.id: t for t in tenants}
+        return [
+            TenantOut.model_validate(tenant_map[tid])
+            for tid in tenant_ids
+            if tid in tenant_map
+        ]
+
     async def create_tenant(self, schema_in: TenantBase) -> TenantOut:
         if await self.repo.get_one_by_name(schema_in.name):
             raise AlreadyExistsException(
                 f"Tenant already exists. [name={schema_in.name}]"
             )
 
-        tenant = await self.repo.create(commit=False, name=schema_in.name)
-
-        user = await self.repos.user.get(self.current_user.id)
+        tenant = await self.repo.create(name=schema_in.name)
 
         await self.repos.user_tenant.create(
-            commit=False,
-            user_id=user.id,
+            user_id=self.current_user.id,
             tenant_id=tenant.id,
             last_active_at=datetime.now(UTC),
         )
 
-        permissions = await self.repos.permission.get_all()
-
-        admin_role = await self.repos.role.create(
-            commit=False,
-            name="Admin",
-            description="Full access to all system features and settings.",
-            tenant=tenant,
+        user = await self.repos.user.get_one(self.current_user.id)
+        await _setup_new_tenant(
+            self.repos, self.provider, tenant, user, self.current_user.email
         )
-        await self.repos.role.add_permissions(
-            admin_role, *[p.id for p in permissions], commit=False
-        )
-        await self.repos.user.add_roles(user, admin_role.id, commit=False)
 
-        tenant_out = TenantOut.model_validate(tenant)
-
-        await self.repos.commit()
-
-        return tenant_out
-
-    async def update_tenant(self, identifier: int, schema_in: TenantBase) -> TenantOut:
-        async def validate() -> None:
-            existing_tenant = await self.repo.get_one_by_name(schema_in.name)
-
-            if existing_tenant and existing_tenant.id != identifier:
-                raise AlreadyExistsException(
-                    f"Tenant already exists. [name={schema_in.name}]"
-                )
-
-        return TenantOut.model_validate(
-            await super().update(identifier, schema_in, validate)
-        )
+        return TenantOut.model_validate(tenant)
 
     async def patch_tenant(self, identifier: int, schema_in: TenantPatch) -> TenantOut:
         async def validate() -> None:
@@ -182,24 +219,36 @@ class TenantService(
 
         await self.repos.user_tenant.force_delete(membership)
 
-    async def get_tenant_users(self, tenant_id: int) -> list[UserOut]:
+    async def get_tenant_users(
+        self, tenant_id: int, page_query_params: PageQueryParams
+    ) -> PaginatedResponse[UserOut]:
         await self.get(tenant_id)  # validates access
 
         self.repos.user.set_tenant_scope(tenant_id)
-        users = await self.repos.user.get_all()
-        result = []
-        for user in users:
-            tenant_roles = [r for r in user.roles if r.tenant_id == tenant_id]
-            result.append(
-                UserOut.model_validate(
-                    {
-                        "id": user.id,
-                        "name": user.name,
-                        "email": user.email,
-                        "created_at": user.created_at,
-                        "updated_at": user.updated_at,
-                        "roles": tenant_roles,
-                    }
-                )
+        items, total = await self.repos.user.paginate(
+            sort=page_query_params.sort,
+            filters=page_query_params.filters,
+            page_size=page_query_params.page_size,
+            page_number=page_query_params.page_number,
+        )
+        result = [
+            UserOut.model_validate(
+                {
+                    "id": user.id,
+                    "name": user.name,
+                    "email": user.email,
+                    "created_at": user.created_at,
+                    "updated_at": user.updated_at,
+                    "roles": [
+                        role for role in user.roles if role.tenant_id == tenant_id
+                    ],
+                }
             )
-        return result
+            for user in items
+        ]
+        return PaginatedResponse(
+            items=result,
+            page_number=page_query_params.page_number,
+            page_size=page_query_params.page_size,
+            total=total,
+        )

@@ -61,10 +61,10 @@ The project follows a clean layered architecture: **Routers > Services > Reposit
 ./scripts/lint.sh
 
 # Run all tests
-pytest
+uv run pytest ./tests
 
 # Run a single test
-pytest tests/api/test_auth.py::test_register_an_account -v
+uv run pytest ./tests/api/test_auth.py::test_register_an_account -v
 
 # Database setup (runs migrations + seeds data)
 python -m src.init_db

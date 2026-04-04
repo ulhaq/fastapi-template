@@ -12,10 +12,8 @@ from src.routers.query_options import (
     SortQuery,
 )
 from src.schemas.common import PageQueryParams, PaginatedResponse
-from src.schemas.tenant import TenantOut
 from src.schemas.user import (
     ChangePasswordIn,
-    UserBase,
     UserIn,
     UserOut,
     UserPatch,
@@ -29,20 +27,6 @@ router = APIRouter(prefix="/users")
 @router.get("/me", status_code=status.HTTP_200_OK)
 async def get_authenticated_user(service: Annotated[UserService, Depends()]) -> UserOut:
     return await service.get_authenticated_user()
-
-
-@router.get("/me/tenants", status_code=status.HTTP_200_OK)
-async def get_my_tenants(
-    service: Annotated[UserService, Depends()],
-) -> list[TenantOut]:
-    return await service.get_my_tenants()
-
-
-@router.put("/me", status_code=status.HTTP_200_OK)
-async def update_profile_of_authenticated_user(
-    service: Annotated[UserService, Depends()], user_base: UserBase
-) -> UserOut:
-    return await service.update_profile(user_base)
 
 
 @router.patch("/me", status_code=status.HTTP_200_OK)

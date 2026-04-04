@@ -4,19 +4,19 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from src.billing.dependencies import BillingProviderDep
 from src.core.config import settings
 from src.core.dependencies import authenticate
 from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
 from src.core.security import Auth, authenticate_user, hash_secret, sign
-from src.enums import ErrorCode, Permission
+from src.enums import OWNER_ROLE_NAME, ErrorCode, Permission
+from src.models.role import Role
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.user import UserRepository
 from src.schemas.common import PageQueryParams, PaginatedResponse
-from src.schemas.tenant import TenantOut
 from src.schemas.user import (
     ChangePasswordIn,
-    UserBase,
     UserIn,
     UserOut,
     UserPatch,
@@ -28,7 +28,7 @@ from src.services.utils import send_email
 
 class UserService(
     ResourceService[
-        UserRepository, User, UserBase | UserIn | UserPatch | ChangePasswordIn, UserOut
+        UserRepository, User, UserIn | UserPatch | ChangePasswordIn, UserOut
     ]
 ):
     current_user: Auth
@@ -37,10 +37,12 @@ class UserService(
         self,
         repos: Annotated[RepositoryManager, Depends()],
         current_user: Annotated[Auth, Depends(authenticate)],
+        provider: BillingProviderDep,
     ):
         self.repo = repos.user
         self.repo.set_tenant_scope(current_user.tenant_id)
         self.current_user = current_user
+        self.provider = provider
         super().__init__(repos)
 
     def _user_out(self, user: User) -> UserOut:
@@ -57,6 +59,26 @@ class UserService(
                 "roles": tenant_roles,
             }
         )
+
+    async def _assert_not_last_owner(self, user: User, new_roles: list) -> None:
+        tenant_roles = [
+            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        ]
+        owner_role = next(
+            (r for r in tenant_roles if r.is_protected and r.name == OWNER_ROLE_NAME),
+            None,
+        )
+        if owner_role is None:
+            return
+        if any(r.id == owner_role.id for r in new_roles):
+            return
+        if not await self.repo.has_other_user_with_role(
+            owner_role.id, exclude_user_id=user.id
+        ):
+            raise PermissionDeniedException(
+                "Cannot remove the last Owner from a tenant",
+                error_code=ErrorCode.LAST_OWNER_REMOVAL,
+            )
 
     async def _assert_not_last_admin(self, user: User) -> None:
         tenant_roles = [
@@ -96,19 +118,6 @@ class UserService(
     async def get_authenticated_user(self) -> UserOut:
         return self._user_out(await self.get(self.current_user.id))
 
-    async def update_profile(self, schema_in: UserBase) -> UserOut:
-        async def validate() -> None:
-            user = await self.repo.get_by_email(schema_in.email)
-            if user and user.email != auth.email:
-                raise AlreadyExistsException(
-                    f"User already exists. [email={schema_in.email}]",
-                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
-                )
-
-        auth = self.current_user
-
-        return self._user_out(await super().update(auth.id, schema_in, validate))
-
     async def patch_profile(self, schema_in: UserPatch) -> UserOut:
         async def validate() -> None:
             if schema_in.email:
@@ -119,9 +128,25 @@ class UserService(
                         error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
                     )
 
-        return self._user_out(
-            await super().patch(self.current_user.id, schema_in, validate)
-        )
+        user = await super().patch(self.current_user.id, schema_in, validate)
+
+        if schema_in.email:
+            tenant_roles = [
+                r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+            ]
+            is_owner = any(
+                r.is_protected and r.name == OWNER_ROLE_NAME for r in tenant_roles
+            )
+            if is_owner:
+                subscription = await self.repos.subscription.get_active_for_tenant(
+                    self.current_user.tenant_id
+                )
+                if subscription and subscription.external_customer_id:
+                    await self.provider.update_customer(
+                        subscription.external_customer_id, email=schema_in.email
+                    )
+
+        return self._user_out(user)
 
     async def change_password(self, schema_in: ChangePasswordIn) -> UserOut:
         auth = self.current_user
@@ -154,14 +179,12 @@ class UserService(
         await validate()
 
         user = await self.repo.create(
-            commit=False,
             name=schema_in.name,
             email=schema_in.email,
             password=hashed_pw,
         )
 
         await self.repos.user_tenant.create(
-            commit=False,
             user_id=user.id,
             tenant_id=self.current_user.tenant_id,
         )
@@ -170,12 +193,10 @@ class UserService(
 
         token = sign(data=schema_in.email, salt="reset-password")
 
-        await self.repos.user.delete_password_reset_token(commit=False, user=user)
+        await self.repos.user.delete_password_reset_token(user=user)
         await self.repos.user.create_password_reset_token(
-            commit=False, user=user, token=hash_secret(token)
+            user=user, token=hash_secret(token)
         )
-
-        await self.repos.commit()
 
         schedule_task(
             send_email,
@@ -196,15 +217,8 @@ class UserService(
     async def delete_user(self, identifier: int) -> None:
         user = await self.get(identifier)
         await self._assert_not_last_admin(user)
+        await self._assert_not_last_owner(user, [])
         await self.repo.delete(user)
-
-    async def get_my_tenants(self) -> list[TenantOut]:
-        memberships = await self.repos.user_tenant.get_all_for_user(
-            self.current_user.id
-        )
-        tenant_ids = [m.tenant_id for m in memberships]
-        tenants = await self.repos.tenant.filter_by_ids(tenant_ids)
-        return [TenantOut.model_validate(t) for t in tenants]
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
         if self.current_user.id == identifier:
@@ -213,11 +227,11 @@ class UserService(
             )
 
         user = await self.get(identifier)
-        new_roles = []
+        new_roles: list[Role] = []
 
         if schema_in.role_ids:
             self.repos.role.set_tenant_scope(self.current_user.tenant_id)
-            new_roles = await self.repos.role.filter_by_ids(schema_in.role_ids)
+            new_roles = list(await self.repos.role.filter_by_ids(schema_in.role_ids))
             if len(new_roles) != len(schema_in.role_ids):
                 raise PermissionDeniedException(
                     "One or more roles do not belong to your tenant"
@@ -237,6 +251,8 @@ class UserService(
         )
         if user_has_manage_permission and not new_roles_have_manage_permission:
             await self._assert_not_last_admin(user)
+
+        await self._assert_not_last_owner(user, new_roles)
 
         current_roles = {role.id for role in tenant_user_roles}
         schema_in_role_ids = set(schema_in.role_ids)

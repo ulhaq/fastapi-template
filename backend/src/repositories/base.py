@@ -78,7 +78,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         rs = await self.db.execute(stmt)
         return rs.scalar_one()
 
-    async def create(self, *, commit: bool = True, **kwargs: Any) -> ModelType:
+    async def create(self, **kwargs: Any) -> ModelType:
         instance = self.model(**kwargs)
 
         setattr(instance, "created_at", datetime.now(UTC))
@@ -86,28 +86,26 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
 
         self.db.add(instance)
 
-        return await self.save(instance, commit=commit)
+        return await self.save(instance)
 
-    async def update(
-        self, model: ModelType, *, commit: bool = True, **kwargs: Any
-    ) -> ModelType:
+    async def update(self, model: ModelType, **kwargs: Any) -> ModelType:
         for attr, value in kwargs.items():
             setattr(model, attr, value)
         setattr(model, "updated_at", datetime.now(UTC))
 
         self.db.add(model)
 
-        return await self.save(model, commit=commit)
+        return await self.save(model)
 
-    async def delete(self, model: ModelType, *, commit: bool = True) -> None:
+    async def delete(self, model: ModelType) -> None:
         setattr(model, "deleted_at", datetime.now(UTC))
 
-        await self.save(commit=commit)
+        await self.save()
 
-    async def force_delete(self, model: ModelType, *, commit: bool = True) -> None:
+    async def force_delete(self, model: ModelType) -> None:
         await self.db.delete(model)
 
-        await self.save(commit=commit)
+        await self.save()
 
     async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
@@ -164,7 +162,6 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         related_model: Any,
         relationship_attr: str,
         *related_ids: int,
-        commit: bool = True,
     ) -> None:
         stmt = select(related_model).filter(related_model.id.in_(related_ids))
         rs = await self.db.execute(stmt)
@@ -178,14 +175,13 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
             else:
                 setattr(target_model, relationship_attr, related_objects[0])
 
-        await self.save(target_model, commit=commit)
+        await self.save(target_model)
 
     async def remove_relationship(
         self,
         target_model: ModelType,
         relationship_attr: str,
         *related_ids: int,
-        commit: bool = True,
     ) -> None:
         current_value = getattr(target_model, relationship_attr)
 
@@ -202,7 +198,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         else:
             setattr(target_model, relationship_attr, None)
 
-        await self.save(target_model, commit=commit)
+        await self.save(target_model)
 
     @overload
     async def save(
@@ -210,7 +206,6 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         instance: None = None,
         *,
         refresh: bool = True,
-        commit: bool = True,
     ) -> None: ...
     @overload
     async def save[I](
@@ -218,7 +213,6 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         instance: I,
         *,
         refresh: Literal[True] = True,
-        commit: bool = True,
     ) -> I: ...
     @overload
     async def save[I](
@@ -226,19 +220,14 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         instance: I,
         *,
         refresh: Literal[False],
-        commit: bool = True,
     ) -> None: ...
     async def save[I](
         self,
         instance: I | None = None,
         *,
         refresh: bool = True,
-        commit: bool = True,
     ) -> I | None:
-        if commit:
-            await self.db.commit()
-        else:
-            await self.db.flush()
+        await self.db.flush()
 
         if instance is None:
             return None
@@ -386,10 +375,10 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
         rs = await self.db.execute(stmt)
         return rs.scalar_one()
 
-    async def create(self, *, commit: bool = True, **kwargs: Any) -> ModelType:
+    async def create(self, **kwargs: Any) -> ModelType:
         if self._tenant_id is not None:
             kwargs.setdefault("tenant_id", self._tenant_id)
-        return await super().create(commit=commit, **kwargs)
+        return await super().create(**kwargs)
 
     async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,

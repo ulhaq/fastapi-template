@@ -10,30 +10,18 @@ from src.repositories.base import TenantScopedRepository
 
 class RoleRepositoryABC(ResourceRepositoryABC[Role], ABC):
     @abstractmethod
-    async def add_permissions(
-        self, role: Role, *permission_ids: int, commit: bool = True
-    ) -> None: ...
+    async def add_permissions(self, role: Role, *permission_ids: int) -> None: ...
 
     @abstractmethod
-    async def remove_permissions(
-        self, role: Role, *permission_ids: int, commit: bool = True
-    ) -> None: ...
+    async def remove_permissions(self, role: Role, *permission_ids: int) -> None: ...
 
 
 class RoleRepository(TenantScopedRepository[Role], RoleRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Role, db)
 
-    async def add_permissions(
-        self, role: Role, *permission_ids: int, commit: bool = True
-    ) -> None:
-        await self.add_relationship(
-            role, Permission, "permissions", *permission_ids, commit=commit
-        )
+    async def add_permissions(self, role: Role, *permission_ids: int) -> None:
+        await self.add_relationship(role, Permission, "permissions", *permission_ids)
 
-    async def remove_permissions(
-        self, role: Role, *permission_ids: int, commit: bool = True
-    ) -> None:
-        await self.remove_relationship(
-            role, "permissions", *permission_ids, commit=commit
-        )
+    async def remove_permissions(self, role: Role, *permission_ids: int) -> None:
+        await self.remove_relationship(role, "permissions", *permission_ids)

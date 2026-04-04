@@ -1,0 +1,113 @@
+<route lang="yaml">
+meta:
+  layout: auth
+  guestOnly: true
+  breadcrumb: auth.setNewPassword
+</route>
+
+<template>
+  <Card>
+    <CardHeader class="pb-4">
+      <CardTitle class="text-lg">{{ $t('auth.setNewPassword') }}</CardTitle>
+      <CardDescription>{{ $t('auth.setNewPasswordDescription') }}</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div v-if="!token" class="text-center py-4">
+        <p class="text-sm text-destructive">{{ $t('auth.invalidToken') }}</p>
+        <RouterLink to="/forgot-password" class="text-sm text-foreground font-medium hover:underline block mt-2">
+          {{ $t('auth.requestNewLink') }}
+        </RouterLink>
+      </div>
+      <div v-else-if="success" class="text-center py-4 space-y-2">
+        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+          <CheckCircle2 class="w-5 h-5 text-primary" />
+        </div>
+        <p class="font-medium text-sm">{{ $t('auth.passwordUpdatedSuccess') }}</p>
+        <RouterLink to="/login" class="text-sm text-foreground font-medium hover:underline block mt-4">
+          {{ $t('auth.signIn') }}
+        </RouterLink>
+      </div>
+      <form v-else @submit.prevent="onSubmit" class="space-y-4">
+        <div class="space-y-2">
+          <Label for="password">{{ $t('auth.newPassword') }}</Label>
+          <Input
+            id="password"
+            v-model="password"
+            type="password"
+            :placeholder="$t('common.minCharacters')"
+            :disabled="isLoading"
+          />
+          <p v-if="errors.password" class="text-xs text-destructive">{{ errors.password }}</p>
+        </div>
+        <div class="space-y-2">
+          <Label for="confirm">{{ $t('auth.confirmPassword') }}</Label>
+          <Input
+            id="confirm"
+            v-model="confirm"
+            type="password"
+            :placeholder="$t('auth.repeatPassword')"
+            :disabled="isLoading"
+          />
+          <p v-if="errors.confirm" class="text-xs text-destructive">{{ errors.confirm }}</p>
+        </div>
+
+        <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
+
+        <Button type="submit" class="w-full" :disabled="isLoading">
+          <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
+          {{ $t('auth.updatePassword') }}
+        </Button>
+      </form>
+    </CardContent>
+  </Card>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { Loader2, CheckCircle2 } from 'lucide-vue-next'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { authApi } from '@/api/auth'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const route = useRoute()
+const router = useRouter()
+const { t } = useI18n()
+const { resolveError } = useErrorHandler()
+const token = (route.query.token as string) || ''
+
+if (token) {
+  router.replace({ path: route.path })
+}
+
+const password = ref('')
+const confirm = ref('')
+const errors = reactive({ password: '', confirm: '' })
+const isLoading = ref(false)
+const errorMessage = ref('')
+const success = ref(false)
+
+function validate() {
+  errors.password = password.value.length >= 8 ? '' : t('common.passwordMinLength')
+  errors.confirm = password.value === confirm.value ? '' : t('common.passwordsDoNotMatch')
+  return !errors.password && !errors.confirm
+}
+
+async function onSubmit() {
+  if (!validate()) return
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    await authApi.resetPassword({ token, password: password.value })
+    success.value = true
+  } catch (err: unknown) {
+    errorMessage.value = resolveError(err)
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>

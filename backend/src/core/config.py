@@ -64,6 +64,12 @@ class Settings(BaseSettings):
 
     rate_limit_enabled: bool = True
 
+    stripe_secret_key: SecretStr = SecretStr("")
+    stripe_webhook_secret: SecretStr = SecretStr("")
+    billing_success_url: str = "http://localhost:3000/billing/success"
+    billing_cancel_url: str = "http://localhost:3000/billing/cancel"
+    billing_portal_return_url: str = "http://localhost:3000/billing"
+
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False
 
@@ -79,6 +85,17 @@ class Settings(BaseSettings):
     def validate_production_auth(self) -> Self:
         if self.auth_enabled is False and self.app_env == "production":
             raise ValueError("AUTH_ENABLED must be True in production")
+        return self
+
+    @model_validator(mode="after")
+    def validate_billing_urls(self) -> Self:
+        if self.app_env == "production":
+            for field_name in ("billing_success_url", "billing_cancel_url"):
+                url = getattr(self, field_name)
+                if "localhost" in url or "127.0.0.1" in url:
+                    raise ValueError(
+                        f"{field_name} must not point to localhost in production"
+                    )
         return self
 
 

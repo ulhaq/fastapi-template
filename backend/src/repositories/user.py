@@ -21,14 +21,10 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
     ) -> User | None: ...
 
     @abstractmethod
-    async def add_roles(
-        self, user: User, *role_ids: int, commit: bool = True
-    ) -> None: ...
+    async def add_roles(self, user: User, *role_ids: int) -> None: ...
 
     @abstractmethod
-    async def remove_roles(
-        self, user: User, *role_ids: int, commit: bool = True
-    ) -> None: ...
+    async def remove_roles(self, user: User, *role_ids: int) -> None: ...
 
     @abstractmethod
     async def get_password_reset_token(
@@ -37,17 +33,20 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
 
     @abstractmethod
     async def create_password_reset_token(
-        self, *, commit: bool = True, user: User, token: str
+        self, *, user: User, token: str
     ) -> PasswordResetToken: ...
 
     @abstractmethod
-    async def delete_password_reset_token(
-        self, *, commit: bool = True, user: User
-    ) -> None: ...
+    async def delete_password_reset_token(self, *, user: User) -> None: ...
 
     @abstractmethod
     async def has_other_user_with_permission(
         self, permission: str, exclude_user_id: int
+    ) -> bool: ...
+
+    @abstractmethod
+    async def has_other_user_with_role(
+        self, role_id: int, exclude_user_id: int
     ) -> bool: ...
 
 
@@ -62,9 +61,9 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
             )
         return stmt
 
-    async def create(self, *, commit: bool = True, **kwargs: Any) -> User:
-        # Skip TenantScopedRepository.create — User has no tenant_id column.
-        return await SQLResourceRepository.create(self, commit=commit, **kwargs)
+    async def create(self, **kwargs: Any) -> User:
+        # Skip TenantScopedRepository.create - User has no tenant_id column.
+        return await SQLResourceRepository.create(self, **kwargs)
 
     async def get_by_email(
         self, email: str, include_deleted: bool = False
@@ -74,13 +73,11 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
-    async def add_roles(self, user: User, *role_ids: int, commit: bool = True) -> None:
-        await self.add_relationship(user, Role, "roles", *role_ids, commit=commit)
+    async def add_roles(self, user: User, *role_ids: int) -> None:
+        await self.add_relationship(user, Role, "roles", *role_ids)
 
-    async def remove_roles(
-        self, user: User, *role_ids: int, commit: bool = True
-    ) -> None:
-        await self.remove_relationship(user, "roles", *role_ids, commit=commit)
+    async def remove_roles(self, user: User, *role_ids: int) -> None:
+        await self.remove_relationship(user, "roles", *role_ids)
 
     async def get_password_reset_token(self, user: User) -> PasswordResetToken | None:
         stmt = select(PasswordResetToken).filter(PasswordResetToken.user_id == user.id)
@@ -89,7 +86,7 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
         return rs.unique().scalar_one_or_none()
 
     async def create_password_reset_token(
-        self, *, commit: bool = True, user: User, token: str
+        self, *, user: User, token: str
     ) -> PasswordResetToken:
         instance = PasswordResetToken(
             user_id=user.id, token=token, created_at=datetime.now(UTC)
@@ -97,16 +94,14 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
 
         self.db.add(instance)
 
-        return await self.save(instance, commit=commit)
+        return await self.save(instance)
 
-    async def delete_password_reset_token(
-        self, *, commit: bool = True, user: User
-    ) -> None:
+    async def delete_password_reset_token(self, *, user: User) -> None:
         stmt = delete(PasswordResetToken).filter(PasswordResetToken.user_id == user.id)
 
         await self.db.execute(stmt)
 
-        await self.save(commit=commit)
+        await self.save()
 
     async def has_other_user_with_permission(
         self, permission: str, exclude_user_id: int
@@ -116,6 +111,19 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
             .join(User.roles)
             .join(Role.permissions)
             .where(User.id != exclude_user_id, Permission.name == permission)
+        )
+        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._include_deleted(stmt)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none() is not None
+
+    async def has_other_user_with_role(
+        self, role_id: int, exclude_user_id: int
+    ) -> bool:
+        stmt = (
+            select(User)
+            .join(User.roles)
+            .where(Role.id == role_id, User.id != exclude_user_id)
         )
         stmt = self._apply_tenant_scope(stmt)
         stmt = self._include_deleted(stmt)

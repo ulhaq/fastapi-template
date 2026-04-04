@@ -1,0 +1,39 @@
+<template>
+  <AlertDialog :open="confirmState.open">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{{ confirmState.title }}</AlertDialogTitle>
+        <AlertDialogDescription v-if="confirmState.description">
+          {{ confirmState.description }}
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="handleCancel">{{ $t('common.cancel') }}</AlertDialogCancel>
+        <AlertDialogAction
+          @click="handleConfirm"
+          class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        >
+          {{ confirmState.confirmLabel }}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+</template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useConfirm } from '@/composables/useConfirm'
+
+useI18n()
+const { confirmState, handleConfirm, handleCancel } = useConfirm()
+</script>

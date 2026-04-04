@@ -1,6 +1,6 @@
 """Tests for multi-tenant user membership features:
 - POST /auth/switch-tenant
-- GET  /users/me/tenants
+- GET  /tenants
 - POST /tenants/{tenant_id}/users/{user_id}
 - DELETE /tenants/{tenant_id}/users/{user_id}
 - GET  /tenants/{tenant_id}/users
@@ -30,12 +30,12 @@ def _auth_headers(token: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# GET /users/me/tenants
+# GET /tenants
 # ---------------------------------------------------------------------------
 
 
 def test_get_my_tenants_returns_own_tenant(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/v1/users/me/tenants")
+    response = admin_authenticated.get("/v1/tenants")
     assert response.status_code == 200
     tenants = response.json()
     assert len(tenants) == 1
@@ -51,7 +51,7 @@ def test_get_my_tenants_after_joining_second_tenant(
     response = tenant2_admin_authenticated.post("/v1/tenants/2/users/1")
     assert response.status_code == 204
 
-    response = admin_authenticated.get("/v1/users/me/tenants")
+    response = admin_authenticated.get("/v1/tenants")
     assert response.status_code == 200
     tenants = response.json()
     assert len(tenants) == 2
@@ -60,7 +60,7 @@ def test_get_my_tenants_after_joining_second_tenant(
 
 
 def test_get_my_tenants_unauthenticated(client: TestClient) -> None:
-    response = client.get("/v1/users/me/tenants")
+    response = client.get("/v1/tenants")
     assert response.status_code == 401
 
 
@@ -128,7 +128,7 @@ def test_remove_user_from_tenant(
     # user 3 should no longer appear in Tenant 1 users
     response = admin_authenticated.get("/v1/tenants/1/users")
     assert response.status_code == 200
-    user_ids = [u["id"] for u in response.json()]
+    user_ids = [u["id"] for u in response.json()["items"]]
     assert 3 not in user_ids
 
 
@@ -172,9 +172,9 @@ def test_cannot_remove_user_without_permission(
 def test_get_tenant_users(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.get("/v1/tenants/1/users")
     assert response.status_code == 200
-    users = response.json()
-    assert len(users) == 3  # admin, standard, no_roles
-    emails = {u["email"] for u in users}
+    rs = response.json()
+    assert rs["total"] == 3  # admin, standard, no_roles
+    emails = {u["email"] for u in rs["items"]}
     assert "admin@example.org" in emails
     assert "standard@example.org" in emails
     assert "no_roles@example.org" in emails
@@ -190,7 +190,7 @@ def test_get_tenant_users_shows_only_tenant_roles(
     # When Tenant 1 lists its users, admin's roles should be Tenant 1 roles only
     response = admin_authenticated.get("/v1/tenants/1/users")
     assert response.status_code == 200
-    admin_user = next(u for u in response.json() if u["email"] == "admin@example.org")
+    admin_user = next(u for u in response.json()["items"] if u["email"] == "admin@example.org")
     for role in admin_user["roles"]:
         assert role["tenant_id"] == 1
 
@@ -247,10 +247,10 @@ def test_switch_tenant_context_changes(
 
     token = _login(client, "admin@example.org")
 
-    # Active in Tenant 1 — /users/me shows Admin role
+    # Active in Tenant 1 - /users/me shows Admin role
     me_t1 = client.get("/v1/users/me", headers=_auth_headers(token)).json()
     assert len(me_t1["roles"]) == 1
-    assert me_t1["roles"][0]["name"] == "admin"
+    assert me_t1["roles"][0]["name"] == "Owner"
 
     # Switch to Tenant 2
     switch_rs = client.post(
@@ -260,7 +260,7 @@ def test_switch_tenant_context_changes(
     )
     new_token = switch_rs.json()["access_token"]
 
-    # Active in Tenant 2 — no roles there, so /users/me shows empty roles
+    # Active in Tenant 2 - no roles there, so /users/me shows empty roles
     me_t2 = client.get("/v1/users/me", headers=_auth_headers(new_token)).json()
     assert me_t2["roles"] == []
 
@@ -354,7 +354,7 @@ def test_login_selects_first_tenant_when_none_active(
 ) -> None:
     # admin@example.org only belongs to Tenant 1 with last_active_at set from seeding
     token = _login(client, "admin@example.org")
-    response = client.get("/v1/users/me/tenants", headers=_auth_headers(token))
+    response = client.get("/v1/tenants", headers=_auth_headers(token))
     assert response.status_code == 200
     rs = response.json()
     assert len(rs) == 1

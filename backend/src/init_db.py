@@ -12,7 +12,7 @@ from sqlalchemy import select
 from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_secret
-from src.enums import Permission
+from src.enums import OWNER_ROLE_NAME, Permission
 from src.models.permission import Permission as PermissionModel
 from src.models.role import Role
 from src.models.tenant import Tenant
@@ -27,19 +27,16 @@ alembic_cfg = Config(os.getcwd() + "/alembic.ini")
 
 INIT_AUTH_DATA: dict = {
     "tenants": [
-        {
-            "name": "Tenant 1",
-        },
-        {
-            "name": "Tenant 2",
-        },
+        {"name": "Tenant 1"},
+        {"name": "Tenant 2"},
     ],
     "roles": [
         {
-            "name": "admin",
+            "name": OWNER_ROLE_NAME,
             "description": "Full access to all system features and settings.",
             "permissions": list(Permission),
             "tenant": 1,
+            "is_protected": True,
         },
         {
             "name": "standard",
@@ -48,10 +45,11 @@ INIT_AUTH_DATA: dict = {
             "tenant": 1,
         },
         {
-            "name": "admin",
+            "name": OWNER_ROLE_NAME,
             "description": "Full access to all system features and settings.",
             "permissions": list(Permission),
             "tenant": 2,
+            "is_protected": True,
         },
         {
             "name": "standard",
@@ -111,6 +109,7 @@ async def up() -> None:
                 Role(
                     name=role["name"],
                     description=role["description"],
+                    is_protected=role.get("is_protected", False),
                     tenant=tenants[role["tenant"] - 1],
                     permissions=[
                         permission

@@ -1,6 +1,24 @@
+from datetime import UTC, datetime
+
 from fastapi.testclient import TestClient
 
 from src.enums import PERMISSION_DESCRIPTIONS, Permission
+from src.models.billing import Subscription
+from tests.conftest import TestSessionLocal
+
+
+async def _seed_subscription(tenant_id: int, external_customer_id: str) -> None:
+    async with TestSessionLocal() as session:
+        session.add(
+            Subscription(
+                tenant_id=tenant_id,
+                external_customer_id=external_customer_id,
+                status="active",
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+        )
+        await session.commit()
 
 
 def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
@@ -13,7 +31,8 @@ def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
 
     assert len(rs["roles"]) == 1
     assert rs["roles"][0]["id"] == 1
-    assert rs["roles"][0]["name"] == "admin"
+    assert rs["roles"][0]["name"] == "Owner"
+    assert rs["roles"][0]["is_protected"] is True
     assert (
         rs["roles"][0]["description"]
         == "Full access to all system features and settings."
@@ -74,47 +93,6 @@ def test_patch_authenticated_user_profile_with_partial_body(
     assert rs["id"] == 1
     assert rs["name"] == "Admin"
     assert rs["email"] == "admin@example.org"
-
-
-def test_update_authenticated_user_profile(
-    admin_authenticated: TestClient, client: TestClient
-) -> None:
-    response = admin_authenticated.put(
-        "/v1/users/me",
-        json={"name": "John Doe", "email": "new@testing.com"},
-    )
-    assert response.status_code == 200
-    rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "John Doe"
-    assert rs["email"] == "new@testing.com"
-
-    response = client.post(
-        "/v1/auth/token",
-        data={"username": "new@testing.com", "password": "password"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-    rs = response.json()
-    access_token = rs["access_token"]
-
-    response = client.get(
-        "/v1/users/me", headers={"Authorization": f"Bearer {access_token}"}
-    )
-    assert response.status_code == 200
-    rs = response.json()
-    assert rs["id"] == 1
-    assert rs["name"] == "John Doe"
-    assert rs["email"] == "new@testing.com"
-
-
-def test_user_tenants_list_only_shows_own_tenant(
-    tenant2_admin_authenticated: TestClient,
-) -> None:
-    response = tenant2_admin_authenticated.get("/v1/users/me/tenants")
-    assert response.status_code == 200
-    rs = response.json()
-    assert len(rs) == 1
-    assert rs[0]["name"] == "Tenant 2"
 
 
 def test_change_authenticated_user_password(
@@ -194,7 +172,7 @@ def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
 
     assert len(rs["roles"]) == 2
     assert rs["roles"][0]["id"] == 1
-    assert rs["roles"][0]["name"] == "admin"
+    assert rs["roles"][0]["name"] == "Owner"
     assert (
         rs["roles"][0]["description"]
         == "Full access to all system features and settings."
@@ -301,3 +279,82 @@ def test_cannot_delete_a_user_while_unauthorized(
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
+
+
+def test_cannot_remove_last_owner_via_manage_roles(
+    admin_authenticated: TestClient, client: TestClient
+) -> None:
+    # Get the MANAGE_USER_ROLE permission ID
+    rs = admin_authenticated.get("/v1/permissions?page_size=50").json()
+    manage_role_perm_id = next(
+        p["id"] for p in rs["items"] if p["name"] == "manage:user_role"
+    )
+
+    # Create a role with only MANAGE_USER_ROLE (not Owner)
+    rs = admin_authenticated.post(
+        "/v1/roles", json={"name": "Manager", "description": "Role manager"}
+    ).json()
+    manager_role_id = rs["id"]
+    admin_authenticated.post(
+        f"/v1/roles/{manager_role_id}/permissions",
+        json={"permission_ids": [manage_role_perm_id]},
+    )
+
+    # Assign Manager role to user 2 (standard user)
+    admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [manager_role_id]})
+
+    # Login as user 2 (has MANAGE_USER_ROLE but not Owner role)
+    rs = client.post(
+        "/v1/auth/token",
+        data={"username": "standard@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()
+    from httpx import Headers
+
+    client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
+
+    # Try to remove Owner from user 1 (the last and only Owner) > should fail
+    response = client.post("/v1/users/1/roles", json={"role_ids": []})
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["error_code"] == "last_owner_removal"
+
+
+async def test_patch_profile_email_syncs_to_stripe_when_owner(
+    admin_authenticated: TestClient, mock_billing_provider
+) -> None:
+    await _seed_subscription(tenant_id=1, external_customer_id="cus_test123")
+
+    response = admin_authenticated.patch(
+        "/v1/users/me", json={"email": "new_owner@example.org"}
+    )
+    assert response.status_code == 200
+    assert response.json()["email"] == "new_owner@example.org"
+
+    mock_billing_provider.update_customer.assert_called_once_with(
+        "cus_test123", email="new_owner@example.org"
+    )
+
+
+async def test_patch_profile_email_does_not_sync_when_not_owner(
+    standard_authenticated: TestClient, mock_billing_provider
+) -> None:
+    await _seed_subscription(tenant_id=1, external_customer_id="cus_test123")
+
+    response = standard_authenticated.patch(
+        "/v1/users/me", json={"email": "new_standard@example.org"}
+    )
+    assert response.status_code == 200
+
+    mock_billing_provider.update_customer.assert_not_called()
+
+
+async def test_patch_profile_email_no_sync_without_subscription(
+    admin_authenticated: TestClient, mock_billing_provider
+) -> None:
+    response = admin_authenticated.patch(
+        "/v1/users/me", json={"email": "new_owner@example.org"}
+    )
+    assert response.status_code == 200
+
+    mock_billing_provider.update_customer.assert_not_called()

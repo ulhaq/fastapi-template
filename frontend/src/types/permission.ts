@@ -1,7 +1,7 @@
-export interface Permission {
+export interface PermissionOut {
   id: number
   name: string
-  description: string
-  created_at?: string
-  updated_at?: string
+  description: string | null
+  created_at: string
+  updated_at: string
 }

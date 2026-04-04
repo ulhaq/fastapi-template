@@ -20,6 +20,24 @@ down_revision: Union[str, None] = "2c3b2ee136dc"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+_PERMISSIONS = [
+    Permission.READ_TENANT,
+    Permission.UPDATE_TENANT,
+    Permission.DELETE_TENANT,
+    Permission.MANAGE_TENANT_USER,
+    Permission.READ_USER,
+    Permission.CREATE_USER,
+    Permission.UPDATE_USER,
+    Permission.DELETE_USER,
+    Permission.READ_ROLE,
+    Permission.CREATE_ROLE,
+    Permission.UPDATE_ROLE,
+    Permission.DELETE_ROLE,
+    Permission.MANAGE_USER_ROLE,
+    Permission.READ_PERMISSION,
+    Permission.MANAGE_ROLE_PERMISSION,
+]
+
 permission_table = sa.table(
     "permission",
     sa.Column("name", sa.String),
@@ -41,7 +59,7 @@ def upgrade() -> None:
                 "created_at": now,
                 "updated_at": now,
             }
-            for permission in Permission
+            for permission in _PERMISSIONS
         ],
     )
 
@@ -49,6 +67,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute(
         permission_table.delete().where(
-            permission_table.c.name.in_([permission.value for permission in Permission])
+            permission_table.c.name.in_([permission.value for permission in _PERMISSIONS])
         )
     )

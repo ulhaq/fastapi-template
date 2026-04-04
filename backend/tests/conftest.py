@@ -10,7 +10,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, AsyncSession
 from sqlalchemy import StaticPool
 
+from src.billing import (
+    BillingProviderABC,
+    CheckoutResult,
+    CustomerPortalResult,
+    ExternalPrice,
+    ExternalProduct,
+    ExternalSubscription,
+    WebhookPayload,
+    get_billing_provider,
+)
 from src.core.database import Base, get_db
+from src.models.billing import Plan, PlanPrice
 from src.core.security import hash_secret
 from src.enums import PERMISSION_DESCRIPTIONS
 from src.enums import Permission as PermissionEnum
@@ -32,7 +43,8 @@ TestSessionLocal = async_sessionmaker(
 
 async def db() -> AsyncGenerator[AsyncSession]:
     async with TestSessionLocal() as session:
-        yield session
+        async with session.begin():
+            yield session
 
 
 app.dependency_overrides[get_db] = db
@@ -65,6 +77,7 @@ async def prepare_database() -> AsyncGenerator[None]:
                 Role(
                     name=role["name"],
                     description=role["description"],
+                    is_protected=role.get("is_protected", False),
                     tenant=tenants[role["tenant"] - 1],
                     permissions=[
                         permission
@@ -104,10 +117,100 @@ async def prepare_database() -> AsyncGenerator[None]:
             )
         session.add_all(user_tenants)
 
+        # Seed free plan for auto-subscription on registration
+        free_plan = Plan(
+            name="Free",
+            description="Free plan",
+            external_product_id="prod_free123",
+            is_active=True,
+        )
+        session.add(free_plan)
+        await session.flush()
+        free_price = PlanPrice(
+            plan_id=free_plan.id,
+            amount=0,
+            currency="usd",
+            interval="month",
+            interval_count=1,
+            external_price_id="price_free123",
+            is_active=True,
+        )
+        session.add(free_price)
+
         await session.commit()
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest.fixture(autouse=True)
+def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
+    """Auto-used fixture that mocks the billing provider for all tests."""
+    mock = mocker.MagicMock(spec=BillingProviderABC)
+
+    mock.create_product.return_value = ExternalProduct(external_id="prod_test123")
+    mock.update_product.return_value = ExternalProduct(external_id="prod_test123")
+    mock.archive_product.return_value = None
+    mock.create_price.return_value = ExternalPrice(external_id="price_test123")
+    mock.archive_price.return_value = None
+    mock.get_or_create_customer.return_value = "cus_test123"
+    mock.create_checkout_session.return_value = CheckoutResult(
+        checkout_url="https://checkout.stripe.com/test_session",
+        external_session_id="cs_test123",
+    )
+    mock.cancel_subscription.return_value = ExternalSubscription(
+        external_subscription_id="sub_test123",
+        external_customer_id="cus_test123",
+        status="active",
+        current_period_start=None,
+        current_period_end=None,
+        cancel_at_period_end=True,
+        canceled_at=None,
+        external_price_id="price_test123",
+    )
+    mock.resume_subscription.return_value = ExternalSubscription(
+        external_subscription_id="sub_test123",
+        external_customer_id="cus_test123",
+        status="active",
+        current_period_start=None,
+        current_period_end=None,
+        cancel_at_period_end=False,
+        canceled_at=None,
+        external_price_id="price_test123",
+    )
+    mock.switch_subscription_price.return_value = ExternalSubscription(
+        external_subscription_id="sub_test123",
+        external_customer_id="cus_test123",
+        status="active",
+        current_period_start=None,
+        current_period_end=None,
+        cancel_at_period_end=False,
+        canceled_at=None,
+        external_price_id="price_test456",
+    )
+    mock.update_customer.return_value = None
+    mock.get_customer_portal_url.return_value = CustomerPortalResult(
+        portal_url="https://billing.stripe.com/portal/test"
+    )
+    mock.create_subscription.return_value = ExternalSubscription(
+        external_subscription_id="sub_free123",
+        external_customer_id="cus_test123",
+        status="active",
+        current_period_start=None,
+        current_period_end=None,
+        cancel_at_period_end=False,
+        canceled_at=None,
+        external_price_id="price_free123",
+    )
+    mock.construct_webhook_event.return_value = WebhookPayload(
+        external_event_id="evt_test123",
+        event_type="subscription.updated",
+        raw={},
+    )
+
+    app.dependency_overrides[get_billing_provider] = lambda: mock
+    yield mock
+    app.dependency_overrides.pop(get_billing_provider, None)
 
 
 @pytest.fixture(name="client")
@@ -154,3 +257,53 @@ def tenant2_admin_authenticated() -> Generator[TestClient, None, None]:
         c.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
 
         yield c
+
+
+@pytest.fixture
+async def plan_with_price() -> dict:
+    """Create a plan with one price directly in the DB. Returns {"plan": ..., "price": ...}."""
+    async with TestSessionLocal() as session:
+        plan = Plan(
+            name="Pro",
+            description="Pro plan",
+            external_product_id="prod_test123",
+            is_active=True,
+        )
+        session.add(plan)
+        await session.flush()
+        plan_id = plan.id
+
+        price = PlanPrice(
+            plan_id=plan_id,
+            amount=999,
+            currency="usd",
+            interval="month",
+            interval_count=1,
+            external_price_id="price_test123",
+            is_active=True,
+        )
+        session.add(price)
+        await session.flush()
+        price_id = price.id
+
+        await session.commit()
+
+    return {
+        "plan": {
+            "id": plan_id,
+            "name": "Pro",
+            "description": "Pro plan",
+            "external_product_id": "prod_test123",
+            "is_active": True,
+        },
+        "price": {
+            "id": price_id,
+            "plan_id": plan_id,
+            "amount": 999,
+            "currency": "usd",
+            "interval": "month",
+            "interval_count": 1,
+            "external_price_id": "price_test123",
+            "is_active": True,
+        },
+    }

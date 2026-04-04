@@ -1,3 +1,4 @@
+from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
 from src.models.password_reset_token import PasswordResetToken
 from src.models.permission import Permission
 from src.models.refresh_token import RefreshToken
@@ -14,4 +15,8 @@ __all__ = [
     "User",
     "UserTenant",
     "PasswordResetToken",
+    "Plan",
+    "PlanPrice",
+    "Subscription",
+    "WebhookEvent",
 ]

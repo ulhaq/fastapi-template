@@ -20,7 +20,7 @@ from src.core.limiter import limiter
 from src.core.logging import LOGGING_CONFIG
 from src.core.middlewares import ErrorHandlingMiddleware
 from src.enums import ErrorCode
-from src.routers import auth, permission, role, tenant, user
+from src.routers import auth, billing, permission, role, tenant, user
 from src.schemas.common import ErrorResponse, ValidationDetail, ValidationErrorResponse
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -155,6 +155,11 @@ app.include_router(tenant.router, tags=["Tenants"], prefix="/v1")
 app.include_router(user.router, tags=["Users"], prefix="/v1")
 app.include_router(role.router, tags=["Roles"], prefix="/v1")
 app.include_router(permission.router, tags=["Permissions"], prefix="/v1")
+app.include_router(billing.plan_router, tags=["Billing Plans"], prefix="/v1")
+app.include_router(
+    billing.subscription_router, tags=["Billing Subscriptions"], prefix="/v1"
+)
+app.include_router(billing.webhook_router, tags=["Billing Webhooks"], prefix="/v1")
 
 
 def custom_openapi() -> dict[str, Any]:

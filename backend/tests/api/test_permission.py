@@ -10,15 +10,15 @@ from tests.utils import (
 
 
 def test_get_all_permissions(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/v1/permissions?page_size=20")
+    response = admin_authenticated.get("/v1/permissions?page_size=100")
     assert response.status_code == 200
     rs = response.json()
 
     assert rs["page_number"] == 1
-    assert rs["page_size"] == 20
-    assert rs["total"] == 16
+    assert rs["page_size"] == 100
+    assert rs["total"] == 18
 
-    assert len(rs["items"]) == 16
+    assert len(rs["items"]) == 18
     assert rs["items"][0]["id"] == 1
     assert rs["items"][0]["name"] == "read:tenant"
     assert rs["items"][0]["description"] == "Allows the user to read tenant accounts."
@@ -29,9 +29,9 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 10, 16),
-        pytest.param(2, 10, 6, 16),
-        pytest.param(3, 10, 0, 16),
+        pytest.param(1, 10, 10, 18),
+        pytest.param(2, 10, 8, 18),
+        pytest.param(3, 10, 0, 18),
     ],
 )
 def test_paginate_permissions(

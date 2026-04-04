@@ -50,16 +50,6 @@ async def create_a_role(
     return await service.create_role(role_in)
 
 
-@router.put("/{identifier}", status_code=status.HTTP_200_OK)
-async def update_a_role(
-    service: Annotated[RoleService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.UPDATE_ROLE))],
-    identifier: Annotated[int, Path()],
-    role_in: RoleIn,
-) -> RoleOut:
-    return await service.update_role(identifier, role_in)
-
-
 @router.patch("/{identifier}", status_code=status.HTTP_200_OK)
 async def patch_a_role(
     service: Annotated[RoleService, Depends()],

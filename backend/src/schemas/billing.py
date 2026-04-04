@@ -1,0 +1,65 @@
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
+
+
+class CheckoutIn(BaseModel):
+    plan_price_id: int
+
+
+class SwitchPlanIn(BaseModel):
+    plan_price_id: int
+
+
+class PlanPriceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    plan_id: int
+    amount: int
+    currency: str
+    interval: str
+    interval_count: int
+    external_price_id: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class PlanOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None
+    external_product_id: str | None
+    is_active: bool
+    prices: list[PlanPriceOut]
+    created_at: datetime
+    updated_at: datetime
+
+
+class SubscriptionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    tenant_id: int
+    plan_price_id: int | None
+    external_subscription_id: str | None
+    status: str
+    current_period_start: datetime | None
+    current_period_end: datetime | None
+    cancel_at_period_end: bool
+    canceled_at: datetime | None
+    plan_price: PlanPriceOut | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class CheckoutOut(BaseModel):
+    checkout_url: str
+    external_session_id: str
+
+
+class CustomerPortalOut(BaseModel):
+    portal_url: str

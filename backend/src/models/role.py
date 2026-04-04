@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -25,6 +25,9 @@ class Role(Base, DeleteTimestampMixin, TimestampMixin):
         Integer,
         ForeignKey("tenant.id", name="fk_role_tenant_id_tenant", ondelete="CASCADE"),
         nullable=False,
+    )
+    is_protected: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="0"
     )
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="roles")

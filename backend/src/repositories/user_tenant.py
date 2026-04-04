@@ -43,9 +43,5 @@ class UserTenantRepository(SQLResourceRepository[UserTenant]):
         rows = await self.get_all_for_user(user_id)
         return rows[0] if rows else None
 
-    async def update_last_active(
-        self, membership: UserTenant, *, commit: bool = True
-    ) -> UserTenant:
-        return await self.update(
-            membership, last_active_at=datetime.now(UTC), commit=commit
-        )
+    async def update_last_active(self, membership: UserTenant) -> UserTenant:
+        return await self.update(membership, last_active_at=datetime.now(UTC))

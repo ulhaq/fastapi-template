@@ -3,8 +3,9 @@ from typing import Annotated
 from fastapi import Depends
 
 from src.core.dependencies import authenticate
-from src.core.exceptions import AlreadyExistsException
+from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
 from src.core.security import Auth
+from src.enums import ErrorCode
 from src.models.role import Role
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.role import RoleRepository
@@ -25,6 +26,15 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
         self.repo.set_tenant_scope(current_user.tenant_id)
         self.current_user = current_user
         super().__init__(repos)
+
+    async def _assert_not_protected_role(self, identifier: int) -> Role:
+        role = await self.get(identifier)
+        if role.is_protected:
+            raise PermissionDeniedException(
+                "Protected roles cannot be modified or deleted",
+                error_code=ErrorCode.PROTECTED_ROLE_MODIFICATION,
+            )
+        return role
 
     async def paginate(
         self,
@@ -47,20 +57,9 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
 
         return RoleOut.model_validate(await super().create(schema_in, validate))
 
-    async def update_role(self, identifier: int, schema_in: RoleIn) -> RoleOut:
-        async def validate() -> None:
-            existing_role = await self.repo.get_one_by_name(schema_in.name)
-
-            if existing_role and existing_role.id != identifier:
-                raise AlreadyExistsException(
-                    f"Role already exists. [name={schema_in.name}]"
-                )
-
-        return RoleOut.model_validate(
-            await super().update(identifier, schema_in, validate)
-        )
-
     async def patch_role(self, identifier: int, schema_in: RolePatch) -> RoleOut:
+        await self._assert_not_protected_role(identifier)
+
         async def validate() -> None:
             if schema_in.name:
                 existing_role = await self.repo.get_one_by_name(schema_in.name)
@@ -79,12 +78,13 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
         )
 
     async def delete_role(self, identifier: int, force_delete: bool = False) -> None:
+        await self._assert_not_protected_role(identifier)
         await super().delete(identifier, force_delete=force_delete)
 
     async def manage_permissions(
         self, identifier: int, schema_in: RolePermissionIn
     ) -> RoleOut:
-        role = await self.get(identifier)
+        role = await self._assert_not_protected_role(identifier)
 
         current_permissions = {permission.id for permission in role.permissions}
         schema_in_permission_ids = set(schema_in.permission_ids)

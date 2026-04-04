@@ -1,17 +1,13 @@
 import { createI18n } from 'vue-i18n'
-import da from '@/locales/da'
 import en from '@/locales/en'
+import da from '@/locales/da'
 
-const savedLocale = localStorage.getItem('locale') || 'en'
+const savedLocale = localStorage.getItem('locale') ?? 'en'
 
-const messages = {
-  en,
-  da,
-}
-
-export default createI18n({
+export const i18n = createI18n({
   legacy: false,
   locale: savedLocale,
   fallbackLocale: 'en',
-  messages,
+  globalInjection: true,
+  messages: { en, da },
 })

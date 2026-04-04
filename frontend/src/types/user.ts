@@ -1,11 +1,26 @@
-import type { Role } from '@/types/role'
+import type { RoleOut } from './role'
 
-export interface User {
-  id: number
+export interface UserBase {
   name: string
   email: string
-  roles?: Role[]
-  role_ids?: number[]
-  created_at?: string
-  updated_at?: string
+}
+
+export interface UserIn extends UserBase {
+  password: string
+}
+
+export interface UserPatch {
+  name?: string
+  email?: string
+}
+
+export interface UserRoleIn {
+  role_ids: number[]
+}
+
+export interface UserOut extends UserBase {
+  id: number
+  roles: RoleOut[]
+  created_at: string
+  updated_at: string
 }

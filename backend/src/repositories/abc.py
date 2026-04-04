@@ -51,18 +51,16 @@ class ResourceRepositoryABC[ModelType: Base](RepositoryABC[ModelType], ABC):
     async def exists(self, identifier: int, include_deleted: bool = False) -> bool: ...
 
     @abstractmethod
-    async def create(self, *, commit: bool = True, **kwargs: Any) -> ModelType: ...
+    async def create(self, **kwargs: Any) -> ModelType: ...
 
     @abstractmethod
-    async def update(
-        self, model: ModelType, *, commit: bool = True, **kwargs: Any
-    ) -> ModelType: ...
+    async def update(self, model: ModelType, **kwargs: Any) -> ModelType: ...
 
     @abstractmethod
-    async def delete(self, model: ModelType, *, commit: bool = True) -> None: ...
+    async def delete(self, model: ModelType) -> None: ...
 
     @abstractmethod
-    async def force_delete(self, model: ModelType, *, commit: bool = True) -> None: ...
+    async def force_delete(self, model: ModelType) -> None: ...
 
     @abstractmethod
     async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -86,7 +84,6 @@ class ResourceRepositoryABC[ModelType: Base](RepositoryABC[ModelType], ABC):
         related_model: Any,
         relationship_attr: str,
         *related_ids: int,
-        commit: bool = True,
     ) -> None: ...
 
     @abstractmethod
@@ -95,5 +92,4 @@ class ResourceRepositoryABC[ModelType: Base](RepositoryABC[ModelType], ABC):
         target_model: ModelType,
         relationship_attr: str,
         *related_ids: int,
-        commit: bool = True,
     ) -> None: ...

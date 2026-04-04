@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from src.billing.dependencies import BillingProviderDep
 from src.core.config import settings
 from src.core.exceptions import (
     AlreadyExistsException,
@@ -28,13 +29,19 @@ from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.user import EmailIn, ResetPasswordIn, UserIn, UserOut
 from src.services.base import BaseService
+from src.services.tenant import _setup_new_tenant
 from src.services.utils import send_email
 
 log = logging.getLogger(__name__)
 
 
 class AuthService(BaseService):
-    def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
+    def __init__(
+        self,
+        repos: Annotated[RepositoryManager, Depends()],
+        provider: BillingProviderDep,
+    ) -> None:
+        self.provider = provider
         super().__init__(repos)
 
     async def register_tenant(
@@ -46,43 +53,26 @@ class AuthService(BaseService):
                 error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
             )
 
-        tenant = await self.repos.tenant.create(
-            commit=False, name=f"{user_in.name}'s Tenant"
-        )
+        tenant = await self.repos.tenant.create(name=f"{user_in.name}'s Tenant")
 
         hashed_pw = hash_secret(user_in.password)
 
         user = await self.repos.user.create(
-            commit=False,
             name=user_in.name,
             email=user_in.email,
             password=hashed_pw,
         )
 
         await self.repos.user_tenant.create(
-            commit=False,
             user_id=user.id,
             tenant_id=tenant.id,
             last_active_at=datetime.now(UTC),
         )
 
-        permissions = await self.repos.permission.get_all()
-
-        admin_role = await self.repos.role.create(
-            commit=False,
-            name="Admin",
-            description="Full access to all system features and settings.",
-            tenant=tenant,
-        )
-        await self.repos.role.add_permissions(
-            admin_role, *[p.id for p in permissions], commit=False
-        )
-        await self.repos.user.add_roles(user, admin_role.id, commit=False)
+        await _setup_new_tenant(self.repos, self.provider, tenant, user, user_in.email)
 
         user_out = UserOut.model_validate(user)
         user_email, user_name = user.email, user.name
-
-        await self.repos.commit()
 
         schedule_task(
             send_email,
@@ -115,7 +105,7 @@ class AuthService(BaseService):
                 headers=BEARER_HEADERS,
             )
 
-        await self.repos.user_tenant.update_last_active(membership, commit=False)
+        await self.repos.user_tenant.update_last_active(membership)
 
         access_token = create_token(
             user, settings.auth_access_token_expiry, tenant_id=membership.tenant_id
@@ -131,7 +121,6 @@ class AuthService(BaseService):
         await self.repos.refresh_token.create(
             user, hash_secret(refresh_token), expires_at
         )
-        await self.repos.commit()
 
         return Token(
             access_token=access_token,
@@ -174,7 +163,6 @@ class AuthService(BaseService):
         await self.repos.refresh_token.create(
             user, hash_secret(new_refresh_token), expires_at
         )
-        await self.repos.commit()
 
         return Token(
             access_token=new_access_token,
@@ -192,7 +180,7 @@ class AuthService(BaseService):
         if not membership:
             raise PermissionDeniedException("You are not a member of this tenant")
 
-        await self.repos.user_tenant.update_last_active(membership, commit=False)
+        await self.repos.user_tenant.update_last_active(membership)
 
         access_token = create_token(
             user, settings.auth_access_token_expiry, tenant_id=tenant_id
@@ -208,7 +196,6 @@ class AuthService(BaseService):
         await self.repos.refresh_token.create(
             user, hash_secret(new_refresh_token), expires_at
         )
-        await self.repos.commit()
 
         return Token(
             access_token=access_token,
@@ -222,7 +209,6 @@ class AuthService(BaseService):
                 user_id = int(payload.get("sub", 0))
                 if user_id and (user := await self.repos.user.get(user_id)):
                     await self.repos.refresh_token.delete_by_user(user)
-                    await self.repos.commit()
             except Exception:  # pylint: disable=broad-except
                 pass
 
@@ -236,14 +222,12 @@ class AuthService(BaseService):
 
         token = sign(data=email_in.email, salt="reset-password")
 
-        await self.repos.user.delete_password_reset_token(commit=False, user=user)
+        await self.repos.user.delete_password_reset_token(user=user)
         await self.repos.user.create_password_reset_token(
-            commit=False, user=user, token=hash_secret(token)
+            user=user, token=hash_secret(token)
         )
 
         user_email, user_name = user.email, user.name
-
-        await self.repos.commit()
 
         schedule_task(
             send_email,
@@ -275,7 +259,7 @@ class AuthService(BaseService):
                     "Token invalid", error_code=ErrorCode.TOKEN_INVALID
                 )
 
-            await self.repos.user.delete_password_reset_token(commit=False, user=user)
+            await self.repos.user.delete_password_reset_token(user=user)
             await self.repos.refresh_token.delete_by_user(user)
 
             hashed_pw = hash_secret(reset_password_in.password)

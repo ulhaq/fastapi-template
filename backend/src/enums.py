@@ -1,5 +1,7 @@
 from enum import Enum, StrEnum
 
+OWNER_ROLE_NAME = "Owner"
+
 
 class ComparisonOperator(Enum):
     EQUALS = "eq"
@@ -47,6 +49,27 @@ class ErrorCode(Enum):
         "The requested resource already exists",
     )
     EMAIL_ALREADY_EXISTS = ("email_already_exists", "The provided email already exists")
+    BILLING_ERROR = ("billing_error", "A billing provider error occurred")
+    BILLING_WEBHOOK_INVALID = (
+        "billing_webhook_invalid",
+        "Webhook signature verification failed",
+    )
+    SUBSCRIPTION_ALREADY_ACTIVE = (
+        "subscription_already_active",
+        "Tenant already has an active subscription",
+    )
+    SUBSCRIPTION_NOT_FOUND = (
+        "subscription_not_found",
+        "No active subscription found for this tenant",
+    )
+    PROTECTED_ROLE_MODIFICATION = (
+        "protected_role_modification",
+        "Protected roles cannot be modified or deleted",
+    )
+    LAST_OWNER_REMOVAL = (
+        "last_owner_removal",
+        "Cannot remove the last Owner from a tenant",
+    )
 
     def __init__(self, code: str, description: str):
         self.code = code
@@ -55,7 +78,6 @@ class ErrorCode(Enum):
 
 class Permission(StrEnum):
     READ_TENANT = "read:tenant"
-    CREATE_TENANT = "create:tenant"
     UPDATE_TENANT = "update:tenant"
     DELETE_TENANT = "delete:tenant"
     MANAGE_TENANT_USER = "manage:tenant_user"
@@ -70,11 +92,13 @@ class Permission(StrEnum):
     MANAGE_USER_ROLE = "manage:user_role"
     READ_PERMISSION = "read:permission"
     MANAGE_ROLE_PERMISSION = "manage:role_permission"
+    READ_PLAN = "read:plan"
+    READ_SUBSCRIPTION = "read:subscription"
+    MANAGE_SUBSCRIPTION = "manage:subscription"
 
 
 PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.READ_TENANT: "Allows the user to read tenant accounts.",
-    Permission.CREATE_TENANT: "Allows the user to create new tenant accounts.",
     Permission.UPDATE_TENANT: "Allows the user to update tenant accounts.",
     Permission.DELETE_TENANT: "Allows the user to delete tenant accounts.",
     Permission.MANAGE_TENANT_USER: "Allows the user to manage tenants' users.",
@@ -89,4 +113,7 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.MANAGE_USER_ROLE: "Allows the user to manage users' roles.",
     Permission.READ_PERMISSION: "Allows the user to read permissions.",
     Permission.MANAGE_ROLE_PERMISSION: "Allows the user to manage roles' permissions.",
+    Permission.READ_PLAN: "Allows the user to read billing plans.",
+    Permission.READ_SUBSCRIPTION: "Allows the user to read the tenant's subscription.",
+    Permission.MANAGE_SUBSCRIPTION: "Allows managing the tenant's subscription.",
 }

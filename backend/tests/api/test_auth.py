@@ -21,7 +21,7 @@ def test_register_an_account(client: TestClient) -> None:
     assert rs["id"] == 5
     assert rs["name"] == "new user"
     assert rs["email"] == "new_user@example.org"
-    assert rs["roles"][0]["name"] == "Admin"
+    assert rs["roles"][0]["name"] == "Owner"
     assert rs["created_at"]
     assert rs["updated_at"]
 
@@ -44,7 +44,7 @@ def test_registered_user_can_login(client: TestClient) -> None:
     assert response.json()["access_token"]
 
 
-def test_registered_user_has_admin_role_with_all_permissions(
+def test_registered_user_has_owner_role_with_all_permissions(
     client: TestClient,
 ) -> None:
     client.post(
@@ -65,7 +65,7 @@ def test_registered_user_has_admin_role_with_all_permissions(
     assert response.status_code == 200
     rs = response.json()
     assert len(rs["roles"]) == 1
-    assert rs["roles"][0]["name"] == "Admin"
+    assert rs["roles"][0]["name"] == "Owner"
     assert len(rs["roles"][0]["permissions"]) == len(list(Permission))
 
 

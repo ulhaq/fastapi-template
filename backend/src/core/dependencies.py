@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
 from src.core.database import get_db
-from src.core.exceptions import NotAuthenticatedException
+from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
 from src.core.security import BEARER_HEADERS, Auth, decode_token, oauth2_scheme
-from src.enums import Permission
+from src.enums import OWNER_ROLE_NAME, Permission
 from src.models.user import User
 
 
@@ -53,5 +53,16 @@ def require_permission(permission: Permission) -> Callable:
     ) -> Auth:
         current_user.authorize(permission)
         return current_user
+
+    return _check
+
+
+def require_owner() -> Callable:
+    async def _check(
+        current_user: Annotated[Auth, Depends(authenticate)],
+    ) -> Auth:
+        if not settings.auth_enabled or OWNER_ROLE_NAME in current_user.roles:
+            return current_user
+        raise PermissionDeniedException
 
     return _check
