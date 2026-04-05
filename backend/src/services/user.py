@@ -171,7 +171,10 @@ class UserService(
         hashed_pw = hash_secret(schema_in.password)
 
         existing = await self.repo.get_by_email(schema_in.email, include_deleted=True)
-        if existing is not None and existing.deleted_at is None:
+        already_in_tenant = existing is not None and await self.repos.user_tenant.get_by_user_and_tenant(
+            user_id=existing.id, tenant_id=self.current_user.tenant_id
+        )
+        if existing is not None and existing.deleted_at is None and already_in_tenant:
             raise AlreadyExistsException(
                 f"User already exists. [email={schema_in.email}]",
                 error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
@@ -180,6 +183,8 @@ class UserService(
         if existing is not None and existing.deleted_at is not None:
             user = await self.repo.restore(existing)
             user = await self.repo.update(user, name=schema_in.name, password=hashed_pw)
+        elif existing is not None:
+            user = existing
         else:
             user = await self.repo.create(
                 name=schema_in.name,
