@@ -70,6 +70,16 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession()
   }
 
+  async function completeRegistration(setupToken: string, name: string, password: string): Promise<void> {
+    const { data: token } = await authApi.completeRegistration({
+      setup_token: setupToken,
+      name,
+      password,
+    })
+    setSession(token)
+    await Promise.all([fetchMe(), fetchTenants()])
+  }
+
   async function switchTenant(tenantId: number): Promise<void> {
     const { data: token } = await authApi.switchTenant({ tenant_id: tenantId })
     setSession(token)
@@ -91,6 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
     initialize,
     login,
     logout,
+    completeRegistration,
     switchTenant,
   }
 })

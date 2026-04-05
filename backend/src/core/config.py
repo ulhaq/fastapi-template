@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     auth_access_token_expiry: int = 30 * 60
     auth_refresh_token_expiry: int = 15 * 24 * 60 * 60
     auth_password_reset_expiry: int = 10 * 60
+    email_verification_expiry: int = 60 * 60 * 24
+    complete_registration_expiry: int = 30 * 60
 
     raw_allow_origins: str = Field(default="*", validation_alias="allow_origins")
 

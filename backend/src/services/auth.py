@@ -25,9 +25,16 @@ from src.core.security import (
     unsign,
     verify_secret,
 )
-from src.enums import ErrorCode
+from src.enums import OWNER_ROLE_NAME, ErrorCode
 from src.repositories.repository_manager import RepositoryManager
-from src.schemas.user import EmailIn, ResetPasswordIn, UserIn, UserOut
+from src.schemas.user import (
+    CompleteRegistrationIn,
+    EmailIn,
+    RegisterOut,
+    ResetPasswordIn,
+    SetupTokenOut,
+    VerifyEmailIn,
+)
 from src.services.base import BaseService
 from src.services.tenant import _setup_new_tenant
 from src.services.utils import send_email
@@ -45,47 +52,133 @@ class AuthService(BaseService):
         super().__init__(repos)
 
     async def register_tenant(
-        self, user_in: UserIn, schedule_task: Callable
-    ) -> UserOut:
-        if await self.repos.user.get_by_email(user_in.email):
+        self, email_in: EmailIn, schedule_task: Callable
+    ) -> RegisterOut:
+        existing = await self.repos.user.get_by_email(email_in.email)
+
+        if existing is not None:
+            has_owner_role = any(r.name == OWNER_ROLE_NAME for r in existing.roles)
+            if has_owner_role:
+                raise AlreadyExistsException(
+                    f"Account already exists. [email={email_in.email}]",
+                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+                )
+
+            # Existing non-owner user - create a new tenant for them immediately
+            tenant = await self.repos.tenant.create(name=f"{existing.name}'s Tenant")
+            await self.repos.user_tenant.create(
+                user_id=existing.id,
+                tenant_id=tenant.id,
+                last_active_at=datetime.now(UTC),
+            )
+            await _setup_new_tenant(
+                self.repos, self.provider, tenant, existing, email_in.email
+            )
+            schedule_task(
+                send_email,
+                address=email_in.email,
+                user_name=existing.name,
+                subject=f"New workspace on {settings.app_name}",
+                email_template="welcome",
+                data={"login_url": f"{settings.frontend_url}/login"},
+            )
+            return RegisterOut(message="New workspace created. Please log in.")
+
+        # New user - send email verification
+        token = sign(data=email_in.email, salt="email-verification")
+        await self.repos.email_verification_token.delete_by_email(email_in.email)
+        await self.repos.email_verification_token.create(
+            email=email_in.email, token=hash_secret(token)
+        )
+        schedule_task(
+            send_email,
+            address=email_in.email,
+            user_name=email_in.email,
+            subject=f"Verify your email for {settings.app_name}",
+            email_template="verify-email",
+            data={
+                "verify_url": (f"{settings.frontend_url}/verify-email?token={token}"),
+                "expiration_hours": settings.email_verification_expiry // 3600,
+            },
+        )
+        return RegisterOut(message="Check your email to verify your account.")
+
+    async def verify_email(self, schema_in: VerifyEmailIn) -> SetupTokenOut:
+        email: str = unsign(
+            schema_in.token,
+            salt="email-verification",
+            max_age=settings.email_verification_expiry,
+        )
+
+        record = await self.repos.email_verification_token.get_by_email(email)
+        if not record or not verify_secret(schema_in.token, record.token):
+            raise NotAuthenticatedException(
+                "Token invalid", error_code=ErrorCode.TOKEN_INVALID
+            )
+
+        await self.repos.email_verification_token.delete_by_email(email)
+
+        setup_token = sign(data=email, salt="complete-registration")
+        return SetupTokenOut(setup_token=setup_token)
+
+    async def complete_registration(
+        self, schema_in: CompleteRegistrationIn, schedule_task: Callable
+    ) -> Token:
+        email: str = unsign(
+            schema_in.setup_token,
+            salt="complete-registration",
+            max_age=settings.complete_registration_expiry,
+        )
+
+        if await self.repos.user.get_by_email(email):
             raise AlreadyExistsException(
-                f"Account already exists. [email={user_in.email}]",
+                f"Account already exists. [email={email}]",
                 error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
             )
 
-        tenant = await self.repos.tenant.create(name=f"{user_in.name}'s Tenant")
-
-        hashed_pw = hash_secret(user_in.password)
-
+        hashed_pw = hash_secret(schema_in.password)
         user = await self.repos.user.create(
-            name=user_in.name,
-            email=user_in.email,
+            name=schema_in.name,
+            email=email,
             password=hashed_pw,
         )
 
+        tenant = await self.repos.tenant.create(name=f"{schema_in.name}'s Tenant")
         await self.repos.user_tenant.create(
             user_id=user.id,
             tenant_id=tenant.id,
             last_active_at=datetime.now(UTC),
         )
 
-        await _setup_new_tenant(self.repos, self.provider, tenant, user, user_in.email)
+        await _setup_new_tenant(self.repos, self.provider, tenant, user, email)
 
-        user_out = UserOut.model_validate(user)
-        user_email, user_name = user.email, user.name
+        # Re-fetch user so roles assigned by _setup_new_tenant are loaded
+        user = await self.repos.user.get_one(user.id)
 
         schedule_task(
             send_email,
-            address=user_email,
-            user_name=user_name,
+            address=email,
+            user_name=schema_in.name,
             subject=f"Welcome to {settings.app_name}",
             email_template="welcome",
-            data={
-                "login_url": f"{settings.frontend_url}/login",
-            },
+            data={"login_url": f"{settings.frontend_url}/login"},
         )
 
-        return user_out
+        access_token = create_token(
+            user, settings.auth_access_token_expiry, tenant_id=tenant.id
+        )
+        refresh_token = create_token(
+            user, settings.auth_refresh_token_expiry, include_user_claims=False
+        )
+        expires_at = datetime.now(UTC) + timedelta(
+            seconds=settings.auth_refresh_token_expiry
+        )
+        await self.repos.refresh_token.delete_by_user(user)
+        await self.repos.refresh_token.create(
+            user, hash_secret(refresh_token), expires_at
+        )
+
+        return Token(access_token=access_token, refresh_token=refresh_token)
 
     async def get_access_token(self, username: str, password: str) -> Token:
         user = authenticate_user(

@@ -9,41 +9,30 @@ meta:
   <Card>
     <CardHeader class="pb-4">
       <CardTitle class="text-lg">{{ $t('auth.createAccount') }}</CardTitle>
-      <CardDescription>{{ $t('auth.createAccountDescription') }}</CardDescription>
+      <CardDescription>{{ $t('auth.verifyEmailDescription') }}</CardDescription>
     </CardHeader>
     <CardContent>
-      <form @submit.prevent="onSubmit" class="space-y-4">
-        <div class="space-y-2">
-          <Label for="name">{{ $t('common.name') }}</Label>
-          <Input
-            id="name"
-            v-model="form.name"
-            :placeholder="$t('users.form.namePlaceholder')"
-            :disabled="isLoading"
-          />
-          <p v-if="errors.name" class="text-xs text-destructive">{{ errors.name }}</p>
+      <div v-if="sent" class="text-center py-4 space-y-2">
+        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+          <MailCheck v-if="awaitingVerification" class="w-5 h-5 text-primary" />
+          <CheckCircle2 v-else class="w-5 h-5 text-primary" />
         </div>
+        <p class="text-sm text-muted-foreground">{{ responseMessage }}</p>
+        <RouterLink to="/login" class="text-sm text-foreground font-medium hover:underline block mt-4">
+          {{ $t('auth.backToSignIn') }}
+        </RouterLink>
+      </div>
+      <form v-else @submit.prevent="onSubmit" class="space-y-4">
         <div class="space-y-2">
           <Label for="email">{{ $t('common.email') }}</Label>
           <Input
             id="email"
-            v-model="form.email"
+            v-model="email"
             type="email"
             :placeholder="$t('auth.emailPlaceholder')"
             :disabled="isLoading"
           />
           <p v-if="errors.email" class="text-xs text-destructive">{{ errors.email }}</p>
-        </div>
-        <div class="space-y-2">
-          <Label for="password">{{ $t('common.password') }}</Label>
-          <Input
-            id="password"
-            v-model="form.password"
-            type="password"
-            :placeholder="$t('common.minCharacters')"
-            :disabled="isLoading"
-          />
-          <p v-if="errors.password" class="text-xs text-destructive">{{ errors.password }}</p>
         </div>
 
         <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
@@ -54,7 +43,7 @@ meta:
         </Button>
       </form>
     </CardContent>
-    <CardFooter class="pt-0">
+    <CardFooter v-if="!sent" class="pt-0">
       <p class="text-sm text-muted-foreground text-center w-full">
         {{ $t('auth.alreadyHaveAccount') }}
         <RouterLink to="/login" class="text-foreground font-medium hover:underline">
@@ -66,47 +55,42 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, MailCheck, CheckCircle2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/api/auth'
-import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
-const router = useRouter()
-const authStore = useAuthStore()
 const { t } = useI18n()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
 
-const form = reactive({ name: '', email: '', password: '' })
-const errors = reactive({ name: '', email: '', password: '' })
+const email = ref('')
+const errors = ref({ email: '' })
 const isLoading = ref(false)
 const errorMessage = ref('')
-
-function validate() {
-  errors.name = form.name.trim() ? '' : t('common.nameRequired')
-  errors.email = form.email.trim() ? '' : t('common.emailRequired')
-  errors.password = form.password.length >= 8 ? '' : t('common.passwordMinLength')
-  return !errors.name && !errors.email && !errors.password
-}
+const sent = ref(false)
+const responseMessage = ref('')
+const awaitingVerification = ref(false)
 
 async function onSubmit() {
-  if (!validate()) return
+  errors.value.email = email.value.trim() ? '' : t('common.emailRequired')
+  if (errors.value.email) return
+
   isLoading.value = true
   errorMessage.value = ''
   try {
-    await authApi.register(form.name, form.email, form.password)
-    await authStore.login(form.email, form.password)
-    router.push('/')
+    const { data } = await authApi.register({ email: email.value })
+    responseMessage.value = data.message
+    awaitingVerification.value = data.message.toLowerCase().includes('verify')
+    sent.value = true
   } catch (err: unknown) {
     const fieldErrors = resolveFieldErrors(err)
     if (fieldErrors['body__email']) {
-      errors.email = fieldErrors['body__email']
+      errors.value.email = fieldErrors['body__email']
     } else {
       errorMessage.value = resolveError(err)
     }

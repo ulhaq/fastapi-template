@@ -66,3 +66,21 @@ class ChangePasswordIn(BaseModel):
 
 class UserRoleIn(BaseModel):
     role_ids: list[int] = Field(default_factory=list)
+
+
+class RegisterOut(BaseModel):
+    message: str
+
+
+class VerifyEmailIn(BaseModel):
+    token: str
+
+
+class SetupTokenOut(BaseModel):
+    setup_token: str
+
+
+class CompleteRegistrationIn(BaseModel):
+    setup_token: str
+    name: Annotated[str, Field(min_length=1)]
+    password: Annotated[str, Field(min_length=8)]

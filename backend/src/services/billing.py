@@ -95,7 +95,7 @@ class SubscriptionService(BaseService):
             {"tid": self.current_user.tenant_id},
         )
 
-        # Re-check after acquiring the lock — a concurrent request may have inserted a
+        # Re-check after acquiring the lock - a concurrent request may have inserted a
         # subscription row between our initial check and the lock acquisition.
         existing = await self.repos.subscription.get_active_for_tenant_locked(
             self.current_user.tenant_id
@@ -666,7 +666,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         the checkout.session.expired webhook permanently failed and the row was
         never cleaned up by the normal event flow.
 
-        Safe to call repeatedly — rows are only updated once (incomplete → canceled).
+        Safe to call repeatedly - rows are only updated once (incomplete → canceled).
         Intended to be called from a scheduled job, e.g. daily with max_age_hours=48.
         """
         threshold = datetime.now(UTC) - timedelta(hours=max_age_hours)

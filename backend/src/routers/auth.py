@@ -7,7 +7,15 @@ from src.core.config import settings
 from src.core.dependencies import authenticate
 from src.core.limiter import limiter
 from src.core.security import Auth, Token
-from src.schemas.user import EmailIn, ResetPasswordIn, SwitchTenantIn, UserIn, UserOut
+from src.schemas.user import (
+    CompleteRegistrationIn,
+    EmailIn,
+    RegisterOut,
+    ResetPasswordIn,
+    SetupTokenOut,
+    SwitchTenantIn,
+    VerifyEmailIn,
+)
 from src.services.auth import AuthService
 
 router = APIRouter(prefix="/auth")
@@ -34,15 +42,39 @@ def _delete_refresh_token_cookie(response: Response) -> None:
     )
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit("5/minute")
 async def create_an_account(
     request: Request,  # pylint: disable=unused-argument
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
-    user_in: UserIn,
-) -> UserOut:
-    return await service.register_tenant(user_in, bg_tasks.add_task)
+    email_in: EmailIn,
+) -> RegisterOut:
+    return await service.register_tenant(email_in, bg_tasks.add_task)
+
+
+@router.post("/verify-email", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
+async def verify_email(
+    request: Request,  # pylint: disable=unused-argument
+    service: Annotated[AuthService, Depends()],
+    schema_in: VerifyEmailIn,
+) -> SetupTokenOut:
+    return await service.verify_email(schema_in)
+
+
+@router.post("/complete-registration", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
+async def complete_registration(
+    request: Request,  # pylint: disable=unused-argument
+    response: Response,
+    bg_tasks: BackgroundTasks,
+    service: Annotated[AuthService, Depends()],
+    schema_in: CompleteRegistrationIn,
+) -> Token:
+    token = await service.complete_registration(schema_in, bg_tasks.add_task)
+    _set_refresh_token_cookie(response, token.refresh_token)
+    return token
 
 
 @router.post("/token", status_code=status.HTTP_200_OK)

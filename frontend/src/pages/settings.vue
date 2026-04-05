@@ -27,6 +27,24 @@ meta:
 
       <div class="pt-4 space-y-0.5">
         <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-1.5">
+          {{ $t('settings.workspace') }}
+        </p>
+        <RouterLink
+          v-for="item in workspaceItems"
+          :key="item.to"
+          :to="item.to"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors"
+          :class="isActive(item.to)
+            ? 'bg-accent text-accent-foreground font-medium'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
+        >
+          <component :is="item.icon" class="w-4 h-4 shrink-0" />
+          {{ item.label }}
+        </RouterLink>
+      </div>
+
+      <div class="pt-4 space-y-0.5">
+        <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-1.5">
           {{ $t('settings.administration') }}
         </p>
         <RouterLink
@@ -67,11 +85,14 @@ const accountItems = computed(() => [
   { to: '/settings/security', label: t('settings.security'), icon: Lock },
 ])
 
-const adminItems = computed(() => [
+const workspaceItems = computed(() => [
   { to: '/settings/users', label: t('nav.users'), icon: Users },
   { to: '/settings/roles', label: t('nav.roles'), icon: Shield },
-  { to: '/settings/tenants', label: t('nav.tenants'), icon: Building2 },
   ...(hasPermission('read:subscription') ? [{ to: '/settings/billing', label: t('nav.billing'), icon: Receipt }] : []),
+])
+
+const adminItems = computed(() => [
+  { to: '/settings/tenants', label: t('nav.tenants'), icon: Building2 },
 ])
 
 function isActive(path: string, exact = false): boolean {

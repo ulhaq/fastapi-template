@@ -28,6 +28,28 @@ export interface SwitchTenantIn {
   tenant_id: number
 }
 
+export interface RegisterIn {
+  email: string
+}
+
+export interface RegisterOut {
+  message: string
+}
+
+export interface VerifyEmailIn {
+  token: string
+}
+
+export interface VerifyEmailOut {
+  setup_token: string
+}
+
+export interface CompleteRegistrationIn {
+  setup_token: string
+  name: string
+  password: string
+}
+
 export interface JwtPayload {
   sub: string
   name?: string

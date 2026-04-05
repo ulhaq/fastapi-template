@@ -66,7 +66,7 @@ onMounted(async () => {
       isPending.value = true
     }
   } catch {
-    // 404 or other error — subscription not found or error fetching
+    // 404 or other error - subscription not found or error fetching
   } finally {
     isLoading.value = false
   }

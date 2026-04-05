@@ -7,37 +7,79 @@ from src.core.limiter import limiter
 from src.enums import Permission
 
 
+def _do_register(client: TestClient, email: str = "new_user@example.org") -> None:
+    client.post("/v1/auth/register", json={"email": email})
+
+
+def _do_verify(
+    mocker: MockerFixture, client: TestClient, email: str = "new_user@example.org"
+) -> str:
+    """Register, capture verification token, verify email, return setup_token."""
+    mock_send = mocker.patch("src.services.auth.send_email")
+    _do_register(client, email)
+    verify_url = mock_send.call_args.kwargs["data"]["verify_url"]
+    token = verify_url.split("token=")[1]
+    mock_send.stop()
+
+    rs = client.post("/v1/auth/verify-email", json={"token": token}).json()
+    return rs["setup_token"]
+
+
+def _do_complete(
+    mocker: MockerFixture,
+    client: TestClient,
+    email: str = "new_user@example.org",
+    name: str = "New User",
+    password: str = "password1",
+) -> dict:
+    """Full registration flow - returns the Token response JSON."""
+    setup_token = _do_verify(mocker, client, email)
+    response = client.post(
+        "/v1/auth/complete-registration",
+        json={"setup_token": setup_token, "name": name, "password": password},
+    )
+    return response.json()
+
+
 def test_register_an_account(client: TestClient) -> None:
     response = client.post(
         "/v1/auth/register",
-        json={
-            "name": "new user",
-            "email": "new_user@example.org",
-            "password": "password",
-        },
+        json={"email": "new_user@example.org"},
+    )
+    assert response.status_code == 202
+    assert response.json()["message"] == "Check your email to verify your account."
+
+
+def test_verify_email(mocker: MockerFixture, client: TestClient) -> None:
+    mock_send = mocker.patch("src.services.auth.send_email")
+    _do_register(client)
+
+    verify_url = mock_send.call_args.kwargs["data"]["verify_url"]
+    token = verify_url.split("token=")[1]
+
+    response = client.post("/v1/auth/verify-email", json={"token": token})
+    assert response.status_code == 200
+    assert response.json()["setup_token"]
+
+
+def test_complete_registration(mocker: MockerFixture, client: TestClient) -> None:
+    setup_token = _do_verify(mocker, client)
+    response = client.post(
+        "/v1/auth/complete-registration",
+        json={"setup_token": setup_token, "name": "New User", "password": "password1"},
     )
     assert response.status_code == 201
     rs = response.json()
-    assert rs["id"] == 5
-    assert rs["name"] == "new user"
-    assert rs["email"] == "new_user@example.org"
-    assert rs["roles"][0]["name"] == "Owner"
-    assert rs["created_at"]
-    assert rs["updated_at"]
+    assert rs["access_token"]
+    assert rs["refresh_token"]
+    assert rs["token_type"] == "bearer"
 
 
-def test_registered_user_can_login(client: TestClient) -> None:
-    client.post(
-        "/v1/auth/register",
-        json={
-            "name": "new user",
-            "email": "new_user@example.org",
-            "password": "password",
-        },
-    )
+def test_registered_user_can_login(mocker: MockerFixture, client: TestClient) -> None:
+    _do_complete(mocker, client, password="password1")
     response = client.post(
         "v1/auth/token",
-        data={"username": "new_user@example.org", "password": "password"},
+        data={"username": "new_user@example.org", "password": "password1"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
@@ -45,28 +87,47 @@ def test_registered_user_can_login(client: TestClient) -> None:
 
 
 def test_registered_user_has_owner_role_with_all_permissions(
-    client: TestClient,
+    mocker: MockerFixture, client: TestClient
 ) -> None:
-    client.post(
-        "/v1/auth/register",
-        json={
-            "name": "new user",
-            "email": "new_user@example.org",
-            "password": "password",
-        },
-    )
-    token = client.post(
-        "v1/auth/token",
-        data={"username": "new_user@example.org", "password": "password"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    ).json()["access_token"]
+    token_data = _do_complete(mocker, client, password="password1")
+    access_token = token_data["access_token"]
 
-    response = client.get("/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/v1/users/me", headers={"Authorization": f"Bearer {access_token}"})
     assert response.status_code == 200
     rs = response.json()
     assert len(rs["roles"]) == 1
     assert rs["roles"][0]["name"] == "Owner"
     assert len(rs["roles"][0]["permissions"]) == len(list(Permission))
+
+
+def test_cannot_verify_email_with_invalid_token(client: TestClient) -> None:
+    response = client.post("/v1/auth/verify-email", json={"token": "invalidtoken"})
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "signature_invalid"
+
+
+def test_cannot_verify_email_token_twice(
+    mocker: MockerFixture, client: TestClient
+) -> None:
+    mock_send = mocker.patch("src.services.auth.send_email")
+    _do_register(client)
+    token = mock_send.call_args.kwargs["data"]["verify_url"].split("token=")[1]
+
+    client.post("/v1/auth/verify-email", json={"token": token})
+    response = client.post("/v1/auth/verify-email", json={"token": token})
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "token_invalid"
+
+
+def test_cannot_complete_registration_with_invalid_setup_token(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/v1/auth/complete-registration",
+        json={"setup_token": "badtoken", "name": "X", "password": "password1"},
+    )
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "signature_invalid"
 
 
 def test_get_access_token(client: TestClient) -> None:
@@ -239,17 +300,36 @@ def test_cannot_reset_password_with_expired_token(
         assert rs["msg"] == "Signature expired"
 
 
-def test_cannot_register_an_account_with_already_existing_email(
+def test_owner_cannot_register_a_new_account(
     client: TestClient,
 ) -> None:
     response = client.post(
         "/v1/auth/register",
-        json={"name": "new user", "email": "admin@example.org", "password": "password"},
+        json={"email": "admin@example.org"},
     )
     assert response.status_code == 409
     rs = response.json()
     assert rs["error_code"] == "email_already_exists"
     assert rs["msg"] == "Account already exists. [email=admin@example.org]"
+
+
+def test_non_owner_user_can_register_new_tenant(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/v1/auth/register",
+        json={"email": "standard@example.org"},
+    )
+    assert response.status_code == 202
+    assert response.json()["message"] == "New workspace created. Please log in."
+
+    # Verify original password still works (not overwritten)
+    token_response = client.post(
+        "/v1/auth/token",
+        data={"username": "standard@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert token_response.status_code == 200
 
 
 def test_cannot_get_access_token_with_wrong_credentials(client: TestClient) -> None:
@@ -344,14 +424,8 @@ def test_register_rate_limit(client: TestClient) -> None:
     limiter._storage.reset()
     with patch.object(limiter, "enabled", True):
         for _ in range(5):
-            client.post(
-                "/v1/auth/register",
-                json={"name": "u", "email": "x@example.org", "password": "password"},
-            )
-        response = client.post(
-            "/v1/auth/register",
-            json={"name": "u", "email": "x@example.org", "password": "password"},
-        )
+            client.post("/v1/auth/register", json={"email": "x@example.org"})
+        response = client.post("/v1/auth/register", json={"email": "x@example.org"})
     assert response.status_code == 429
 
 

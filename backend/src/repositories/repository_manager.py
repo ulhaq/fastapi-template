@@ -12,6 +12,7 @@ from src.repositories.billing import (
     SubscriptionRepository,
     WebhookEventRepository,
 )
+from src.repositories.email_verification_token import EmailVerificationTokenRepository
 from src.repositories.permission import PermissionRepository
 from src.repositories.refresh_token import RefreshTokenRepository
 from src.repositories.role import RoleRepository
@@ -35,6 +36,7 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         self._plan_price: PlanPriceRepository | None = None
         self._subscription: SubscriptionRepository | None = None
         self._webhook_event: WebhookEventRepository | None = None
+        self._email_verification_token: EmailVerificationTokenRepository | None = None
 
     @property
     def tenant(self) -> TenantRepository:
@@ -95,6 +97,12 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         if self._webhook_event is None:
             self._webhook_event = WebhookEventRepository(self.db)
         return self._webhook_event
+
+    @property
+    def email_verification_token(self) -> EmailVerificationTokenRepository:
+        if self._email_verification_token is None:
+            self._email_verification_token = EmailVerificationTokenRepository(self.db)
+        return self._email_verification_token
 
     @asynccontextmanager
     async def savepoint(self) -> AsyncGenerator[None]:

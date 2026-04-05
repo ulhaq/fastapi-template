@@ -1,5 +1,15 @@
 import { apiClient } from './client'
-import type { Token, ResetPasswordRequestIn, ResetPasswordIn, SwitchTenantIn } from '@/types'
+import type {
+  Token,
+  RegisterIn,
+  RegisterOut,
+  VerifyEmailIn,
+  VerifyEmailOut,
+  CompleteRegistrationIn,
+  ResetPasswordRequestIn,
+  ResetPasswordIn,
+  SwitchTenantIn,
+} from '@/types'
 
 export const authApi = {
   login(email: string, password: string) {
@@ -11,8 +21,16 @@ export const authApi = {
     })
   },
 
-  register(name: string, email: string, password: string) {
-    return apiClient.post('/v1/auth/register', { name, email, password })
+  register(data: RegisterIn) {
+    return apiClient.post<RegisterOut>('/v1/auth/register', data)
+  },
+
+  verifyEmail(data: VerifyEmailIn) {
+    return apiClient.post<VerifyEmailOut>('/v1/auth/verify-email', data)
+  },
+
+  completeRegistration(data: CompleteRegistrationIn) {
+    return apiClient.post<Token>('/v1/auth/complete-registration', data)
   },
 
   logout() {
