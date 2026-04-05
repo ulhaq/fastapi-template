@@ -39,6 +39,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { tenantsApi } from '@/api/tenants'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useAuthStore } from '@/stores/auth'
 import type { TenantOut } from '@/types'
 
 const props = defineProps<{ open: boolean; tenant?: TenantOut | null }>()
@@ -46,6 +47,7 @@ const emit = defineEmits<{ 'update:open': [boolean]; saved: [] }>()
 
 const { t } = useI18n()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
+const authStore = useAuthStore()
 const isEdit = computed(() => !!props.tenant)
 const form = reactive({ name: '' })
 const errors = reactive({ name: '' })
@@ -69,6 +71,7 @@ async function onSubmit() {
     } else {
       await tenantsApi.create({ name: form.name })
     }
+    await authStore.fetchTenants()
     emit('update:open', false)
     emit('saved')
   } catch (err: unknown) {
