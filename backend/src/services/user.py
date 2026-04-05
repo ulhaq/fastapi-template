@@ -1,4 +1,3 @@
-import copy
 from collections.abc import Callable
 from typing import Annotated
 
@@ -18,7 +17,6 @@ from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.user import (
     ChangePasswordIn,
     InviteUserIn,
-    UserIn,
     UserOut,
     UserPatch,
     UserRoleIn,
@@ -29,7 +27,7 @@ from src.services.utils import send_email
 
 class UserService(
     ResourceService[
-        UserRepository, User, UserIn | UserPatch | ChangePasswordIn, UserOut
+        UserRepository, User, UserPatch | ChangePasswordIn, UserOut
     ]
 ):
     current_user: Auth
@@ -167,67 +165,6 @@ class UserService(
         return self._user_out(
             await super().get(identifier, include_deleted=include_deleted)
         )
-
-    async def create_user(self, schema_in: UserIn, schedule_task: Callable) -> UserOut:
-        hashed_pw = hash_secret(schema_in.password)
-
-        existing = await self.repo.get_by_email(schema_in.email, include_deleted=True)
-        already_in_tenant = (
-            existing is not None
-            and await self.repos.user_tenant.get_by_user_and_tenant(
-                user_id=existing.id, tenant_id=self.current_user.tenant_id
-            )
-        )
-        if existing is not None and existing.deleted_at is None and already_in_tenant:
-            raise AlreadyExistsException(
-                f"User already exists. [email={schema_in.email}]",
-                error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
-            )
-
-        if existing is not None and existing.deleted_at is not None:
-            user = await self.repo.restore(existing)
-            user = await self.repo.update(user, name=schema_in.name, password=hashed_pw)
-        elif existing is not None:
-            user = existing
-        else:
-            user = await self.repo.create(
-                name=schema_in.name,
-                email=schema_in.email,
-                password=hashed_pw,
-            )
-
-        if not await self.repos.user_tenant.get_by_user_and_tenant(
-            user_id=user.id, tenant_id=self.current_user.tenant_id
-        ):
-            await self.repos.user_tenant.create(
-                user_id=user.id,
-                tenant_id=self.current_user.tenant_id,
-            )
-
-        user = copy.copy(user)
-
-        token = sign(data=schema_in.email, salt="reset-password")
-
-        await self.repos.user.delete_password_reset_token(user=user)
-        await self.repos.user.create_password_reset_token(
-            user=user, token=hash_secret(token)
-        )
-
-        schedule_task(
-            send_email,
-            address=user.email,
-            user_name=user.name,
-            subject=f"Welcome to {settings.app_name}",
-            email_template="new-user",
-            data={
-                "reset_url": f"{settings.frontend_url}/"
-                + settings.frontend_password_reset_path
-                + token,
-                "expiration_minutes": settings.auth_password_reset_expiry // 60,
-            },
-        )
-
-        return self._user_out(user)
 
     async def invite_user(self, invite_in: InviteUserIn, schedule_task: Callable) -> None:
         existing = await self.repo.get_by_email(invite_in.email)

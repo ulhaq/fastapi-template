@@ -104,9 +104,8 @@ export default {
   users: {
     title: "Users",
     description: "Manage user accounts and role assignments",
-    addUser: "Add user",
     noUsersFound: "No users found",
-    createFirstUser: "Create your first user to get started.",
+    createFirstUser: "Invite your first user to get started.",
     searchPlaceholder: "Search by name or email…",
     columns: {
       user: "User",
@@ -119,9 +118,7 @@ export default {
     deleted: "User deleted",
     deleteFailed: "Failed to delete user",
     form: {
-      createTitle: "Create user",
       editTitle: "Edit user",
-      createDescription: "Add a new user to the workspace",
       editDescription: "Update user details",
       namePlaceholder: "John Doe",
       emailPlaceholder: "john@example.com",

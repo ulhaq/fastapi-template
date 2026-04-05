@@ -15,7 +15,6 @@ from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.user import (
     ChangePasswordIn,
     InviteUserIn,
-    UserIn,
     UserOut,
     UserPatch,
     UserRoleIn,
@@ -63,16 +62,6 @@ async def get_all_roles(
             page_number=page_number,
         ),
     )
-
-
-@router.post("", status_code=status.HTTP_201_CREATED)
-async def create_a_user(
-    bg_tasks: BackgroundTasks,
-    service: Annotated[UserService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.CREATE_USER))],
-    user_in: UserIn,
-) -> UserOut:
-    return await service.create_user(user_in, bg_tasks.add_task)
 
 
 @router.post("/invite", status_code=status.HTTP_204_NO_CONTENT)

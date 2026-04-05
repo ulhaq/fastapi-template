@@ -9,13 +9,9 @@ meta:
     <PageHeader :title="$t('users.title')" :description="$t('users.description')">
       <template #actions>
         <PermissionGuard permission="create:user">
-          <Button size="sm" variant="outline" @click="openInvite">
+          <Button size="sm" @click="openInvite">
             <Mail class="w-4 h-4 mr-2" />
             {{ $t('users.invite.button') }}
-          </Button>
-          <Button size="sm" @click="openCreate">
-            <Plus class="w-4 h-4 mr-2" />
-            {{ $t('users.addUser') }}
           </Button>
         </PermissionGuard>
       </template>
@@ -132,7 +128,7 @@ meta:
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Mail, MoreHorizontal, Pencil, Trash2, Shield, X } from 'lucide-vue-next'
+import { Mail, MoreHorizontal, Pencil, Trash2, Shield, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -189,11 +185,6 @@ const showForm = ref(false)
 const showRoles = ref(false)
 const showInvite = ref(false)
 const selectedUser = ref<UserOut | null>(null)
-
-function openCreate() {
-  selectedUser.value = null
-  showForm.value = true
-}
 
 function openInvite() {
   showInvite.value = true

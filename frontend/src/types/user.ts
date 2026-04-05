@@ -5,10 +5,6 @@ export interface UserBase {
   email: string
 }
 
-export interface UserIn extends UserBase {
-  password: string
-}
-
 export interface UserPatch {
   name?: string
   email?: string

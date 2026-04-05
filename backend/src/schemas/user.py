@@ -30,10 +30,6 @@ class UserOut(UserBase, Timestamp):
     )
 
 
-class UserIn(UserBase):
-    password: Annotated[str, Field(min_length=8)]
-
-
 class UserPatch(BaseModel):
     name: Annotated[str, Field(min_length=1)] | None = None
     email: EmailStr | None = None

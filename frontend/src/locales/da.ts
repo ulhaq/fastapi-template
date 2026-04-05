@@ -105,9 +105,8 @@ export default {
   users: {
     title: "Brugere",
     description: "Administrer brugerkonti og rolletildelinger",
-    addUser: "Tilføj bruger",
     noUsersFound: "Ingen brugere fundet",
-    createFirstUser: "Opret din første bruger for at komme i gang.",
+    createFirstUser: "Inviter din første bruger for at komme i gang.",
     searchPlaceholder: "Søg efter navn eller e-mail…",
     columns: {
       user: "Bruger",
@@ -120,9 +119,7 @@ export default {
     deleted: "Bruger slettet",
     deleteFailed: "Kunne ikke slette bruger",
     form: {
-      createTitle: "Opret bruger",
       editTitle: "Rediger bruger",
-      createDescription: "Tilføj en ny bruger til arbejdsområdet",
       editDescription: "Opdater brugeroplysninger",
       namePlaceholder: "Hans Hansen",
       emailPlaceholder: "hans@eksempel.dk",
