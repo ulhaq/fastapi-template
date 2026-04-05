@@ -4,6 +4,7 @@ import type {
   SubscriptionOut,
   CheckoutOut,
   CustomerPortalOut,
+  SwitchPlanOut,
 } from '@/types'
 
 export const billingApi = {
@@ -34,7 +35,7 @@ export const billingApi = {
   },
 
   switchPlan(data: { plan_price_id: number }) {
-    return apiClient.post<SubscriptionOut>('/v1/billing/subscriptions/current/switch-plan', data)
+    return apiClient.post<SwitchPlanOut>('/v1/billing/subscriptions/current/switch-plan', data)
   },
 
   getPortalUrl() {

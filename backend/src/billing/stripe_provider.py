@@ -75,9 +75,6 @@ class StripeProvider(BillingProviderABC):
             product = await stripe.Product.modify_async(
                 external_product_id,
                 **params,
-                idempotency_key=self._idempotency_key(
-                    "product-update", external_product_id
-                ),
                 api_key=self._api_key,
             )
             return ExternalProduct(external_id=product.id)
@@ -89,9 +86,6 @@ class StripeProvider(BillingProviderABC):
             await stripe.Product.modify_async(
                 external_product_id,
                 active=False,
-                idempotency_key=self._idempotency_key(
-                    "product-archive", external_product_id
-                ),
                 api_key=self._api_key,
             )
         except stripe.StripeError as exc:
@@ -133,9 +127,6 @@ class StripeProvider(BillingProviderABC):
             await stripe.Price.modify_async(
                 external_price_id,
                 active=False,
-                idempotency_key=self._idempotency_key(
-                    "price-archive", external_price_id
-                ),
                 api_key=self._api_key,
             )
         except stripe.StripeError as exc:
@@ -170,9 +161,6 @@ class StripeProvider(BillingProviderABC):
             await stripe.Customer.modify_async(
                 external_customer_id,
                 email=email,
-                idempotency_key=self._idempotency_key(
-                    "customer-update", external_customer_id, email
-                ),
                 api_key=self._api_key,
             )
         except stripe.StripeError as exc:
@@ -204,11 +192,6 @@ class StripeProvider(BillingProviderABC):
 
             session = await stripe.checkout.Session.create_async(
                 **params,
-                idempotency_key=self._idempotency_key(
-                    "checkout-session",
-                    str(metadata.get("tenant_id", "")),
-                    str(metadata.get("plan_price_id", "")),
-                ),
                 api_key=self._api_key,
             )
             return CheckoutResult(
@@ -225,12 +208,18 @@ class StripeProvider(BillingProviderABC):
             sub = await stripe.Subscription.modify_async(
                 external_subscription_id,
                 cancel_at_period_end=True,
-                idempotency_key=self._idempotency_key(
-                    "sub-cancel", external_subscription_id
-                ),
                 api_key=self._api_key,
             )
             return self._map_subscription(sub)
+        except stripe.StripeError as exc:
+            raise BillingProviderException(str(exc)) from exc
+
+    async def delete_subscription(self, external_subscription_id: str) -> None:
+        try:
+            await stripe.Subscription.delete_async(
+                external_subscription_id,
+                api_key=self._api_key,
+            )
         except stripe.StripeError as exc:
             raise BillingProviderException(str(exc)) from exc
 
@@ -241,9 +230,6 @@ class StripeProvider(BillingProviderABC):
             sub = await stripe.Subscription.modify_async(
                 external_subscription_id,
                 cancel_at_period_end=False,
-                idempotency_key=self._idempotency_key(
-                    "sub-resume", external_subscription_id
-                ),
                 api_key=self._api_key,
             )
             return self._map_subscription(sub)
@@ -271,9 +257,6 @@ class StripeProvider(BillingProviderABC):
                 external_subscription_id,
                 items=[{"id": item_id, "price": new_external_price_id}],
                 proration_behavior=proration_behavior,
-                idempotency_key=self._idempotency_key(
-                    "sub-switch", external_subscription_id, new_external_price_id
-                ),
                 api_key=self._api_key,
             )
             return self._map_subscription(updated)

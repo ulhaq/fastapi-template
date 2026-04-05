@@ -212,7 +212,7 @@ class SubscriptionService(BaseService):
         )
         return SubscriptionOut.model_validate(sub)
 
-    async def switch_plan(self, schema_in: SwitchPlanIn) -> SubscriptionOut:
+    async def switch_plan(self, schema_in: SwitchPlanIn) -> SubscriptionOut | CheckoutOut:
         sub = await self._get_active_subscription()
         if not sub.external_subscription_id:
             raise ValidationException(
@@ -232,7 +232,36 @@ class SubscriptionService(BaseService):
             raise ValidationException("Subscription is already on this plan.")
 
         old_amount = sub.plan_price.amount if sub.plan_price else 0
-        skip_proration = old_amount == 0 or price.amount == 0
+
+        # Upgrading from a free plan to a paid plan requires collecting payment details.
+        # Route through the checkout flow so the user can enter their credit card.
+        if old_amount == 0 and price.amount > 0:
+            if not sub.external_customer_id:
+                raise ValidationException("No billing customer found for this tenant.")
+
+            metadata = {
+                "tenant_id": str(self.current_user.tenant_id),
+                "plan_price_id": str(price.id),
+            }
+            result = await self.provider.create_checkout_session(
+                external_customer_id=sub.external_customer_id,
+                external_price_id=price.external_price_id,
+                amount=price.amount,
+                success_url=settings.billing_success_url,
+                cancel_url=settings.billing_cancel_url,
+                metadata=metadata,
+            )
+            await self.repos.subscription.update(
+                sub,
+                plan_price_id=price.id,
+                status="incomplete",
+            )
+            return CheckoutOut(
+                checkout_url=result.checkout_url,
+                external_session_id=result.external_session_id,
+            )
+
+        skip_proration = price.amount == 0
         ext_sub = await self.provider.switch_subscription_price(
             sub.external_subscription_id,
             price.external_price_id,
@@ -361,6 +390,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             return
 
         plan_price_id_str = metadata.get("plan_price_id")
+        old_external_subscription_id = sub.external_subscription_id
         updates: dict = {
             "external_subscription_id": subscription_id,
             "external_customer_id": customer_id,
@@ -371,6 +401,22 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             updates["plan_price_id"] = int(plan_price_id_str)
 
         await self.repos.subscription.update(sub, **updates)
+
+        # If this checkout replaced a free plan subscription, cancel the old Stripe
+        # subscription immediately so it doesn't linger as an orphaned $0 subscription.
+        if (
+            old_external_subscription_id
+            and old_external_subscription_id != subscription_id
+        ):
+            log = logging.getLogger(__name__)
+            try:
+                await self.provider.delete_subscription(old_external_subscription_id)
+            except BillingProviderException as exc:
+                log.warning(
+                    "Failed to cancel old subscription after checkout [old_sub=%s]: %s",
+                    old_external_subscription_id,
+                    exc,
+                )
 
     async def _handle_subscription_updated(self, raw: dict) -> None:
         obj = raw["data"]["object"]

@@ -64,6 +64,9 @@ class BillingProviderABC(ABC):
     ) -> ExternalSubscription: ...
 
     @abstractmethod
+    async def delete_subscription(self, external_subscription_id: str) -> None: ...
+
+    @abstractmethod
     async def resume_subscription(
         self, external_subscription_id: str
     ) -> ExternalSubscription: ...

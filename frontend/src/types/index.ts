@@ -10,4 +10,5 @@ export type {
   SubscriptionOut,
   CheckoutOut,
   CustomerPortalOut,
+  SwitchPlanOut,
 } from './billing'

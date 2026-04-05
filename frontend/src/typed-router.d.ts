@@ -33,7 +33,6 @@ declare module 'vue-router/auto-routes' {
     '/settings/security': RouteRecordInfo<'/settings/security', '/settings/security', Record<never, never>, Record<never, never>>,
     '/settings/tenants': RouteRecordInfo<'/settings/tenants', '/settings/tenants', Record<never, never>, Record<never, never>>,
     '/settings/users': RouteRecordInfo<'/settings/users', '/settings/users', Record<never, never>, Record<never, never>>,
-    '/invite': RouteRecordInfo<'/invite', '/invite', Record<never, never>, Record<never, never>>,
     '/verify-email': RouteRecordInfo<'/verify-email', '/verify-email', Record<never, never>, Record<never, never>>,
   }
 }

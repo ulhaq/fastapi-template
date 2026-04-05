@@ -46,3 +46,5 @@ export interface CheckoutOut {
 export interface CustomerPortalOut {
   portal_url: string
 }
+
+export type SwitchPlanOut = SubscriptionOut | CheckoutOut

@@ -93,9 +93,9 @@ meta:
                   <span class="text-xs text-muted-foreground"> / {{ price.interval }}</span>
                 </div>
                 <PermissionGuard permission="manage:subscription">
-                  <Button size="sm" @click="handleSwitchPlan(price.id)" :disabled="switchId === price.id || price.id === subscription?.plan_price_id || subscription?.status === 'incomplete'">
+                  <Button size="sm" @click="handleSwitchPlan(price.id, price.amount)" :disabled="switchId === price.id || price.id === subscription?.plan_price_id || subscription?.status === 'incomplete'">
                     <Loader2 v-if="switchId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ $t('billing.switchPlan') }}
+                    {{ price.id === subscription?.plan_price_id ? $t('billing.currentPlan') : price.amount > (subscription?.plan_price?.amount ?? 0) ? $t('billing.upgrade') : $t('billing.downgrade') }}
                   </Button>
                 </PermissionGuard>
               </div>
@@ -255,7 +255,7 @@ function statusBadgeClass(status: string): string {
     trialing: 'bg-blue-100 text-blue-800 border-blue-200',
     past_due: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     canceled: 'bg-gray-100 text-gray-600 border-gray-200',
-    incomplete: 'bg-gray-100 text-gray-600 border-gray-200',
+    incomplete: 'bg-red-100 text-red-600 border-red-200',
   }
   return map[status] ?? ''
 }
@@ -307,21 +307,29 @@ async function handlePortal() {
   }
 }
 
-async function handleSwitchPlan(priceId: number) {
+async function handleSwitchPlan(priceId: number, priceAmount: number) {
+  const currentAmount = subscription.value?.plan_price?.amount ?? 0
+  const isUpgrade = priceAmount > currentAmount
+  const isFreeToPaid = currentAmount === 0
   const ok = await confirm(
     t('billing.switchPlanTitle'),
-    t('billing.switchPlanDescription'),
-    t('billing.switchPlanConfirm'),
+    t(isFreeToPaid ? 'billing.switchPlanCheckoutDescription' : 'billing.switchPlanDescription'),
+    t(isUpgrade ? 'billing.upgrade' : 'billing.downgrade'),
+    isUpgrade ? 'default' : 'destructive',
   )
   if (!ok) return
   switchId.value = priceId
   try {
     const { data } = await billingApi.switchPlan({ plan_price_id: priceId })
-    subscription.value = data
-    toast({ title: t('billing.switchPlanSuccess') })
+    if ('checkout_url' in data) {
+      window.location.href = data.checkout_url
+    } else {
+      subscription.value = data
+      toast({ title: t('billing.switchPlanSuccess') })
+      switchId.value = undefined
+    }
   } catch (err: unknown) {
     toast({ title: resolveError(err), variant: 'destructive' })
-  } finally {
     switchId.value = undefined
   }
 }
