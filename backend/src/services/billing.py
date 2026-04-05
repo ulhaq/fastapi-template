@@ -242,6 +242,7 @@ class SubscriptionService(BaseService):
             metadata = {
                 "tenant_id": str(self.current_user.tenant_id),
                 "plan_price_id": str(price.id),
+                "old_subscription_id": sub.external_subscription_id or "",
             }
             result = await self.provider.create_checkout_session(
                 external_customer_id=sub.external_customer_id,
@@ -250,11 +251,6 @@ class SubscriptionService(BaseService):
                 success_url=settings.billing_success_url,
                 cancel_url=settings.billing_cancel_url,
                 metadata=metadata,
-            )
-            await self.repos.subscription.update(
-                sub,
-                plan_price_id=price.id,
-                status="incomplete",
             )
             return CheckoutOut(
                 checkout_url=result.checkout_url,
@@ -390,13 +386,12 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             return
 
         plan_price_id_str = metadata.get("plan_price_id")
-        old_external_subscription_id = sub.external_subscription_id
+        old_external_subscription_id = metadata.get("old_subscription_id") or sub.external_subscription_id
         updates: dict = {
             "external_subscription_id": subscription_id,
             "external_customer_id": customer_id,
+            "status": "active",
         }
-        if sub.status == "incomplete":
-            updates["status"] = "active"
         if plan_price_id_str:
             updates["plan_price_id"] = int(plan_price_id_str)
 

@@ -216,7 +216,7 @@ class StripeProvider(BillingProviderABC):
 
     async def delete_subscription(self, external_subscription_id: str) -> None:
         try:
-            await stripe.Subscription.delete_async(
+            await stripe.Subscription.cancel_async(
                 external_subscription_id,
                 api_key=self._api_key,
             )
