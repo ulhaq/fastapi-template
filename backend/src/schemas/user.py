@@ -84,3 +84,14 @@ class CompleteRegistrationIn(BaseModel):
     setup_token: str
     name: Annotated[str, Field(min_length=1)]
     password: Annotated[str, Field(min_length=8)]
+
+
+class InviteUserIn(BaseModel):
+    email: Annotated[EmailStr, StringConstraints(to_lower=True)]
+    role_ids: list[int] = Field(default_factory=list)
+
+
+class CompleteInviteIn(BaseModel):
+    invite_token: str
+    name: Annotated[str, Field(min_length=1)]
+    password: Annotated[str, Field(min_length=8)]

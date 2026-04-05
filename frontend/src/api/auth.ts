@@ -6,6 +6,7 @@ import type {
   VerifyEmailIn,
   VerifyEmailOut,
   CompleteRegistrationIn,
+  CompleteInviteIn,
   ResetPasswordRequestIn,
   ResetPasswordIn,
   SwitchTenantIn,
@@ -51,5 +52,9 @@ export const authApi = {
 
   switchTenant(data: SwitchTenantIn) {
     return apiClient.post<Token>('/v1/auth/switch-tenant', data)
+  },
+
+  completeInvite(data: CompleteInviteIn) {
+    return apiClient.post<Token>('/v1/auth/complete-invite', data)
   },
 }

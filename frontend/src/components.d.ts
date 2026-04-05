@@ -76,6 +76,7 @@ declare module 'vue' {
     FormMessage: typeof import('./components/ui/form/FormMessage.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     Input: typeof import('./components/ui/input/Input.vue')['default']
+    InviteUserDialog: typeof import('./components/users/InviteUserDialog.vue')['default']
     Label: typeof import('./components/ui/label/Label.vue')['default']
     Loading: typeof import('./components/Loading.vue')['default']
     Message: typeof import('./components/messagePanel/Message.vue')['default']

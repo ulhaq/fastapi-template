@@ -14,6 +14,7 @@ from src.routers.query_options import (
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.user import (
     ChangePasswordIn,
+    InviteUserIn,
     UserIn,
     UserOut,
     UserPatch,
@@ -72,6 +73,16 @@ async def create_a_user(
     user_in: UserIn,
 ) -> UserOut:
     return await service.create_user(user_in, bg_tasks.add_task)
+
+
+@router.post("/invite", status_code=status.HTTP_204_NO_CONTENT)
+async def invite_a_user(
+    bg_tasks: BackgroundTasks,
+    service: Annotated[UserService, Depends()],
+    _: Annotated[Auth, Depends(require_permission(Permission.CREATE_USER))],
+    invite_in: InviteUserIn,
+) -> None:
+    await service.invite_user(invite_in, bg_tasks.add_task)
 
 
 @router.get("/{identifier}", status_code=status.HTTP_200_OK)

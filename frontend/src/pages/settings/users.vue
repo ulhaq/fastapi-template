@@ -9,6 +9,10 @@ meta:
     <PageHeader :title="$t('users.title')" :description="$t('users.description')">
       <template #actions>
         <PermissionGuard permission="create:user">
+          <Button size="sm" variant="outline" @click="openInvite">
+            <Mail class="w-4 h-4 mr-2" />
+            {{ $t('users.invite.button') }}
+          </Button>
           <Button size="sm" @click="openCreate">
             <Plus class="w-4 h-4 mr-2" />
             {{ $t('users.addUser') }}
@@ -118,13 +122,17 @@ meta:
       :user="selectedUser"
       @saved="refresh"
     />
+    <InviteUserDialog
+      v-model:open="showInvite"
+      @invited="refresh"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, MoreHorizontal, Pencil, Trash2, Shield, X } from 'lucide-vue-next'
+import { Plus, Mail, MoreHorizontal, Pencil, Trash2, Shield, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -138,6 +146,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
 import UserForm from '@/components/users/UserForm.vue'
 import UserRoleDialog from '@/components/users/UserRoleDialog.vue'
+import InviteUserDialog from '@/components/users/InviteUserDialog.vue'
 import { usersApi } from '@/api/users'
 import { useDataTable } from '@/composables/useDataTable'
 import { useConfirm } from '@/composables/useConfirm'
@@ -178,11 +187,16 @@ function handleSort(field: string) {
 
 const showForm = ref(false)
 const showRoles = ref(false)
+const showInvite = ref(false)
 const selectedUser = ref<UserOut | null>(null)
 
 function openCreate() {
   selectedUser.value = null
   showForm.value = true
+}
+
+function openInvite() {
+  showInvite.value = true
 }
 
 function openEdit(user: UserOut) {

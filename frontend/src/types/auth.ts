@@ -50,6 +50,12 @@ export interface CompleteRegistrationIn {
   password: string
 }
 
+export interface CompleteInviteIn {
+  invite_token: string
+  name: string
+  password: string
+}
+
 export interface JwtPayload {
   sub: string
   name?: string

@@ -85,6 +85,13 @@ export default {
     getStarted: "Get started",
     invalidVerifyLink: "Invalid or expired verification link.",
     registerAgain: "Register again",
+    invite: {
+      title: "Accept Invitation",
+      description: "Set your name and password to join the team.",
+      invalidLink: "This invitation link is invalid or has expired.",
+      contactAdmin: "Please ask your admin to send a new invitation.",
+      accept: "Accept invitation",
+    },
   },
   dashboard: {
     title: "Dashboard",
@@ -127,6 +134,16 @@ export default {
       createRolesFirst: "Create roles first.",
       saved: "Roles updated",
       saveFailed: "Failed to update roles",
+    },
+    invite: {
+      button: "Invite user",
+      dialogTitle: "Invite user",
+      dialogDescription: "Send an invitation email to a new team member.",
+      roles: "Roles",
+      send: "Send invitation",
+      sent: "Invitation sent",
+      sentDescription: "An invitation email has been sent to {email}.",
+      sendFailed: "Failed to send invitation",
     },
   },
   roles: {
@@ -176,7 +193,7 @@ export default {
   tenants: {
     title: "Organizations",
     description: "Manage organizations and their members",
-    addTenant: "Add organization",
+    createTenant: "Create organization",
     noTenantsFound: "No organizations found",
     createFirstTenant: "Create your first organization.",
     viewMembers: "View members",

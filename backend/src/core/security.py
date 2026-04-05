@@ -73,7 +73,7 @@ class JWTTokenClaims(BaseModel):
     tid: int | None = None
 
 
-type SignSalt = Literal["reset-password", "email-verification", "complete-registration"]
+type SignSalt = Literal["reset-password", "email-verification", "complete-registration", "invite"]
 
 
 def sign(data: Any, salt: SignSalt) -> str:

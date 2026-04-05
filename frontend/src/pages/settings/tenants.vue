@@ -10,7 +10,7 @@ meta:
       <template #actions>
         <Button size="sm" @click="openCreate">
           <Plus class="w-4 h-4 mr-2" />
-          {{ $t('tenants.addTenant') }}
+          {{ $t('tenants.createTenant') }}
         </Button>
       </template>
     </PageHeader>

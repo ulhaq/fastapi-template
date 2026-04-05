@@ -17,6 +17,7 @@ from src.repositories.user import UserRepository
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.user import (
     ChangePasswordIn,
+    InviteUserIn,
     UserIn,
     UserOut,
     UserPatch,
@@ -227,6 +228,47 @@ class UserService(
         )
 
         return self._user_out(user)
+
+    async def invite_user(self, invite_in: InviteUserIn, schedule_task: Callable) -> None:
+        existing = await self.repo.get_by_email(invite_in.email)
+        if existing:
+            membership = await self.repos.user_tenant.get_by_user_and_tenant(
+                user_id=existing.id, tenant_id=self.current_user.tenant_id
+            )
+            if membership:
+                raise AlreadyExistsException(
+                    f"User already exists in this tenant. [email={invite_in.email}]",
+                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+                )
+
+        token = sign(
+            data={
+                "email": invite_in.email,
+                "tenant_id": self.current_user.tenant_id,
+                "role_ids": invite_in.role_ids,
+            },
+            salt="invite",
+        )
+
+        await self.repos.email_verification_token.delete_by_email(invite_in.email)
+        await self.repos.email_verification_token.create(
+            email=invite_in.email, token=hash_secret(token)
+        )
+
+        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
+
+        schedule_task(
+            send_email,
+            address=invite_in.email,
+            user_name=invite_in.email,
+            subject=f"You've been invited to {tenant.name}",
+            email_template="invite-user",
+            data={
+                "invite_url": f"{settings.frontend_url}/{settings.frontend_invite_path}{token}",
+                "tenant_name": tenant.name,
+                "expiration_days": settings.invite_expiry // (60 * 60 * 24),
+            },
+        )
 
     async def delete_user(self, identifier: int) -> None:
         user = await self.get(identifier)

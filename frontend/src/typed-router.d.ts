@@ -22,6 +22,7 @@ declare module 'vue-router/auto-routes' {
     '/billing/cancel': RouteRecordInfo<'/billing/cancel', '/billing/cancel', Record<never, never>, Record<never, never>>,
     '/billing/success': RouteRecordInfo<'/billing/success', '/billing/success', Record<never, never>, Record<never, never>>,
     '/forgot-password': RouteRecordInfo<'/forgot-password', '/forgot-password', Record<never, never>, Record<never, never>>,
+    '/invite': RouteRecordInfo<'/invite', '/invite', Record<never, never>, Record<never, never>>,
     '/login': RouteRecordInfo<'/login', '/login', Record<never, never>, Record<never, never>>,
     '/register': RouteRecordInfo<'/register', '/register', Record<never, never>, Record<never, never>>,
     '/reset-password': RouteRecordInfo<'/reset-password', '/reset-password', Record<never, never>, Record<never, never>>,
@@ -32,6 +33,7 @@ declare module 'vue-router/auto-routes' {
     '/settings/security': RouteRecordInfo<'/settings/security', '/settings/security', Record<never, never>, Record<never, never>>,
     '/settings/tenants': RouteRecordInfo<'/settings/tenants', '/settings/tenants', Record<never, never>, Record<never, never>>,
     '/settings/users': RouteRecordInfo<'/settings/users', '/settings/users', Record<never, never>, Record<never, never>>,
+    '/invite': RouteRecordInfo<'/invite', '/invite', Record<never, never>, Record<never, never>>,
     '/verify-email': RouteRecordInfo<'/verify-email', '/verify-email', Record<never, never>, Record<never, never>>,
   }
 }

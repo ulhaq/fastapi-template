@@ -28,6 +28,7 @@ from src.core.security import (
 from src.enums import OWNER_ROLE_NAME, ErrorCode
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.user import (
+    CompleteInviteIn,
     CompleteRegistrationIn,
     EmailIn,
     RegisterOut,
@@ -166,6 +167,67 @@ class AuthService(BaseService):
 
         access_token = create_token(
             user, settings.auth_access_token_expiry, tenant_id=tenant.id
+        )
+        refresh_token = create_token(
+            user, settings.auth_refresh_token_expiry, include_user_claims=False
+        )
+        expires_at = datetime.now(UTC) + timedelta(
+            seconds=settings.auth_refresh_token_expiry
+        )
+        await self.repos.refresh_token.delete_by_user(user)
+        await self.repos.refresh_token.create(
+            user, hash_secret(refresh_token), expires_at
+        )
+
+        return Token(access_token=access_token, refresh_token=refresh_token)
+
+    async def complete_invite(self, schema_in: CompleteInviteIn) -> Token:
+        data: dict = unsign(
+            schema_in.invite_token,
+            salt="invite",
+            max_age=settings.invite_expiry,
+        )
+        email: str = data["email"]
+        tenant_id: int = data["tenant_id"]
+        role_ids: list[int] = data.get("role_ids", [])
+
+        record = await self.repos.email_verification_token.get_by_email(email)
+        if not record or not verify_secret(schema_in.invite_token, record.token):
+            raise NotAuthenticatedException(
+                "Token invalid", error_code=ErrorCode.TOKEN_INVALID
+            )
+
+        await self.repos.email_verification_token.delete_by_email(email)
+
+        if await self.repos.user.get_by_email(email):
+            raise AlreadyExistsException(
+                f"Account already exists. [email={email}]",
+                error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+            )
+
+        hashed_pw = hash_secret(schema_in.password)
+        user = await self.repos.user.create(
+            name=schema_in.name,
+            email=email,
+            password=hashed_pw,
+        )
+
+        await self.repos.user_tenant.create(
+            user_id=user.id,
+            tenant_id=tenant_id,
+            last_active_at=datetime.now(UTC),
+        )
+
+        if role_ids:
+            self.repos.role.set_tenant_scope(tenant_id)
+            valid_roles = list(await self.repos.role.filter_by_ids(role_ids))
+            if valid_roles:
+                await self.repos.user.add_roles(user, *[r.id for r in valid_roles])
+
+        user = await self.repos.user.get_one(user.id)
+
+        access_token = create_token(
+            user, settings.auth_access_token_expiry, tenant_id=tenant_id
         )
         refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False

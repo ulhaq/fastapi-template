@@ -8,6 +8,7 @@ from src.core.dependencies import authenticate
 from src.core.limiter import limiter
 from src.core.security import Auth, Token
 from src.schemas.user import (
+    CompleteInviteIn,
     CompleteRegistrationIn,
     EmailIn,
     RegisterOut,
@@ -131,6 +132,19 @@ async def reset_password(
     reset_password_in: ResetPasswordIn,
 ) -> None:
     await service.reset_password(reset_password_in)
+
+
+@router.post("/complete-invite", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
+async def complete_invite(
+    request: Request,  # pylint: disable=unused-argument
+    response: Response,
+    service: Annotated[AuthService, Depends()],
+    schema_in: CompleteInviteIn,
+) -> Token:
+    token = await service.complete_invite(schema_in)
+    _set_refresh_token_cookie(response, token.refresh_token)
+    return token
 
 
 @router.post("/switch-tenant", status_code=status.HTTP_200_OK)

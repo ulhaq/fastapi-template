@@ -48,4 +48,8 @@ export const usersApi = {
   setRoles(id: number, data: UserRoleIn) {
     return apiClient.post<UserOut>(`/v1/users/${id}/roles`, data)
   },
+
+  invite(data: { email: string; role_ids: number[] }) {
+    return apiClient.post('/v1/users/invite', data)
+  },
 }

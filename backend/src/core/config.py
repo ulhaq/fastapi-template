@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     auth_password_reset_expiry: int = 10 * 60
     email_verification_expiry: int = 60 * 60 * 24
     complete_registration_expiry: int = 30 * 60
+    invite_expiry: int = 7 * 24 * 60 * 60
 
     raw_allow_origins: str = Field(default="*", validation_alias="allow_origins")
 
@@ -63,6 +64,7 @@ class Settings(BaseSettings):
     template_path: str = "./src/templates"
     frontend_url: str = "http://localhost:3000"
     frontend_password_reset_path: str = "reset-password?token="
+    frontend_invite_path: str = "invite?token="
 
     rate_limit_enabled: bool = True
 

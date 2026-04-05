@@ -86,6 +86,13 @@ export default {
     getStarted: "Kom i gang",
     invalidVerifyLink: "Ugyldigt eller udløbet bekræftelseslink.",
     registerAgain: "Registrer igen",
+    invite: {
+      title: "Accepter invitation",
+      description: "Angiv dit navn og din adgangskode for at tilslutte dig teamet.",
+      invalidLink: "Dette invitationslink er ugyldigt eller udløbet.",
+      contactAdmin: "Bed venligst din administrator om at sende en ny invitation.",
+      accept: "Accepter invitation",
+    },
   },
   dashboard: {
     title: "Dashboard",
@@ -128,6 +135,16 @@ export default {
       createRolesFirst: "Opret roller først.",
       saved: "Roller opdateret",
       saveFailed: "Kunne ikke opdatere roller",
+    },
+    invite: {
+      button: "Inviter bruger",
+      dialogTitle: "Inviter bruger",
+      dialogDescription: "Send en invitations-e-mail til et nyt teammedlem.",
+      roles: "Roller",
+      send: "Send invitation",
+      sent: "Invitation sendt",
+      sentDescription: "En invitations-e-mail er sendt til {email}.",
+      sendFailed: "Kunne ikke sende invitation",
     },
   },
   roles: {
@@ -177,7 +194,7 @@ export default {
   tenants: {
     title: "Organisationer",
     description: "Administrer organisationer og deres medlemmer",
-    addTenant: "Tilføj organisation",
+    createTenant: "Opret organisation",
     noTenantsFound: "Ingen organisationer fundet",
     createFirstTenant: "Opret din første organisation.",
     viewMembers: "Se medlemmer",
