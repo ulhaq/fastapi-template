@@ -168,26 +168,32 @@ class UserService(
         )
 
     async def create_user(self, schema_in: UserIn, schedule_task: Callable) -> UserOut:
-        async def validate() -> None:
-            if await self.repo.get_by_email(schema_in.email):
-                raise AlreadyExistsException(
-                    f"User already exists. [email={schema_in.email}]",
-                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
-                )
-
         hashed_pw = hash_secret(schema_in.password)
-        await validate()
 
-        user = await self.repo.create(
-            name=schema_in.name,
-            email=schema_in.email,
-            password=hashed_pw,
-        )
+        existing = await self.repo.get_by_email(schema_in.email, include_deleted=True)
+        if existing is not None and existing.deleted_at is None:
+            raise AlreadyExistsException(
+                f"User already exists. [email={schema_in.email}]",
+                error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+            )
 
-        await self.repos.user_tenant.create(
-            user_id=user.id,
-            tenant_id=self.current_user.tenant_id,
-        )
+        if existing is not None and existing.deleted_at is not None:
+            user = await self.repo.restore(existing)
+            user = await self.repo.update(user, name=schema_in.name, password=hashed_pw)
+        else:
+            user = await self.repo.create(
+                name=schema_in.name,
+                email=schema_in.email,
+                password=hashed_pw,
+            )
+
+        if not await self.repos.user_tenant.get_by_user_and_tenant(
+            user_id=user.id, tenant_id=self.current_user.tenant_id
+        ):
+            await self.repos.user_tenant.create(
+                user_id=user.id,
+                tenant_id=self.current_user.tenant_id,
+            )
 
         user = copy.copy(user)
 

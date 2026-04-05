@@ -65,9 +65,7 @@ class ErrorHandlingMiddleware:
             content=jsonable_encoder(
                 ErrorResponse(
                     Request(scope),
-                    msg=ErrorCode.SERVER_ERROR.description
-                    if not settings.app_debug
-                    else str(exc),
+                    msg=ErrorCode.SERVER_ERROR.description,
                     error_code=ErrorCode.SERVER_ERROR,
                 )
             ),

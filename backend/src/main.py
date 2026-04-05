@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy.exc import IntegrityError
 
 from src.core.config import settings
 from src.core.exceptions import ClientException
@@ -29,6 +30,12 @@ log = logging.getLogger(__name__)
 
 if not settings.app_secret.get_secret_value():
     raise RuntimeError("Application secret is not set")
+
+if not settings.app_debug and not settings.auth_enabled:
+    raise RuntimeError(
+        "auth_enabled must be True when app_debug is False. "
+        "Refusing to start with authentication disabled in production."
+    )
 
 
 app = FastAPI(
@@ -86,6 +93,21 @@ async def handle_client_exception(
             ErrorResponse(request, error_code=exc.error_code, msg=exc.detail)
         ),
         headers=exc.headers,
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def handle_integrity_error(request: Request, exc: IntegrityError) -> JSONResponse:
+    log.info("%s: %s", exc, request.url, exc_info=settings.log_exc_info)
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content=jsonable_encoder(
+            ErrorResponse(
+                request,
+                error_code=ErrorCode.RESOURCE_ALREADY_EXISTS,
+                msg=ErrorCode.RESOURCE_ALREADY_EXISTS.description,
+            )
+        ),
     )
 
 

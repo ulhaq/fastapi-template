@@ -21,7 +21,6 @@ export const useAuthStore = defineStore('auth', () => {
   function setSession(token: Token): void {
     accessToken.value = token.access_token
     setAccessToken(token.access_token)
-    localStorage.setItem('access_token', token.access_token)
   }
 
   function clearSession(): void {
@@ -30,7 +29,6 @@ export const useAuthStore = defineStore('auth', () => {
     permissions.value = []
     tenants.value = []
     setAccessToken(null)
-    localStorage.removeItem('access_token')
   }
 
   async function fetchMe(): Promise<void> {
@@ -45,15 +43,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initialize(): Promise<void> {
-    const storedToken = localStorage.getItem('access_token')
-    if (storedToken) {
-      accessToken.value = storedToken
-      setAccessToken(storedToken)
-      try {
-        await Promise.all([fetchMe(), fetchTenants()])
-      } catch {
-        clearSession()
-      }
+    try {
+      // Restore session from the httponly refresh-token cookie (silent refresh).
+      const { data: token } = await authApi.refresh()
+      accessToken.value = token.access_token
+      setAccessToken(token.access_token)
+      await Promise.all([fetchMe(), fetchTenants()])
+    } catch {
+      // No valid session cookie - proceed as unauthenticated.
     }
     isInitialized.value = true
   }

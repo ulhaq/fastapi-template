@@ -67,7 +67,6 @@ apiClient.interceptors.response.use(
         const { data } = await apiClient.post<Token>('/v1/auth/refresh')
         const newToken = data.access_token
         setAccessToken(newToken)
-        localStorage.setItem('access_token', newToken)
         processQueue(null, newToken)
         original.headers.Authorization = `Bearer ${newToken}`
         return apiClient(original)

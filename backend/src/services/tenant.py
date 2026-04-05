@@ -9,6 +9,7 @@ from src.billing.dependencies import BillingProviderDep
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
+    BillingProviderException,
     NotFoundException,
     PermissionDeniedException,
 )
@@ -45,24 +46,37 @@ async def _setup_new_tenant(
 
     free_price = await repos.plan_price.get_free_price()
     if free_price and free_price.external_price_id:
-        external_customer_id = await provider.get_or_create_customer(
-            tenant_id=tenant.id,
-            tenant_name=tenant.name,
-            email=user_email,
-        )
-        ext_sub = await provider.create_subscription(
-            external_customer_id=external_customer_id,
-            external_price_id=free_price.external_price_id,
-        )
-        await repos.subscription.create(
-            tenant_id=tenant.id,
-            plan_price_id=free_price.id,
-            external_subscription_id=ext_sub.external_subscription_id,
-            external_customer_id=external_customer_id,
-            status=ext_sub.status,
-            current_period_start=ext_sub.current_period_start,
-            current_period_end=ext_sub.current_period_end,
-        )
+        try:
+            external_customer_id = await provider.get_or_create_customer(
+                tenant_id=tenant.id,
+                tenant_name=tenant.name,
+                email=user_email,
+            )
+            # Write DB row first so the subscription.created webhook can find it
+            # by external_customer_id if the final update below fails.
+            sub = await repos.subscription.create(
+                tenant_id=tenant.id,
+                plan_price_id=free_price.id,
+                external_customer_id=external_customer_id,
+                status="incomplete",
+            )
+            ext_sub = await provider.create_subscription(
+                external_customer_id=external_customer_id,
+                external_price_id=free_price.external_price_id,
+            )
+            await repos.subscription.update(
+                sub,
+                external_subscription_id=ext_sub.external_subscription_id,
+                status=ext_sub.status,
+                current_period_start=ext_sub.current_period_start,
+                current_period_end=ext_sub.current_period_end,
+            )
+        except BillingProviderException as exc:
+            log.warning(
+                "Free plan billing setup failed for tenant %s (non-fatal): %s",
+                tenant.id,
+                exc,
+            )
     else:
         log.warning(
             "No free plan found - skipping auto-subscription for tenant %s",
@@ -122,12 +136,16 @@ class TenantService(
         ]
 
     async def create_tenant(self, schema_in: TenantBase) -> TenantOut:
-        if await self.repo.get_one_by_name(schema_in.name):
+        existing = await self.repo.get_one_by_name(schema_in.name, include_deleted=True)
+        if existing is not None and existing.deleted_at is None:
             raise AlreadyExistsException(
                 f"Tenant already exists. [name={schema_in.name}]"
             )
 
-        tenant = await self.repo.create(name=schema_in.name)
+        if existing is not None and existing.deleted_at is not None:
+            tenant = await self.repo.restore(existing)
+        else:
+            tenant = await self.repo.create(name=schema_in.name)
 
         await self.repos.user_tenant.create(
             user_id=self.current_user.id,

@@ -143,7 +143,7 @@ meta:
                   <span class="text-xs text-muted-foreground"> / {{ price.interval }}</span>
                 </div>
                 <PermissionGuard permission="manage:subscription">
-                  <Button size="sm" @click="handleCheckout(price.id)" :disabled="checkoutId === price.id">
+                  <Button size="sm" @click="handleCheckout(price.id)" :disabled="checkoutId === price.id || isCheckingOut">
                     <Loader2 v-if="checkoutId === price.id" class="w-4 h-4 mr-2 animate-spin" />
                     {{ $t('billing.subscribe') }}
                   </Button>
@@ -160,7 +160,7 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2, ExternalLink } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -184,12 +184,13 @@ const plansLoading = ref(false)
 const isActing = ref(false)
 const isPortalLoading = ref(false)
 const checkoutId = ref<number | undefined>(undefined)
+const isCheckingOut = ref(false)
 const switchId = ref<number | undefined>(undefined)
 const subscription = ref<SubscriptionOut | null>(null)
 const availablePlans = ref<PlanOut[]>([])
 const errorMessage = ref('')
 
-onMounted(async () => {
+async function loadSubscription() {
   isLoading.value = true
   try {
     const { data } = await billingApi.getCurrentSubscription()
@@ -202,6 +203,16 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    loadSubscription()
+  }
+}
+
+onMounted(async () => {
+  await loadSubscription()
 
   plansLoading.value = true
   try {
@@ -212,6 +223,12 @@ onMounted(async () => {
   } finally {
     plansLoading.value = false
   }
+
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 
 function formatPrice(price: PlanPriceOut): string {
@@ -280,6 +297,8 @@ async function handlePortal() {
   isPortalLoading.value = true
   try {
     const { data } = await billingApi.getPortalUrl()
+    const parsed = new URL(data.portal_url)
+    if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error('Invalid URL protocol')
     window.open(data.portal_url, '_blank')
   } catch (err: unknown) {
     toast({ title: resolveError(err), variant: 'destructive' })
@@ -309,12 +328,14 @@ async function handleSwitchPlan(priceId: number) {
 
 async function handleCheckout(priceId: number) {
   checkoutId.value = priceId
+  isCheckingOut.value = true
   try {
     const { data } = await billingApi.checkout({ plan_price_id: priceId })
     window.location.href = data.checkout_url
   } catch (err: unknown) {
     toast({ title: resolveError(err), variant: 'destructive' })
     checkoutId.value = undefined
+    isCheckingOut.value = false
   }
 }
 </script>

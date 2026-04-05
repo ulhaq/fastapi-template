@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import exists, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
@@ -61,6 +61,24 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
+    async def has_active_subscriptions(self, plan_price_id: int) -> bool:
+        """
+        Returns True if any active subscription references this price.
+        Any future deletion method MUST call this first and raise ValidationException
+        if it returns True, to prevent orphaning active subscriptions.
+        """
+        stmt = select(
+            exists().where(
+                Subscription.plan_price_id == plan_price_id,
+                Subscription.status.in_(
+                    ["active", "trialing", "past_due", "incomplete"]
+                ),
+                Subscription.deleted_at.is_(None),
+            )
+        )
+        rs = await self.db.execute(stmt)
+        return bool(rs.scalar_one())
+
 
 class SubscriptionRepository(TenantScopedRepository[Subscription]):
     def __init__(self, db):  # type: ignore[no-untyped-def]
@@ -81,8 +99,11 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
         return rs.unique().scalar_one_or_none()
 
     async def get_active_for_tenant_locked(self, tenant_id: int) -> Subscription | None:
-        """Same as get_active_for_tenant but acquires a row lock (SELECT FOR UPDATE).
-        Use this before any write that depends on the subscription not changing concurrently."""
+        """
+        Same as get_active_for_tenant but acquires a row lock (SELECT FOR UPDATE)
+        Use this before any write that depends on
+        the subscription not changing concurrently
+        """
         stmt = (
             select(self.model)
             .filter(
@@ -108,6 +129,24 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
+    async def get_by_external_subscription_id_locked(
+        self, external_id: str
+    ) -> Subscription | None:
+        """
+        Like get_by_external_subscription_id but acquires a row lock (SELECT FOR UPDATE)
+        Use in webhook handlers to prevent concurrent event processing on the same row
+        """
+        stmt = (
+            select(self.model)
+            .filter(
+                self.model.external_subscription_id == external_id,
+                self.model.deleted_at.is_(None),
+            )
+            .with_for_update()
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
     async def get_by_external_customer_id(
         self, external_customer_id: str
     ) -> Subscription | None:
@@ -124,10 +163,32 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
+    async def get_by_external_customer_id_locked(
+        self, external_customer_id: str
+    ) -> Subscription | None:
+        """
+        Like get_by_external_customer_id but acquires a row lock (SELECT FOR UPDATE)
+        Use in webhook handlers to prevent concurrent event processing on the same row.
+        """
+        stmt = (
+            select(self.model)
+            .filter(
+                self.model.external_customer_id == external_customer_id,
+                self.model.deleted_at.is_(None),
+            )
+            .order_by(self.model.id.desc())
+            .limit(1)
+            .with_for_update()
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
     async def get_any_external_customer_id(self, tenant_id: int) -> str | None:
-        """Return the first known Stripe customer ID for this tenant, regardless of status.
+        """
+        Return the first known Stripe customer ID for this tenant, regardless of status.
         Used to avoid creating duplicate Stripe customers via the eventually-consistent
-        Stripe Search API."""
+        Stripe Search API.
+        """
         stmt = (
             select(self.model.external_customer_id)
             .filter(
@@ -140,6 +201,23 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
         )
         rs = await self.db.execute(stmt)
         return rs.scalar_one_or_none()
+
+    async def get_stale_incomplete_subscriptions(
+        self, older_than: datetime
+    ) -> Sequence[Subscription]:
+        """
+        Returns incomplete subscriptions with no external_subscription_id that are
+        older than the given threshold. These are checkout sessions that were never
+        completed and whose expiry webhook was missed or permanently failed.
+        """
+        stmt = select(self.model).filter(
+            self.model.status == "incomplete",
+            self.model.external_subscription_id.is_(None),
+            self.model.created_at < older_than,
+            self.model.deleted_at.is_(None),
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
 
 
 class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
@@ -157,16 +235,23 @@ class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
 
     async def get_or_create_received(
         self, external_event_id: str, event_type: str
-    ) -> tuple[WebhookEvent, bool]:
+    ) -> tuple[WebhookEvent | None, bool]:
         """
-        Atomically ensure a webhook event record exists.
-        Returns (record, should_process) where should_process=False means
-        the event was already processed and can be skipped.
-        Uses INSERT ON CONFLICT DO NOTHING to avoid TOCTOU races under
-        concurrent Stripe delivery of the same event ID.
+        Atomically ensure a webhook event record exists, then claim it for
+        processing. Returns (record, should_process).
+
+        should_process=False means either the event was already processed/processing
+        by another worker and this request should skip it.
+
+        Uses INSERT ON CONFLICT DO NOTHING to create the row, then an atomic
+        UPDATE … SET status='processing' RETURNING * to claim it. Only the worker
+        whose UPDATE affects a row will proceed; concurrent workers get 0 rows back
+        and skip processing entirely.
         """
         now = datetime.now(UTC)
-        stmt = (
+
+        # 1. Ensure the row exists (idempotent)
+        insert_stmt = (
             pg_insert(WebhookEvent)
             .values(
                 external_event_id=external_event_id,
@@ -177,12 +262,30 @@ class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
             )
             .on_conflict_do_nothing(index_elements=["external_event_id"])
         )
-        await self.db.execute(stmt)
+        await self.db.execute(insert_stmt)
         await self.db.flush()
 
-        record = await self.get_by_external_event_id(external_event_id)
-        should_process = record is not None and record.status != "processed"
-        return record, should_process  # type: ignore[return-value]
+        # 2. Atomically claim the event - only one worker wins this UPDATE
+        claim_stmt = (
+            update(WebhookEvent)
+            .where(
+                WebhookEvent.external_event_id == external_event_id,
+                WebhookEvent.status.in_(["received", "failed"]),
+            )
+            .values(status="processing", updated_at=now)
+            .returning(WebhookEvent)
+            .execution_options(synchronize_session=False)
+        )
+        result = await self.db.execute(claim_stmt)
+        await self.db.flush()
+        claimed = result.unique().scalar_one_or_none()
+
+        if claimed is None:
+            # Row is already "processing" or "processed" - another worker has it
+            existing = await self.get_by_external_event_id(external_event_id)
+            return existing, False
+
+        return claimed, True
 
     async def mark_processed(self, event: WebhookEvent) -> WebhookEvent:
         return await self.update(event, status="processed")

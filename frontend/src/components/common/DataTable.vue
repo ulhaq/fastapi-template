@@ -63,6 +63,7 @@
 
     <!-- Pagination -->
     <DataTablePagination
+      v-if="showPagination"
       :total="total"
       :page="page"
       :page-size="pageSize"
@@ -102,16 +103,18 @@ withDefaults(
     columns: ColumnDef[]
     items: T[]
     total: number
-    page: number
-    pageSize: number
-    totalPages: number
+    page?: number
+    pageSize?: number
+    totalPages?: number
     loading?: boolean
     rowKey?: string
     emptyTitle?: string
     emptyDescription?: string
+    showPagination?: boolean
   }>(),
   {
     rowKey: 'id',
+    showPagination: true,
   },
 )
 

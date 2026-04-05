@@ -2,10 +2,12 @@ from datetime import UTC, datetime
 from typing import Any, Literal, Sequence, overload
 
 from sqlalchemy import BinaryExpression, Select, exists, func, or_, select
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import UnaryExpression
 
 from src.core.database import Base
+from src.core.exceptions import NotFoundException
 from src.enums import ComparisonOperator
 from src.repositories import utils
 from src.repositories.abc import ResourceRepositoryABC
@@ -20,7 +22,12 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
-        return rs.unique().scalar_one()
+        try:
+            return rs.unique().scalar_one()
+        except NoResultFound as exc:
+            raise NotFoundException(
+                f"{self.model.__name__} not found. [{identifier=}]"
+            ) from exc
 
     async def get(
         self, identifier: int, include_deleted: bool = False
@@ -101,6 +108,12 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         setattr(model, "deleted_at", datetime.now(UTC))
 
         await self.save()
+
+    async def restore(self, model: ModelType) -> ModelType:
+        setattr(model, "deleted_at", None)
+        setattr(model, "updated_at", datetime.now(UTC))
+        self.db.add(model)
+        return await self.save(model)
 
     async def force_delete(self, model: ModelType) -> None:
         await self.db.delete(model)
@@ -317,7 +330,12 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
-        return rs.unique().scalar_one()
+        try:
+            return rs.unique().scalar_one()
+        except NoResultFound as exc:
+            raise NotFoundException(
+                f"{self.model.__name__} not found. [{identifier=}]"
+            ) from exc
 
     async def get(
         self, identifier: int, include_deleted: bool = False

@@ -1,8 +1,10 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from src.billing.dependencies import BillingProviderDep
 from src.core.config import settings
@@ -10,7 +12,6 @@ from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
     BillingProviderException,
-    BillingWebhookException,
     NotFoundException,
     ValidationException,
 )
@@ -75,7 +76,7 @@ class SubscriptionService(BaseService):
         existing = await self.repos.subscription.get_active_for_tenant_locked(
             self.current_user.tenant_id
         )
-        if existing and existing.status == "active":
+        if existing and existing.status in ("active", "trialing"):
             raise AlreadyExistsException(
                 "Tenant already has an active subscription.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
@@ -86,6 +87,25 @@ class SubscriptionService(BaseService):
         if not tenant:
             raise NotFoundException("Tenant not found.")
 
+        # Acquire a transaction-scoped advisory lock keyed on tenant_id to prevent
+        # two concurrent first-time checkouts from creating duplicate Stripe customers.
+        # The lock is automatically released when the transaction commits or rolls back.
+        await self.repos.subscription.db.execute(
+            text("SELECT pg_advisory_xact_lock(:tid)"),
+            {"tid": self.current_user.tenant_id},
+        )
+
+        # Re-check after acquiring the lock — a concurrent request may have inserted a
+        # subscription row between our initial check and the lock acquisition.
+        existing = await self.repos.subscription.get_active_for_tenant_locked(
+            self.current_user.tenant_id
+        )
+        if existing and existing.status in ("active", "trialing"):
+            raise AlreadyExistsException(
+                "Tenant already has an active subscription.",
+                error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
+            )
+
         external_customer_id: str | None = None
         if existing and existing.external_customer_id:
             external_customer_id = existing.external_customer_id
@@ -93,8 +113,10 @@ class SubscriptionService(BaseService):
             # Check all subscriptions for this tenant (including canceled) before
             # calling Stripe Search, which is eventually consistent and can create
             # duplicate customers under concurrent requests.
-            external_customer_id = await self.repos.subscription.get_any_external_customer_id(
-                self.current_user.tenant_id
+            external_customer_id = (
+                await self.repos.subscription.get_any_external_customer_id(
+                    self.current_user.tenant_id
+                )
             )
             if not external_customer_id:
                 external_customer_id = await self.provider.get_or_create_customer(
@@ -125,12 +147,18 @@ class SubscriptionService(BaseService):
                 status="incomplete",
             )
         else:
-            await self.repos.subscription.create(
-                tenant_id=self.current_user.tenant_id,
-                plan_price_id=price.id,
-                external_customer_id=external_customer_id,
-                status="incomplete",
-            )
+            try:
+                await self.repos.subscription.create(
+                    tenant_id=self.current_user.tenant_id,
+                    plan_price_id=price.id,
+                    external_customer_id=external_customer_id,
+                    status="incomplete",
+                )
+            except IntegrityError as exc:
+                raise AlreadyExistsException(
+                    "Tenant already has an active subscription.",
+                    error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
+                ) from exc
 
         return CheckoutOut(
             checkout_url=result.checkout_url,
@@ -229,7 +257,7 @@ class SubscriptionService(BaseService):
         return CustomerPortalOut(portal_url=result.portal_url)
 
     async def _get_active_subscription(self) -> Subscription:
-        sub = await self.repos.subscription.get_active_for_tenant(
+        sub = await self.repos.subscription.get_active_for_tenant_locked(
             self.current_user.tenant_id
         )
         if not sub:
@@ -252,22 +280,28 @@ class WebhookService:  # pylint: disable=too-few-public-methods
     async def process_webhook(self, payload: bytes, sig_header: str) -> bool:
         webhook = self.provider.construct_webhook_event(payload, sig_header)
 
-        event_record, should_process = await self.repos.webhook_event.get_or_create_received(
+        (
+            event_record,
+            should_process,
+        ) = await self.repos.webhook_event.get_or_create_received(
             webhook.external_event_id, webhook.event_type
         )
         if not should_process:
             return True
 
+        if event_record is None:
+            return True
         log = logging.getLogger(__name__)
 
         try:
             await self._dispatch(webhook.event_type, webhook.raw)
         except BillingProviderException as exc:
-            # Transient provider error — let Stripe retry
+            # Transient provider error - let Stripe retry
             await self.repos.webhook_event.mark_failed(event_record, str(exc))
             return False
         except Exception as exc:  # pylint: disable=broad-except
-            # Permanent error (bug, unexpected data) — log and ack to stop infinite retries
+            # Permanent error (bug, unexpected data)
+            # log and ack to stop infinite retries
             log.error(
                 "Permanent webhook handler failure [event_id=%s event_type=%s]: %s",
                 webhook.external_event_id,
@@ -313,11 +347,13 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             return
 
         # Try to find existing subscription row by customer or metadata tenant_id
-        sub = await self.repos.subscription.get_by_external_customer_id(customer_id)
+        sub = await self.repos.subscription.get_by_external_customer_id_locked(
+            customer_id
+        )
         if not sub:
             tenant_id_str = metadata.get("tenant_id")
             if tenant_id_str:
-                sub = await self.repos.subscription.get_active_for_tenant(
+                sub = await self.repos.subscription.get_active_for_tenant_locked(
                     int(tenant_id_str)
                 )
 
@@ -340,7 +376,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         obj = raw["data"]["object"]
         sub_id: str = obj["id"]
 
-        sub = await self.repos.subscription.get_by_external_subscription_id(sub_id)
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
         if not sub:
             return
 
@@ -356,17 +394,24 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
         updates: dict = {
             "status": obj.get("status", sub.status),
-            "cancel_at_period_end": obj.get("cancel_at_period_end", False),
             "current_period_start": _ts(_period("current_period_start")),
             "current_period_end": _ts(_period("current_period_end")),
             "canceled_at": _ts(obj.get("canceled_at")),
         }
+        # Only update cancel_at_period_end when explicitly present in the event
+        # defaulting to False would silently un-schedule pending cancellations.
+        if "cancel_at_period_end" in obj:
+            updates["cancel_at_period_end"] = obj["cancel_at_period_end"]
 
         # Check if price changed (e.g. plan upgrade via portal)
         items = obj.get("items", {}).get("data", [])
         if items:
-            new_price_id: str = items[0]["price"]["id"]
-            if sub.plan_price and sub.plan_price.external_price_id != new_price_id:
+            new_price_id: str | None = (items[0].get("price") or {}).get("id")
+            if (
+                new_price_id
+                and sub.plan_price
+                and sub.plan_price.external_price_id != new_price_id
+            ):
                 new_price = await self.repos.plan_price.get_by_external_price_id(
                     new_price_id
                 )
@@ -379,18 +424,20 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         obj = raw["data"]["object"]
         sub_id: str = obj["id"]
 
-        sub = await self.repos.subscription.get_by_external_subscription_id(sub_id)
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
         if not sub:
             return
 
         canceled_at_ts = obj.get("canceled_at")
-        await self.repos.subscription.update(
-            sub,
-            status="canceled",
-            canceled_at=datetime.fromtimestamp(canceled_at_ts, tz=UTC)
-            if canceled_at_ts
-            else None,
-        )
+        updates: dict = {"status": "canceled"}
+        if canceled_at_ts:
+            updates["canceled_at"] = datetime.fromtimestamp(canceled_at_ts, tz=UTC)
+        elif not sub.canceled_at:
+            # Stripe omitted the timestamp - fall back to now rather than nulling it
+            updates["canceled_at"] = datetime.now(UTC)
+        await self.repos.subscription.update(sub, **updates)
 
     async def _handle_invoice_payment_failed(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -398,7 +445,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub_id:
             return
 
-        sub = await self.repos.subscription.get_by_external_subscription_id(sub_id)
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
         if not sub:
             return
 
@@ -410,7 +459,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub_id:
             return
 
-        sub = await self.repos.subscription.get_by_external_subscription_id(sub_id)
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
         if not sub:
             return
 
@@ -436,13 +487,15 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         obj = raw["data"]["object"]
         sub_id: str = obj["id"]
 
-        sub = await self.repos.subscription.get_by_external_subscription_id(sub_id)
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
         if not sub:
             # subscription.created fires before checkout.session.completed, so
             # external_subscription_id is not yet set - fall back to customer lookup
             customer_id: str | None = obj.get("customer")
             if customer_id:
-                sub = await self.repos.subscription.get_by_external_customer_id(
+                sub = await self.repos.subscription.get_by_external_customer_id_locked(
                     customer_id
                 )
         if not sub:
@@ -469,12 +522,13 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
         items = obj.get("items", {}).get("data", [])
         if items:
-            new_price_id: str = items[0]["price"]["id"]
-            new_price = await self.repos.plan_price.get_by_external_price_id(
-                new_price_id
-            )
-            if new_price:
-                updates["plan_price_id"] = new_price.id
+            new_price_id: str | None = (items[0].get("price") or {}).get("id")
+            if new_price_id:
+                new_price = await self.repos.plan_price.get_by_external_price_id(
+                    new_price_id
+                )
+                if new_price:
+                    updates["plan_price_id"] = new_price.id
 
         await self.repos.subscription.update(sub, **updates)
 
@@ -485,11 +539,13 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
         sub = None
         if customer_id:
-            sub = await self.repos.subscription.get_by_external_customer_id(customer_id)
+            sub = await self.repos.subscription.get_by_external_customer_id_locked(
+                customer_id
+            )
         if not sub:
             tenant_id_str = metadata.get("tenant_id")
             if tenant_id_str:
-                sub = await self.repos.subscription.get_active_for_tenant(
+                sub = await self.repos.subscription.get_active_for_tenant_locked(
                     int(tenant_id_str)
                 )
 
@@ -506,7 +562,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub_id:
             return
 
-        sub = await self.repos.subscription.get_by_external_subscription_id(sub_id)
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
         if not sub:
             return
 
@@ -518,7 +576,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub_id:
             return
 
-        sub = await self.repos.subscription.get_by_external_subscription_id(sub_id)
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
         if not sub:
             return
 
@@ -596,3 +656,25 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
         if "active" in obj:
             await self.repos.plan_price.update(price, is_active=obj["active"])
+
+    async def cleanup_stale_checkouts(self, max_age_hours: int = 48) -> int:
+        """
+        Marks stale incomplete subscriptions as canceled.
+
+        Targets rows that have no external_subscription_id (checkout was never
+        completed) and are older than max_age_hours. This handles the case where
+        the checkout.session.expired webhook permanently failed and the row was
+        never cleaned up by the normal event flow.
+
+        Safe to call repeatedly — rows are only updated once (incomplete → canceled).
+        Intended to be called from a scheduled job, e.g. daily with max_age_hours=48.
+        """
+        threshold = datetime.now(UTC) - timedelta(hours=max_age_hours)
+        stale = await self.repos.subscription.get_stale_incomplete_subscriptions(
+            threshold
+        )
+        for sub in stale:
+            await self.repos.subscription.update(
+                sub, status="canceled", canceled_at=datetime.now(UTC)
+            )
+        return len(stale)

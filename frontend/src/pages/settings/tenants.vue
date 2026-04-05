@@ -19,15 +19,11 @@ meta:
       :columns="columns"
       :items="items"
       :total="total"
-      :page="pagination.page"
-      :page-size="pagination.pageSize"
-      :total-pages="totalPages"
       :loading="isLoading"
       :empty-title="$t('tenants.noTenantsFound')"
       :empty-description="$t('tenants.createFirstTenant')"
+      :show-pagination="false"
       @sort="setSort"
-      @update:page="goToPage"
-      @update:page-size="setPageSize"
     >
       <template #row="{ item }">
         <TableCell class="font-medium">{{ item.name }}</TableCell>
@@ -93,8 +89,8 @@ const columns = [
   { key: 'created_at', label: t('tenants.columns.created'), sortable: true },
 ]
 
-const { items, total, isLoading, totalPages, pagination, goToPage, setPageSize, setSort, refresh } =
-  useDataTable<TenantOut>({ fetcher: usersApi.getMyTenants })
+const { items, total, isLoading, setSort, refresh } =
+  useDataTable<TenantOut>({ fetcher: usersApi.getMyTenants, defaultPageSize: 1000 })
 
 const showForm = ref(false)
 const showUsers = ref(false)

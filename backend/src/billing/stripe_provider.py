@@ -75,7 +75,9 @@ class StripeProvider(BillingProviderABC):
             product = await stripe.Product.modify_async(
                 external_product_id,
                 **params,
-                idempotency_key=self._idempotency_key("product-update", external_product_id),
+                idempotency_key=self._idempotency_key(
+                    "product-update", external_product_id
+                ),
                 api_key=self._api_key,
             )
             return ExternalProduct(external_id=product.id)
@@ -87,7 +89,9 @@ class StripeProvider(BillingProviderABC):
             await stripe.Product.modify_async(
                 external_product_id,
                 active=False,
-                idempotency_key=self._idempotency_key("product-archive", external_product_id),
+                idempotency_key=self._idempotency_key(
+                    "product-archive", external_product_id
+                ),
                 api_key=self._api_key,
             )
         except stripe.StripeError as exc:
@@ -111,7 +115,12 @@ class StripeProvider(BillingProviderABC):
                     "interval_count": interval_count,
                 },
                 idempotency_key=self._idempotency_key(
-                    "price-create", external_product_id, str(amount), currency, interval, str(interval_count)
+                    "price-create",
+                    external_product_id,
+                    str(amount),
+                    currency,
+                    interval,
+                    str(interval_count),
                 ),
                 api_key=self._api_key,
             )
@@ -124,7 +133,9 @@ class StripeProvider(BillingProviderABC):
             await stripe.Price.modify_async(
                 external_price_id,
                 active=False,
-                idempotency_key=self._idempotency_key("price-archive", external_price_id),
+                idempotency_key=self._idempotency_key(
+                    "price-archive", external_price_id
+                ),
                 api_key=self._api_key,
             )
         except stripe.StripeError as exc:
@@ -159,7 +170,9 @@ class StripeProvider(BillingProviderABC):
             await stripe.Customer.modify_async(
                 external_customer_id,
                 email=email,
-                idempotency_key=self._idempotency_key("customer-update", external_customer_id, email),
+                idempotency_key=self._idempotency_key(
+                    "customer-update", external_customer_id, email
+                ),
                 api_key=self._api_key,
             )
         except stripe.StripeError as exc:
@@ -212,7 +225,9 @@ class StripeProvider(BillingProviderABC):
             sub = await stripe.Subscription.modify_async(
                 external_subscription_id,
                 cancel_at_period_end=True,
-                idempotency_key=self._idempotency_key("sub-cancel", external_subscription_id),
+                idempotency_key=self._idempotency_key(
+                    "sub-cancel", external_subscription_id
+                ),
                 api_key=self._api_key,
             )
             return self._map_subscription(sub)
@@ -226,7 +241,9 @@ class StripeProvider(BillingProviderABC):
             sub = await stripe.Subscription.modify_async(
                 external_subscription_id,
                 cancel_at_period_end=False,
-                idempotency_key=self._idempotency_key("sub-resume", external_subscription_id),
+                idempotency_key=self._idempotency_key(
+                    "sub-resume", external_subscription_id
+                ),
                 api_key=self._api_key,
             )
             return self._map_subscription(sub)
@@ -316,9 +333,7 @@ class StripeProvider(BillingProviderABC):
 
     @staticmethod
     def _map_subscription(sub: stripe.Subscription) -> ExternalSubscription:
-        external_price_id: str | None = None
-        if sub.items and sub.items.data:
-            external_price_id = sub.items.data[0].price.id
+        item = sub.items.data[0] if (sub.items and sub.items.data) else None
 
         canceled_at: datetime | None = None
         if sub.canceled_at:
@@ -330,9 +345,9 @@ class StripeProvider(BillingProviderABC):
             if isinstance(sub.customer, str)
             else sub.customer.id,
             status=sub.status,
-            current_period_start=_ts_to_dt(sub.items.data[0].current_period_start),
-            current_period_end=_ts_to_dt(sub.items.data[0].current_period_end),
+            current_period_start=_ts_to_dt(item.current_period_start if item else None),
+            current_period_end=_ts_to_dt(item.current_period_end if item else None),
             cancel_at_period_end=sub.cancel_at_period_end,
             canceled_at=canceled_at,
-            external_price_id=external_price_id,
+            external_price_id=item.price.id if item else None,
         )

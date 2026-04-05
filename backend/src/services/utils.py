@@ -54,4 +54,6 @@ def send_email(
 
         log.info("Email sent. [template=%s, ctx=%s]", email_template, data)
     except Exception:  # pylint: disable=broad-exception-caught
-        log.exception("Failed to send email. [template=%s, address=%s]", email_template, address)
+        log.exception(
+            "Failed to send email. [template=%s, address=%s]", email_template, address
+        )

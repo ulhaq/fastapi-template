@@ -104,7 +104,10 @@ def hash_secret(secret: str) -> str:
 
 
 def verify_secret(plain_secret: str, hashed_secret: str) -> bool:
-    return crypt_context.verify(plain_secret, hashed_secret)
+    try:
+        return crypt_context.verify(plain_secret, hashed_secret)
+    except Exception:  # pylint: disable=broad-except
+        return False
 
 
 def decode_token(token: str) -> dict:

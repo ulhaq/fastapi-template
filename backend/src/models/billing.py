@@ -1,7 +1,16 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -57,7 +66,7 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "billing_subscription"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('incomplete', 'active', 'trialing', 'past_due', 'canceled', 'unpaid')",
+            "status IN ('incomplete', 'active', 'trialing', 'past_due', 'canceled', 'unpaid')",  # pylint: disable=line-too-long
             name="ck_billing_subscription_status",
         ),
         Index(
