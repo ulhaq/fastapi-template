@@ -13,6 +13,7 @@ from src.billing.types import (
     ExternalSubscription,
     WebhookPayload,
 )
+from src.core.config import settings
 from src.core.exceptions import BillingProviderException, BillingWebhookException
 
 # Stripe event type > normalized internal key
@@ -190,6 +191,11 @@ class StripeProvider(BillingProviderABC):
             else:
                 params["customer_creation"] = "always"
 
+            if settings.billing_automatic_tax:
+                params["automatic_tax"] = {"enabled": True}
+                if external_customer_id:
+                    params["customer_update"] = {"address": "auto"}
+
             session = await stripe.checkout.Session.create_async(
                 **params,
                 api_key=self._api_key,
@@ -253,10 +259,15 @@ class StripeProvider(BillingProviderABC):
             proration_behavior: Literal[
                 "always_invoice", "create_prorations", "none"
             ] = "none" if skip_proration else "create_prorations"
+            modify_params: dict = {
+                "items": [{"id": item_id, "price": new_external_price_id}],
+                "proration_behavior": proration_behavior,
+            }
+            if settings.billing_automatic_tax:
+                modify_params["automatic_tax"] = {"enabled": True}
             updated = await stripe.Subscription.modify_async(
                 external_subscription_id,
-                items=[{"id": item_id, "price": new_external_price_id}],
-                proration_behavior=proration_behavior,
+                **modify_params,
                 api_key=self._api_key,
             )
             return self._map_subscription(updated)
