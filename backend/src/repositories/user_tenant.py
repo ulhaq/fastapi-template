@@ -35,7 +35,8 @@ class UserTenantRepository(SQLResourceRepository[UserTenant]):
         return rs.scalars().all()
 
     async def get_active_tenant_for_user(self, user_id: int) -> UserTenant | None:
-        """Return the most-recently-active membership row.
+        """
+        Return the most-recently-active membership row.
 
         Falls back to earliest created if none has ever been active.
         Returns None if the user has no tenant memberships.

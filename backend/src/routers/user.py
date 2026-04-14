@@ -44,7 +44,7 @@ async def change_password_of_authenticated_user(
 
 
 @router.get("", status_code=status.HTTP_200_OK)
-async def get_all_roles(
+async def get_all_users(
     *,
     service: Annotated[UserService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.READ_USER))],

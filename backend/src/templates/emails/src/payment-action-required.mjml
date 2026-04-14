@@ -1,0 +1,42 @@
+<mjml>
+  <mj-head>
+    <mj-title>Payment authentication required – {{ app_name }}</mj-title>
+    <mj-preview>Your payment needs authentication to complete.</mj-preview>
+    <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
+  </mj-head>
+  <mj-body background-color="#f7f7f7">
+    <!-- Header -->
+    <mj-section background-color="#0052cc" padding="24px 0">
+      <mj-column>
+        <mj-text align="center" font-size="22px" font-weight="bold" color="#ffffff"> {{ app_name }} </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" border-radius="6px" padding="32px">
+      <mj-column>
+        <mj-text font-size="18px" font-weight="bold" color="#333333" padding-bottom="8px"> Payment authentication required </mj-text>
+
+        <mj-text font-size="16px" color="#555555"> Hi {{ user_name }}, </mj-text>
+
+        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your latest payment for {{ app_name }} requires additional authentication (such as 3D Secure). Please visit your billing page to complete the payment and keep your subscription active. </mj-text>
+
+        <mj-button background-color="#0052cc" color="#ffffff" border-radius="4px" font-size="16px" href="{{ billing_url }}" padding="12px 0"> Complete Payment </mj-button>
+
+        <mj-text font-size="16px" color="#555555" padding-top="16px"> If you have any questions, don't hesitate to reach out. </mj-text>
+
+        <mj-text font-size="16px" color="#555555" padding-top="18px">
+          Cheers,<br />
+          The {{ app_name }} Team
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f0f0f0" padding="16px">
+      <mj-column>
+        <mj-text align="center" font-size="13px" color="#888888"> Contact us at <a href="mailto:{{ info_email }}" style="color: #0052cc">{{ info_email }}</a>. </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

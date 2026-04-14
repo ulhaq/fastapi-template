@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     billing_cancel_url: str = "http://localhost:3000/billing/cancel"
     billing_portal_return_url: str = "http://localhost:3000/billing"
     billing_automatic_tax: bool = False
+    billing_trial_period_days: int = 14
 
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False

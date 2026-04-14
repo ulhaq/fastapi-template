@@ -44,42 +44,32 @@ async def _setup_new_tenant(
     await repos.role.add_permissions(owner_role, *[p.id for p in permissions])
     await repos.user.add_roles(user, owner_role.id)
 
-    free_price = await repos.plan_price.get_free_price()
-    if free_price and free_price.external_price_id:
+    highest_price = await repos.plan_price.get_highest_price()
+    if highest_price and highest_price.external_price_id:
         try:
             external_customer_id = await provider.get_or_create_customer(
                 tenant_id=tenant.id,
                 tenant_name=tenant.name,
                 email=user_email,
             )
-            # Write DB row first so the subscription.created webhook can find it
-            # by external_customer_id if the final update below fails.
-            sub = await repos.subscription.create(
+            await repos.tenant.update(tenant, external_customer_id=external_customer_id)
+            # Create an incomplete subscription row. The user must complete
+            # Stripe Checkout (which collects billing address and optional
+            # VAT ID) to start the trial - no credit card is required.
+            await repos.subscription.create(
                 tenant_id=tenant.id,
-                plan_price_id=free_price.id,
-                external_customer_id=external_customer_id,
+                plan_price_id=highest_price.id,
                 status="incomplete",
-            )
-            ext_sub = await provider.create_subscription(
-                external_customer_id=external_customer_id,
-                external_price_id=free_price.external_price_id,
-            )
-            await repos.subscription.update(
-                sub,
-                external_subscription_id=ext_sub.external_subscription_id,
-                status=ext_sub.status,
-                current_period_start=ext_sub.current_period_start,
-                current_period_end=ext_sub.current_period_end,
             )
         except BillingProviderException as exc:
             log.warning(
-                "Free plan billing setup failed for tenant %s (non-fatal): %s",
+                "Trial plan billing setup failed for tenant %s (non-fatal): %s",
                 tenant.id,
                 exc,
             )
     else:
         log.warning(
-            "No free plan found - skipping auto-subscription for tenant %s",
+            "No active plan found - skipping auto-subscription for tenant %s",
             tenant.id,
         )
 

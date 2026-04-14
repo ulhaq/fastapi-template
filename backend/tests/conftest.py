@@ -144,6 +144,24 @@ async def prepare_database() -> AsyncGenerator[None]:
 
 
 @pytest.fixture(autouse=True)
+def mock_pg_advisory_lock(mocker):  # type: ignore[no-untyped-def]
+    """Make pg_advisory_xact_lock a no-op in SQLite tests.
+
+    This is a PostgreSQL-only function used in start_checkout to prevent
+    concurrent duplicate customer creation. SQLite does not support it, so
+    we replace the one text() call in the billing service with SELECT 1.
+    """
+    from sqlalchemy import text as _text
+
+    def _patched_text(clause: str):  # type: ignore[no-untyped-def]
+        if "pg_advisory_xact_lock" in clause:
+            return _text("SELECT 1")
+        return _text(clause)
+
+    mocker.patch("src.services.billing.text", side_effect=_patched_text)
+
+
+@pytest.fixture(autouse=True)
 def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
     """Auto-used fixture that mocks the billing provider for all tests."""
     mock = mocker.MagicMock(spec=BillingProviderABC)
@@ -188,14 +206,15 @@ def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
         canceled_at=None,
         external_price_id="price_test456",
     )
+    mock.has_payment_method.return_value = False
     mock.update_customer.return_value = None
     mock.get_customer_portal_url.return_value = CustomerPortalResult(
         portal_url="https://billing.stripe.com/portal/test"
     )
     mock.create_subscription.return_value = ExternalSubscription(
-        external_subscription_id="sub_free123",
+        external_subscription_id="sub_trial123",
         external_customer_id="cus_test123",
-        status="active",
+        status="trialing",
         current_period_start=None,
         current_period_end=None,
         cancel_at_period_end=False,

@@ -6,6 +6,7 @@ export interface PlanPriceOut {
   interval: 'month' | 'year'
   interval_count: number
   external_price_id: string | null
+  trial_period_days: number | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -28,12 +29,15 @@ export interface SubscriptionOut {
   plan_price_id: number | null
   external_subscription_id: string | null
   external_customer_id: string | null
-  status: 'incomplete' | 'active' | 'trialing' | 'past_due' | 'canceled'
+  status: 'incomplete' | 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
   current_period_start: string | null
   current_period_end: string | null
   cancel_at_period_end: boolean
   canceled_at: string | null
+  cancel_at: string | null
+  trial_end: string | null
   plan_price: PlanPriceOut | null
+  has_payment_method: boolean
   created_at: string
   updated_at: string
 }

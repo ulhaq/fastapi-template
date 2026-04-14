@@ -137,12 +137,10 @@ class UserService(
                 r.is_protected and r.name == OWNER_ROLE_NAME for r in tenant_roles
             )
             if is_owner:
-                subscription = await self.repos.subscription.get_active_for_tenant(
-                    self.current_user.tenant_id
-                )
-                if subscription and subscription.external_customer_id:
+                tenant = await self.repos.tenant.get(self.current_user.tenant_id)
+                if tenant and tenant.external_customer_id:
                     await self.provider.update_customer(
-                        subscription.external_customer_id, email=schema_in.email
+                        tenant.external_customer_id, email=schema_in.email
                     )
 
         return self._user_out(user)

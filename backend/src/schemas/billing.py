@@ -21,6 +21,7 @@ class PlanPriceOut(BaseModel):
     interval: str
     interval_count: int
     external_price_id: str | None
+    trial_period_days: int | None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -51,7 +52,10 @@ class SubscriptionOut(BaseModel):
     current_period_end: datetime | None
     cancel_at_period_end: bool
     canceled_at: datetime | None
+    cancel_at: datetime | None
+    trial_end: datetime | None
     plan_price: PlanPriceOut | None
+    has_payment_method: bool = False
     created_at: datetime
     updated_at: datetime
 

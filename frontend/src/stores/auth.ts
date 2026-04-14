@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { setAccessToken } from '@/api/client'
 import { authApi } from '@/api/auth'
+import { billingApi } from '@/api/billing'
 import { usersApi } from '@/api/users'
 import type { UserOut, Token, TenantOut } from '@/types'
 
@@ -11,8 +12,18 @@ export const useAuthStore = defineStore('auth', () => {
   const permissions = ref<string[]>([])
   const tenants = ref<TenantOut[]>([])
   const isInitialized = ref(false)
+  const subscriptionStatus = ref<string | null>(null)
+  const subscriptionTrialEnd = ref<string | null>(null)
 
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
+  const hasActiveSubscription = computed(() =>
+    subscriptionStatus.value === 'active' || subscriptionStatus.value === 'trialing',
+  )
+  const trialDaysRemaining = computed<number | null>(() => {
+    if (subscriptionStatus.value !== 'trialing' || !subscriptionTrialEnd.value) return null
+    const diff = new Date(subscriptionTrialEnd.value).getTime() - Date.now()
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
+  })
 
   function hasPermission(permission: string): boolean {
     return permissions.value.includes(permission)
@@ -28,6 +39,8 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = null
     permissions.value = []
     tenants.value = []
+    subscriptionStatus.value = null
+    subscriptionTrialEnd.value = null
     setAccessToken(null)
   }
 
@@ -42,13 +55,24 @@ export const useAuthStore = defineStore('auth', () => {
     tenants.value = data
   }
 
+  async function fetchSubscriptionStatus(): Promise<void> {
+    try {
+      const { data } = await billingApi.getCurrentSubscription()
+      subscriptionStatus.value = data.status
+      subscriptionTrialEnd.value = data.trial_end
+    } catch {
+      subscriptionStatus.value = null
+      subscriptionTrialEnd.value = null
+    }
+  }
+
   async function initialize(): Promise<void> {
     try {
       // Restore session from the httponly refresh-token cookie (silent refresh).
       const { data: token } = await authApi.refresh()
       accessToken.value = token.access_token
       setAccessToken(token.access_token)
-      await Promise.all([fetchMe(), fetchTenants()])
+      await Promise.all([fetchMe(), fetchTenants(), fetchSubscriptionStatus()])
     } catch {
       // No valid session cookie - proceed as unauthenticated.
     }
@@ -58,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email: string, password: string): Promise<void> {
     const { data: token } = await authApi.login(email, password)
     setSession(token)
-    await Promise.all([fetchMe(), fetchTenants()])
+    await Promise.all([fetchMe(), fetchTenants(), fetchSubscriptionStatus()])
   }
 
   async function logout(): Promise<void> {
@@ -77,13 +101,13 @@ export const useAuthStore = defineStore('auth', () => {
       password,
     })
     setSession(token)
-    await Promise.all([fetchMe(), fetchTenants()])
+    await Promise.all([fetchMe(), fetchTenants(), fetchSubscriptionStatus()])
   }
 
   async function switchTenant(tenantId: number): Promise<void> {
     const { data: token } = await authApi.switchTenant({ tenant_id: tenantId })
     setSession(token)
-    await fetchMe()
+    await Promise.all([fetchMe(), fetchSubscriptionStatus()])
   }
 
   return {
@@ -91,13 +115,18 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken,
     permissions,
     tenants,
+    subscriptionStatus,
+    subscriptionTrialEnd,
+    trialDaysRemaining,
     isInitialized,
     isAuthenticated,
+    hasActiveSubscription,
     hasPermission,
     setSession,
     clearSession,
     fetchMe,
     fetchTenants,
+    fetchSubscriptionStatus,
     initialize,
     login,
     logout,

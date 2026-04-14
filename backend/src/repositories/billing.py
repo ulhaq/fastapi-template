@@ -11,7 +11,7 @@ from src.repositories.base import SQLResourceRepository, TenantScopedRepository
 
 
 class PlanRepository(SQLResourceRepository[Plan]):
-    def __init__(self, db):  # type: ignore[no-untyped-def]
+    def __init__(self, db):
         super().__init__(Plan, db)
 
     async def get_by_external_product_id(self, external_id: str) -> Plan | None:
@@ -28,7 +28,7 @@ class PlanRepository(SQLResourceRepository[Plan]):
 
 
 class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
-    def __init__(self, db):  # type: ignore[no-untyped-def]
+    def __init__(self, db):
         super().__init__(PlanPrice, db)
 
     async def get_by_plan(self, plan_id: int) -> Sequence[PlanPrice]:
@@ -47,6 +47,24 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
                 self.model.external_price_id.isnot(None),
                 self.model.deleted_at.is_(None),
             )
+            .limit(1)
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
+    async def get_highest_price(self) -> PlanPrice | None:
+        """
+        Return the active price with the highest amount that has a Stripe price ID.
+        Ties are broken by taking the earliest created price (lowest id).
+        """
+        stmt = (
+            select(self.model)
+            .filter(
+                self.model.is_active.is_(True),
+                self.model.external_price_id.isnot(None),
+                self.model.deleted_at.is_(None),
+            )
+            .order_by(self.model.amount.desc(), self.model.id.asc())
             .limit(1)
         )
         rs = await self.db.execute(stmt)
@@ -81,7 +99,7 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
 
 
 class SubscriptionRepository(TenantScopedRepository[Subscription]):
-    def __init__(self, db):  # type: ignore[no-untyped-def]
+    def __init__(self, db):
         super().__init__(Subscription, db)
 
     async def get_active_for_tenant(self, tenant_id: int) -> Subscription | None:
@@ -89,7 +107,9 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
             select(self.model)
             .filter(
                 self.model.tenant_id == tenant_id,
-                self.model.status.in_(["active", "trialing", "past_due", "incomplete"]),
+                self.model.status.in_(
+                    ["active", "trialing", "past_due", "incomplete", "paused"]
+                ),
                 self.model.deleted_at.is_(None),
             )
             .order_by(self.model.id.desc())
@@ -108,7 +128,9 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
             select(self.model)
             .filter(
                 self.model.tenant_id == tenant_id,
-                self.model.status.in_(["active", "trialing", "past_due", "incomplete"]),
+                self.model.status.in_(
+                    ["active", "trialing", "past_due", "incomplete", "paused"]
+                ),
                 self.model.deleted_at.is_(None),
             )
             .order_by(self.model.id.desc())
@@ -147,61 +169,6 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
-    async def get_by_external_customer_id(
-        self, external_customer_id: str
-    ) -> Subscription | None:
-        # Intentionally bypasses tenant scope - needed in webhook handler
-        stmt = (
-            select(self.model)
-            .filter(
-                self.model.external_customer_id == external_customer_id,
-                self.model.deleted_at.is_(None),
-            )
-            .order_by(self.model.id.desc())
-            .limit(1)
-        )
-        rs = await self.db.execute(stmt)
-        return rs.unique().scalar_one_or_none()
-
-    async def get_by_external_customer_id_locked(
-        self, external_customer_id: str
-    ) -> Subscription | None:
-        """
-        Like get_by_external_customer_id but acquires a row lock (SELECT FOR UPDATE)
-        Use in webhook handlers to prevent concurrent event processing on the same row.
-        """
-        stmt = (
-            select(self.model)
-            .filter(
-                self.model.external_customer_id == external_customer_id,
-                self.model.deleted_at.is_(None),
-            )
-            .order_by(self.model.id.desc())
-            .limit(1)
-            .with_for_update()
-        )
-        rs = await self.db.execute(stmt)
-        return rs.unique().scalar_one_or_none()
-
-    async def get_any_external_customer_id(self, tenant_id: int) -> str | None:
-        """
-        Return the first known Stripe customer ID for this tenant, regardless of status.
-        Used to avoid creating duplicate Stripe customers via the eventually-consistent
-        Stripe Search API.
-        """
-        stmt = (
-            select(self.model.external_customer_id)
-            .filter(
-                self.model.tenant_id == tenant_id,
-                self.model.external_customer_id.isnot(None),
-                self.model.deleted_at.is_(None),
-            )
-            .order_by(self.model.id.desc())
-            .limit(1)
-        )
-        rs = await self.db.execute(stmt)
-        return rs.scalar_one_or_none()
-
     async def get_stale_incomplete_subscriptions(
         self, older_than: datetime
     ) -> Sequence[Subscription]:
@@ -221,7 +188,7 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
 
 
 class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
-    def __init__(self, db):  # type: ignore[no-untyped-def]
+    def __init__(self, db):
         super().__init__(WebhookEvent, db)
 
     async def get_by_external_event_id(
@@ -234,7 +201,9 @@ class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
         return rs.unique().scalar_one_or_none()
 
     async def get_or_create_received(
-        self, external_event_id: str, event_type: str
+        self,
+        external_event_id: str,
+        event_type: str,
     ) -> tuple[WebhookEvent | None, bool]:
         """
         Atomically ensure a webhook event record exists, then claim it for
@@ -288,7 +257,11 @@ class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
         return claimed, True
 
     async def mark_processed(self, event: WebhookEvent) -> WebhookEvent:
-        return await self.update(event, status="processed")
+        return await self.update(
+            event,
+            status="processed",
+            processed_at=datetime.now(UTC),
+        )
 
     async def mark_failed(self, event: WebhookEvent, error: str) -> WebhookEvent:
         return await self.update(event, status="failed", error=error)

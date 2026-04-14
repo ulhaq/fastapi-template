@@ -33,6 +33,19 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
+  // Require active subscription before accessing the app.
+  // Allow billing-related routes so the user can complete checkout.
+  const billingPaths = ['/settings/billing', '/billing/success', '/billing/cancel']
+  const isBillingRoute = billingPaths.some((p) => to.path.startsWith(p))
+  if (
+    authStore.isAuthenticated
+    && !authStore.hasActiveSubscription
+    && to.meta.requiresAuth
+    && !isBillingRoute
+  ) {
+    return { path: '/settings/billing' }
+  }
+
 })
 
 export { router }

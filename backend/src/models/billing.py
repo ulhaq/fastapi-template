@@ -34,9 +34,7 @@ class Plan(Base, DeleteTimestampMixin, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     prices: Mapped[list["PlanPrice"]] = relationship(
-        back_populates="plan",
-        passive_deletes=True,
-        lazy="selectin",
+        back_populates="plan", passive_deletes=True, lazy="selectin"
     )
 
 
@@ -57,6 +55,7 @@ class PlanPrice(Base, DeleteTimestampMixin, TimestampMixin):
     external_price_id: Mapped[str | None] = mapped_column(
         String, nullable=True, index=True, unique=True
     )
+    trial_period_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     plan: Mapped["Plan"] = relationship(back_populates="prices")
@@ -66,7 +65,7 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "billing_subscription"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('incomplete', 'active', 'trialing', 'past_due', 'canceled', 'unpaid')",  # pylint: disable=line-too-long
+            "status IN ('incomplete', 'active', 'trialing', 'past_due', 'canceled', 'unpaid', 'paused')",  # pylint: disable=line-too-long
             name="ck_billing_subscription_status",
         ),
         Index(
@@ -92,9 +91,6 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
     external_subscription_id: Mapped[str | None] = mapped_column(
         String, nullable=True, index=True, unique=True
     )
-    external_customer_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, index=True
-    )
     status: Mapped[str] = mapped_column(String, nullable=False, default="incomplete")
     current_period_start: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -106,6 +102,12 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
         Boolean, default=False, nullable=False
     )
     canceled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancel_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    trial_end: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -123,3 +125,6 @@ class WebhookEvent(Base, TimestampMixin):
     event_type: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="received")
     error: Mapped[str | None] = mapped_column(String, nullable=True)
+    processed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

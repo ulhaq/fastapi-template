@@ -1,6 +1,11 @@
-from fastapi.testclient import TestClient
+from datetime import UTC, datetime, timedelta
 
-from src.billing.types import ExternalSubscription
+from fastapi.testclient import TestClient
+from httpx import Headers
+
+from src.billing.types import WebhookPayload
+from src.models.billing import Plan, PlanPrice, Subscription
+from tests.conftest import TestSessionLocal
 
 
 def test_start_checkout_returns_url(
@@ -45,7 +50,7 @@ def test_start_checkout_requires_permission(client: TestClient) -> None:
         data={"username": "standard@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     ).json()
-    from httpx import Headers
+
     client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
     # Permission check fires before price lookup, so any price_id works here
     response = client.post(
@@ -75,6 +80,7 @@ def test_get_current_subscription(
     rs = response.json()
     assert rs["status"] == "incomplete"
     assert rs["plan_price_id"] == price_id
+    assert rs["has_payment_method"] is False
 
 
 def test_cannot_checkout_when_already_active(
@@ -164,8 +170,6 @@ def test_cancel_subscription(
 def test_resume_subscription(
     admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
 ) -> None:
-    from src.billing.types import WebhookPayload
-
     price_id = plan_with_price["price"]["id"]
 
     # Set up: checkout + activate via webhook
@@ -207,8 +211,6 @@ def test_resume_subscription(
 def test_portal_url_returned(
     admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
 ) -> None:
-    from src.billing.types import WebhookPayload
-
     price_id = plan_with_price["price"]["id"]
 
     admin_authenticated.post(
@@ -246,9 +248,10 @@ def test_portal_url_returned(
     )
 
 
-def _activate_subscription(client, price_id: int, mock_billing_provider, event_id: str = "evt_switch_activate") -> None:
+def _activate_subscription(
+    client, price_id: int, mock_billing_provider, event_id: str = "evt_switch_activate"
+) -> None:
     """Helper: checkout + webhook activation."""
-    from src.billing.types import WebhookPayload
 
     client.post("/v1/billing/subscriptions/checkout", json={"plan_price_id": price_id})
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
@@ -264,21 +267,22 @@ def _activate_subscription(client, price_id: int, mock_billing_provider, event_i
             }
         },
     )
-    client.post("/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "sig"})
+    client.post(
+        "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "sig"}
+    )
 
 
 async def test_switch_plan_success(
     admin_authenticated, plan_with_price: dict, mock_billing_provider
 ) -> None:
-    from tests.conftest import TestSessionLocal
-    from src.models.billing import Plan, PlanPrice
-
     price_id = plan_with_price["price"]["id"]
     _activate_subscription(admin_authenticated, price_id, mock_billing_provider)
 
     # Create a second plan + price directly in the DB
     async with TestSessionLocal() as session:
-        plan2 = Plan(name="Enterprise", external_product_id="prod_enterprise", is_active=True)
+        plan2 = Plan(
+            name="Enterprise", external_product_id="prod_enterprise", is_active=True
+        )
         session.add(plan2)
         await session.flush()
         plan2_id = plan2.id
@@ -304,7 +308,7 @@ async def test_switch_plan_success(
     rs = response.json()
     assert rs["plan_price_id"] == price2_id
     mock_billing_provider.switch_subscription_price.assert_called_once_with(
-        "sub_test123", "price_enterprise123", skip_proration=False
+        "sub_test123", "price_enterprise123", skip_proration=False, new_amount=2999
     )
 
 
@@ -321,7 +325,9 @@ def test_switch_plan_invalid_price(
     admin_authenticated, plan_with_price: dict, mock_billing_provider
 ) -> None:
     price_id = plan_with_price["price"]["id"]
-    _activate_subscription(admin_authenticated, price_id, mock_billing_provider, "evt_switch_inv")
+    _activate_subscription(
+        admin_authenticated, price_id, mock_billing_provider, "evt_switch_inv"
+    )
 
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
@@ -334,7 +340,9 @@ def test_switch_plan_same_price_rejected(
     admin_authenticated, plan_with_price: dict, mock_billing_provider
 ) -> None:
     price_id = plan_with_price["price"]["id"]
-    _activate_subscription(admin_authenticated, price_id, mock_billing_provider, "evt_switch_same")
+    _activate_subscription(
+        admin_authenticated, price_id, mock_billing_provider, "evt_switch_same"
+    )
 
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
@@ -361,8 +369,6 @@ def test_switch_plan_no_external_subscription_id(
 
 
 def test_switch_plan_requires_permission(client) -> None:
-    from httpx import Headers
-
     rs = client.post(
         "/v1/auth/token",
         data={"username": "standard@example.org", "password": "password"},
@@ -374,6 +380,85 @@ def test_switch_plan_requires_permission(client) -> None:
         json={"plan_price_id": 1},
     )
     assert response.status_code == 403
+
+
+async def _setup_free_plan_subscription_with_trial(
+    client, plan_with_price: dict, mock_billing_provider, trial_end: datetime
+) -> int:
+    """
+    Activate a paid subscription, set trial_end on it, then switch to the free plan.
+    Returns the free price_id.
+    """
+    paid_price_id = plan_with_price["price"]["id"]
+    _activate_subscription(client, paid_price_id, mock_billing_provider, "evt_trial_setup")
+
+    # Stamp trial_end directly on the subscription row
+    async with TestSessionLocal() as session:
+        from sqlalchemy import select
+
+        sub = (await session.execute(select(Subscription))).scalar_one()
+        sub.trial_end = trial_end
+        await session.commit()
+
+    # Find the free price seeded in conftest
+    async with TestSessionLocal() as session:
+        from sqlalchemy import select
+
+        free_price = (
+            await session.execute(
+                select(PlanPrice).where(PlanPrice.amount == 0)
+            )
+        ).scalar_one()
+        free_price_id = free_price.id
+
+    # Switch to free plan
+    client.post(
+        "/v1/billing/subscriptions/current/switch-plan",
+        json={"plan_price_id": free_price_id},
+    )
+
+    return free_price_id
+
+
+async def test_switch_from_free_to_paid_carries_remaining_trial(
+    admin_authenticated, plan_with_price: dict, mock_billing_provider
+) -> None:
+    """Upgrading from free back to paid should pass remaining trial days to checkout."""
+    future_trial_end = datetime.now(UTC) + timedelta(days=7)
+    await _setup_free_plan_subscription_with_trial(
+        admin_authenticated, plan_with_price, mock_billing_provider, future_trial_end
+    )
+
+    mock_billing_provider.create_checkout_session.reset_mock()
+
+    response = admin_authenticated.post(
+        "/v1/billing/subscriptions/current/switch-plan",
+        json={"plan_price_id": plan_with_price["price"]["id"]},
+    )
+    assert response.status_code == 200
+    call_kwargs = mock_billing_provider.create_checkout_session.call_args.kwargs
+    assert call_kwargs.get("trial_period_days") is not None
+    assert call_kwargs["trial_period_days"] >= 6  # at least 6 of 7 days remain
+
+
+async def test_switch_from_free_to_paid_no_trial_when_expired(
+    admin_authenticated, plan_with_price: dict, mock_billing_provider
+) -> None:
+    """Upgrading from free to paid after the trial has expired should pass no trial days."""
+    past_trial_end = datetime.now(UTC) - timedelta(days=1)
+    await _setup_free_plan_subscription_with_trial(
+        admin_authenticated, plan_with_price, mock_billing_provider, past_trial_end
+    )
+
+    mock_billing_provider.create_checkout_session.reset_mock()
+
+    response = admin_authenticated.post(
+        "/v1/billing/subscriptions/current/switch-plan",
+        json={"plan_price_id": plan_with_price["price"]["id"]},
+    )
+    assert response.status_code == 200
+    call_kwargs = mock_billing_provider.create_checkout_session.call_args.kwargs
+    assert call_kwargs.get("trial_period_days") is None
 
 
 def test_subscription_tenant_isolation(

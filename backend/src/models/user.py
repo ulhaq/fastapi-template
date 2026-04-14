@@ -32,14 +32,15 @@ class User(Base, DeleteTimestampMixin, TimestampMixin):
         lazy="selectin",
         passive_deletes=True,
     )
-    user_tenants: Mapped[list["UserTenant"]] = relationship(
-        "UserTenant",
-        lazy="selectin",
-        passive_deletes=True,
-        cascade="all, delete-orphan",
-        foreign_keys="[UserTenant.user_id]",
-        overlaps="tenants,users",
-    )
+    # TODO can be removed?
+    # user_tenants: Mapped[list["UserTenant"]] = relationship(
+    #     "UserTenant",
+    #     lazy="selectin",
+    #     passive_deletes=True,
+    #     cascade="all, delete-orphan",
+    #     foreign_keys="[UserTenant.user_id]",
+    #     overlaps="tenants,users",
+    # )
     roles: Mapped[list["Role"]] = relationship(
         "Role",
         secondary="user_role",

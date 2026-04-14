@@ -112,10 +112,8 @@ async def get_customer_portal(
 
 
 @webhook_router.post("/webhook", status_code=status.HTTP_200_OK)
-@limiter.limit("120/minute")
 async def billing_webhook(
-    request: Request,
-    service: Annotated[WebhookService, Depends()],
+    request: Request, service: Annotated[WebhookService, Depends()]
 ) -> dict:
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")

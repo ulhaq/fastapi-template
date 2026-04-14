@@ -483,3 +483,110 @@ def test_reset_password_rate_limit(client: TestClient) -> None:
             json={"token": "invalid", "password": "password1"},
         )
     assert response.status_code == 429
+
+
+# --- POST /auth/complete-invite ---
+
+
+def _do_invite(
+    mocker: MockerFixture,
+    admin_client: TestClient,
+    email: str = "invited@example.org",
+) -> str:
+    """Send an invite and return the raw invite token captured from the mocked email."""
+    mock_send = mocker.patch("src.services.user.send_email")
+    admin_client.post("/v1/users/invite", json={"email": email, "role_ids": []})
+    invite_url = mock_send.call_args.kwargs["data"]["invite_url"]
+    return invite_url.split("token=")[1]
+
+
+def test_complete_invite(
+    mocker: MockerFixture, admin_authenticated: TestClient, client: TestClient
+) -> None:
+    token = _do_invite(mocker, admin_authenticated)
+    response = client.post(
+        "/v1/auth/complete-invite",
+        json={"invite_token": token, "name": "Invited User", "password": "password1"},
+    )
+    assert response.status_code == 201
+    rs = response.json()
+    assert rs["access_token"]
+    assert rs["refresh_token"]
+    assert rs["token_type"] == "bearer"
+
+
+def test_invited_user_can_login(
+    mocker: MockerFixture, admin_authenticated: TestClient, client: TestClient
+) -> None:
+    token = _do_invite(mocker, admin_authenticated)
+    client.post(
+        "/v1/auth/complete-invite",
+        json={"invite_token": token, "name": "Invited User", "password": "securepass1"},
+    )
+    response = client.post(
+        "/v1/auth/token",
+        data={"username": "invited@example.org", "password": "securepass1"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+
+
+def test_invited_user_is_added_to_tenant_with_roles(
+    mocker: MockerFixture, admin_authenticated: TestClient, client: TestClient
+) -> None:
+    mock_send = mocker.patch("src.services.user.send_email")
+    admin_authenticated.post(
+        "/v1/users/invite",
+        json={"email": "invited@example.org", "role_ids": [1]},
+    )
+    token = mock_send.call_args.kwargs["data"]["invite_url"].split("token=")[1]
+
+    rs = client.post(
+        "/v1/auth/complete-invite",
+        json={"invite_token": token, "name": "Invited User", "password": "password1"},
+    ).json()
+
+    profile = client.get(
+        "/v1/users/me", headers={"Authorization": f"Bearer {rs['access_token']}"}
+    ).json()
+    assert profile["email"] == "invited@example.org"
+    role_names = {r["name"] for r in profile["roles"]}
+    assert "Owner" in role_names
+
+
+def test_cannot_complete_invite_with_invalid_token(client: TestClient) -> None:
+    response = client.post(
+        "/v1/auth/complete-invite",
+        json={"invite_token": "notavalidtoken", "name": "User", "password": "password1"},
+    )
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "signature_invalid"
+
+
+def test_cannot_complete_invite_with_expired_token(
+    mocker: MockerFixture, admin_authenticated: TestClient, client: TestClient
+) -> None:
+    token = _do_invite(mocker, admin_authenticated)
+    with patch("src.core.config.settings.invite_expiry", -1):
+        response = client.post(
+            "/v1/auth/complete-invite",
+            json={"invite_token": token, "name": "User", "password": "password1"},
+        )
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "signature_expired"
+
+
+def test_complete_invite_rate_limit(client: TestClient) -> None:
+    limiter._storage.reset()
+    with patch.object(limiter, "enabled", True):
+        for _ in range(5):
+            client.post(
+                "/v1/auth/complete-invite",
+                json={"invite_token": "x", "name": "User", "password": "password1"},
+            )
+        response = client.post(
+            "/v1/auth/complete-invite",
+            json={"invite_token": "x", "name": "User", "password": "password1"},
+        )
+    assert response.status_code == 429

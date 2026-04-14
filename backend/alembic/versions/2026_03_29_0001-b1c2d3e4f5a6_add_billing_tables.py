@@ -34,10 +34,25 @@ permission_table = sa.table(
     sa.Column("updated_at", sa.DateTime),
 )
 
-_SUBSCRIPTION_STATUSES = ("incomplete", "active", "trialing", "past_due", "canceled", "unpaid")
+_SUBSCRIPTION_STATUSES = ("incomplete", "active", "trialing", "past_due", "canceled", "unpaid", "paused")
 
 
 def upgrade() -> None:
+    # --- tenant: add billing fields ---
+    op.add_column("tenant", sa.Column("external_customer_id", sa.String, nullable=True))
+    op.add_column(
+        "tenant",
+        sa.Column(
+            "has_payment_method", sa.Boolean, nullable=False, server_default="0"
+        ),
+    )
+    op.create_index(
+        "ix_tenant_external_customer_id",
+        "tenant",
+        ["external_customer_id"],
+        unique=True,
+    )
+
     # --- billing_plan ---
     op.create_table(
         "billing_plan",
@@ -73,6 +88,7 @@ def upgrade() -> None:
         sa.Column("interval", sa.String, nullable=False),
         sa.Column("interval_count", sa.Integer, nullable=False, default=1),
         sa.Column("external_price_id", sa.String, nullable=True),
+        sa.Column("trial_period_days", sa.Integer, nullable=True),
         sa.Column("is_active", sa.Boolean, nullable=False, default=True),
         sa.Column("deleted_at", sa.DateTime, nullable=True),
         sa.Column("created_at", sa.DateTime, nullable=False),
@@ -103,12 +119,13 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("external_subscription_id", sa.String, nullable=True),
-        sa.Column("external_customer_id", sa.String, nullable=True),
         sa.Column("status", sa.String, nullable=False, default="incomplete"),
         sa.Column("current_period_start", sa.DateTime(timezone=True), nullable=True),
         sa.Column("current_period_end", sa.DateTime(timezone=True), nullable=True),
         sa.Column("cancel_at_period_end", sa.Boolean, nullable=False, default=False),
         sa.Column("canceled_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("cancel_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("trial_end", sa.DateTime(timezone=True), nullable=True),
         sa.Column("deleted_at", sa.DateTime, nullable=True),
         sa.Column("created_at", sa.DateTime, nullable=False),
         sa.Column("updated_at", sa.DateTime, nullable=False),
@@ -129,11 +146,6 @@ def upgrade() -> None:
         "billing_subscription",
         ["external_subscription_id"],
     )
-    op.create_index(
-        "ix_billing_subscription_external_customer_id",
-        "billing_subscription",
-        ["external_customer_id"],
-    )
     # Partial unique index: at most one non-canceled subscription per tenant
     op.create_index(
         "uq_billing_subscription_active_tenant",
@@ -151,6 +163,7 @@ def upgrade() -> None:
         sa.Column("event_type", sa.String, nullable=False),
         sa.Column("status", sa.String, nullable=False, default="received"),
         sa.Column("error", sa.String, nullable=True),
+        sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime, nullable=False),
         sa.Column("updated_at", sa.DateTime, nullable=False),
     )
@@ -197,3 +210,7 @@ def downgrade() -> None:
     op.drop_table("billing_subscription")
     op.drop_table("billing_plan_price")
     op.drop_table("billing_plan")
+
+    op.drop_index("ix_tenant_external_customer_id", table_name="tenant")
+    op.drop_column("tenant", "has_payment_method")
+    op.drop_column("tenant", "external_customer_id")

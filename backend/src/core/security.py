@@ -34,13 +34,11 @@ class Auth(BaseModel):
             name=user_model.name,
             email=user_model.email,
             tenant_id=active_tenant_id,
-            permissions=list(
-                dict.fromkeys(
-                    permission.name
-                    for role in tenant_roles
-                    for permission in role.permissions
-                )
-            ),
+            permissions=[
+                permission.name
+                for role in tenant_roles
+                for permission in role.permissions
+            ],
             roles=[role.name for role in tenant_roles],
         )
 
@@ -73,7 +71,9 @@ class JWTTokenClaims(BaseModel):
     tid: int | None = None
 
 
-type SignSalt = Literal["reset-password", "email-verification", "complete-registration", "invite"]
+type SignSalt = Literal[
+    "reset-password", "email-verification", "complete-registration", "invite"
+]
 
 
 def sign(data: Any, salt: SignSalt) -> str:

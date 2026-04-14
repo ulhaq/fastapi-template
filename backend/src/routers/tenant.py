@@ -64,6 +64,7 @@ async def delete_a_tenant(
     await service.delete_tenant(identifier)
 
 
+# TODO: can be removed?
 @router.post("/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def add_user_to_tenant(
     service: Annotated[TenantService, Depends()],
@@ -74,6 +75,7 @@ async def add_user_to_tenant(
     await service.add_user_to_tenant(tenant_id, user_id)
 
 
+# TODO: can be removed?
 @router.delete("/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_user_from_tenant(
     service: Annotated[TenantService, Depends()],

@@ -1,23 +1,17 @@
-from datetime import UTC, datetime
-
+import pytest
 from fastapi.testclient import TestClient
+from httpx import Headers
 
 from src.enums import PERMISSION_DESCRIPTIONS, Permission
-from src.models.billing import Subscription
+from src.models.tenant import Tenant
 from tests.conftest import TestSessionLocal
+from tests.utils import assert_filtering_of_items_list, assert_pagination, assert_sorting_of_items_list
 
 
-async def _seed_subscription(tenant_id: int, external_customer_id: str) -> None:
+async def _seed_external_customer(tenant_id: int, external_customer_id: str) -> None:
     async with TestSessionLocal() as session:
-        session.add(
-            Subscription(
-                tenant_id=tenant_id,
-                external_customer_id=external_customer_id,
-                status="active",
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
-            )
-        )
+        tenant = await session.get(Tenant, tenant_id)
+        tenant.external_customer_id = external_customer_id
         await session.commit()
 
 
@@ -52,25 +46,13 @@ def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
 
-def test_create_a_user(admin_authenticated: TestClient) -> None:
+def test_invite_a_user(admin_authenticated: TestClient, mocker) -> None:
+    mocker.patch("src.services.user.send_email")
     response = admin_authenticated.post(
-        "/v1/users",
-        json={
-            "name": "John Doe",
-            "email": "new@testing.com",
-            "password": "password",
-        },
+        "/v1/users/invite",
+        json={"email": "new@testing.com", "role_ids": []},
     )
-    assert response.status_code == 201
-    rs = response.json()
-    assert rs["id"] == 5
-    assert rs["name"] == "John Doe"
-    assert rs["email"] == "new@testing.com"
-
-    assert rs["roles"] == []
-
-    assert rs["created_at"]
-    assert rs["updated_at"]
+    assert response.status_code == 204
 
 
 def test_patch_authenticated_user_profile(admin_authenticated: TestClient) -> None:
@@ -251,7 +233,7 @@ def test_cannot_manage_own_roles(admin_authenticated: TestClient) -> None:
     assert rs["msg"] == "You are not allowed to manage your own roles"
 
 
-def test_cannot_create_a_user_while_unauthorized(client: TestClient) -> None:
+def test_cannot_invite_a_user_while_unauthorized(client: TestClient) -> None:
     rs = client.post(
         "/v1/auth/token",
         data={"username": "no_roles@example.org", "password": "password"},
@@ -259,12 +241,8 @@ def test_cannot_create_a_user_while_unauthorized(client: TestClient) -> None:
     ).json()
 
     response = client.post(
-        "/v1/users",
-        json={
-            "name": "John Doe",
-            "email": "new@testing.com",
-            "password": "password",
-        },
+        "/v1/users/invite",
+        json={"email": "new@testing.com", "role_ids": []},
         headers={"Authorization": f"Bearer {rs['access_token']}"},
     )
     assert response.status_code == 403
@@ -309,7 +287,6 @@ def test_cannot_remove_last_owner_via_manage_roles(
         data={"username": "standard@example.org", "password": "password"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     ).json()
-    from httpx import Headers
 
     client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
 
@@ -323,7 +300,7 @@ def test_cannot_remove_last_owner_via_manage_roles(
 async def test_patch_profile_email_syncs_to_stripe_when_owner(
     admin_authenticated: TestClient, mock_billing_provider
 ) -> None:
-    await _seed_subscription(tenant_id=1, external_customer_id="cus_test123")
+    await _seed_external_customer(tenant_id=1, external_customer_id="cus_test123")
 
     response = admin_authenticated.patch(
         "/v1/users/me", json={"email": "new_owner@example.org"}
@@ -339,7 +316,7 @@ async def test_patch_profile_email_syncs_to_stripe_when_owner(
 async def test_patch_profile_email_does_not_sync_when_not_owner(
     standard_authenticated: TestClient, mock_billing_provider
 ) -> None:
-    await _seed_subscription(tenant_id=1, external_customer_id="cus_test123")
+    await _seed_external_customer(tenant_id=1, external_customer_id="cus_test123")
 
     response = standard_authenticated.patch(
         "/v1/users/me", json={"email": "new_standard@example.org"}
@@ -358,3 +335,85 @@ async def test_patch_profile_email_no_sync_without_subscription(
     assert response.status_code == 200
 
     mock_billing_provider.update_customer.assert_not_called()
+
+
+# --- GET /v1/users ---
+
+
+def test_get_all_users(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/users")
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["page_number"] == 1
+    assert rs["page_size"] == 10
+    assert rs["total"] == 3
+    assert len(rs["items"]) == 3
+    emails = {u["email"] for u in rs["items"]}
+    assert emails == {"admin@example.org", "standard@example.org", "no_roles@example.org"}
+
+
+@pytest.mark.parametrize(
+    "page_number, page_size, page_total, total",
+    [
+        pytest.param(1, 10, 3, 3),
+        pytest.param(2, 10, 0, 3),
+    ],
+)
+def test_paginate_users(
+    page_number: int,
+    page_size: int,
+    page_total: int,
+    total: int,
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get(
+        f"/v1/users?page_number={page_number}&page_size={page_size}"
+    )
+    assert response.status_code == 200
+    assert_pagination(response.json(), page_number, page_size, page_total, total)
+
+
+@pytest.mark.parametrize("sort", ["id", "-id", "name", "-name", "created_at", "-created_at"])
+def test_sort_users(sort: str, admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get(f"/v1/users?sort={sort}&page_size=50")
+    assert response.status_code == 200
+    assert_sorting_of_items_list(response.json()["items"], [sort])
+
+
+@pytest.mark.parametrize(
+    "fields,values,operators",
+    [
+        (["name"], [["Admin"]], ["eq"]),
+        (["name"], [["dmin"]], ["ico"]),
+    ],
+)
+def test_filter_users(
+    fields: list,
+    values: list,
+    operators: list,
+    admin_authenticated: TestClient,
+) -> None:
+    import json
+
+    filters = {
+        field: {"v": value, "op": op}
+        for field, value, op in zip(fields, values, operators)
+    }
+    response = admin_authenticated.get(f"/v1/users?filters={json.dumps(filters)}&page_size=50")
+    assert response.status_code == 200
+    filter_data = list(zip(fields, values, operators))
+    assert_filtering_of_items_list(response.json()["items"], filter_data)
+
+
+def test_cannot_get_users_while_unauthorized(client: TestClient) -> None:
+    rs = client.post(
+        "/v1/auth/token",
+        data={"username": "no_roles@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()
+    response = client.get(
+        "/v1/users",
+        headers={"Authorization": f"Bearer {rs['access_token']}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["msg"] == "You are not authorized to perform this action"

@@ -10,6 +10,7 @@
     <!-- Main content -->
     <div class="flex-1 flex flex-col min-w-0">
       <AppTopbar />
+      <TrialBanner />
       <main class="flex-1 p-6 overflow-auto">
         <slot />
       </main>
@@ -27,5 +28,6 @@
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
 import MobileSidebar from '@/components/layout/MobileSidebar.vue'
+import TrialBanner from '@/components/layout/TrialBanner.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 </script>

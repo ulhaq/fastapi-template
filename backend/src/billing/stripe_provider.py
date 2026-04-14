@@ -20,13 +20,17 @@ from src.core.exceptions import BillingProviderException, BillingWebhookExceptio
 _EVENT_TYPE_MAP: dict[str, str] = {
     "checkout.session.completed": "checkout.session.completed",
     "checkout.session.expired": "checkout.session.expired",
-    "customer.subscription.created": "subscription.created",
-    "customer.subscription.updated": "subscription.updated",
-    "customer.subscription.deleted": "subscription.deleted",
+    "customer.subscription.created": "customer.subscription.created",
+    "customer.subscription.updated": "customer.subscription.updated",
+    "customer.subscription.deleted": "customer.subscription.deleted",
+    "customer.subscription.trial_will_end": "customer.subscription.trial_will_end",
+    "customer.subscription.paused": "customer.subscription.paused",
     "invoice.payment_failed": "invoice.payment_failed",
     "invoice.payment_succeeded": "invoice.payment_succeeded",
     "invoice.payment_action_required": "invoice.payment_action_required",
     "invoice.marked_uncollectible": "invoice.marked_uncollectible",
+    "payment_method.attached": "payment_method.attached",
+    "payment_method.detached": "payment_method.detached",
     "product.created": "product.created",
     "product.updated": "product.updated",
     "price.created": "price.created",
@@ -175,6 +179,7 @@ class StripeProvider(BillingProviderABC):
         success_url: str,
         cancel_url: str,
         metadata: dict,
+        trial_period_days: int | None = None,
     ) -> CheckoutResult:
         try:
             params: dict = {
@@ -182,19 +187,30 @@ class StripeProvider(BillingProviderABC):
                 "line_items": [{"price": external_price_id, "quantity": 1}],
                 "success_url": success_url,
                 "cancel_url": cancel_url,
+                "billing_address_collection": "required",
+                "tax_id_collection": {"enabled": True},
                 "metadata": {k: str(v) for k, v in metadata.items()},
             }
-            if amount == 0:
+            if amount == 0 or trial_period_days:
                 params["payment_method_collection"] = "if_required"
             if external_customer_id:
                 params["customer"] = external_customer_id
             else:
                 params["customer_creation"] = "always"
 
+            if trial_period_days:
+                params["subscription_data"] = {
+                    "trial_period_days": trial_period_days,
+                    "trial_settings": {
+                        "end_behavior": {"missing_payment_method": "pause"}
+                    },
+                }
+
+            if external_customer_id:
+                params["customer_update"] = {"address": "auto", "name": "auto"}
+
             if settings.billing_automatic_tax:
                 params["automatic_tax"] = {"enabled": True}
-                if external_customer_id:
-                    params["customer_update"] = {"address": "auto"}
 
             session = await stripe.checkout.Session.create_async(
                 **params,
@@ -247,6 +263,7 @@ class StripeProvider(BillingProviderABC):
         external_subscription_id: str,
         new_external_price_id: str,
         skip_proration: bool = False,
+        new_amount: int = 0,
     ) -> ExternalSubscription:
         try:
             sub = await stripe.Subscription.retrieve_async(
@@ -264,7 +281,7 @@ class StripeProvider(BillingProviderABC):
                 "proration_behavior": proration_behavior,
             }
             if settings.billing_automatic_tax:
-                modify_params["automatic_tax"] = {"enabled": True}
+                modify_params["automatic_tax"] = {"enabled": new_amount > 0}
             updated = await stripe.Subscription.modify_async(
                 external_subscription_id,
                 **modify_params,
@@ -275,18 +292,39 @@ class StripeProvider(BillingProviderABC):
             raise BillingProviderException(str(exc)) from exc
 
     async def create_subscription(
-        self, external_customer_id: str, external_price_id: str
+        self,
+        external_customer_id: str,
+        external_price_id: str,
+        trial_period_days: int | None = None,
     ) -> ExternalSubscription:
         try:
-            sub = await stripe.Subscription.create_async(
-                customer=external_customer_id,
-                items=[{"price": external_price_id}],
-                idempotency_key=self._idempotency_key(
-                    "sub-create", external_customer_id, external_price_id
+            params: dict = {
+                "customer": external_customer_id,
+                "items": [{"price": external_price_id}],
+                "idempotency_key": self._idempotency_key(
+                    "sub-create",
+                    external_customer_id,
+                    external_price_id,
+                    str(trial_period_days or ""),
                 ),
+                "api_key": self._api_key,
+            }
+            if trial_period_days:
+                params["trial_period_days"] = trial_period_days
+            sub = await stripe.Subscription.create_async(**params)
+            return self._map_subscription(sub)
+        except stripe.StripeError as exc:
+            raise BillingProviderException(str(exc)) from exc
+
+    async def has_payment_method(self, external_customer_id: str) -> bool:
+        try:
+            pms = await stripe.PaymentMethod.list_async(
+                customer=external_customer_id,
+                type="card",
+                limit=1,
                 api_key=self._api_key,
             )
-            return self._map_subscription(sub)
+            return len(pms.data) > 0
         except stripe.StripeError as exc:
             raise BillingProviderException(str(exc)) from exc
 
@@ -344,4 +382,6 @@ class StripeProvider(BillingProviderABC):
             cancel_at_period_end=sub.cancel_at_period_end,
             canceled_at=canceled_at,
             external_price_id=item.price.id if item else None,
+            cancel_at=_ts_to_dt(sub.cancel_at),
+            trial_end=_ts_to_dt(sub.trial_end),
         )

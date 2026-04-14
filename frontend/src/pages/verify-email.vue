@@ -127,7 +127,7 @@ async function onSubmit() {
   errorMessage.value = ''
   try {
     await authStore.completeRegistration(setupToken.value, form.name, form.password)
-    router.push('/')
+    router.push('/settings/billing')
   } catch (err: unknown) {
     errorMessage.value = resolveError(err)
   } finally {

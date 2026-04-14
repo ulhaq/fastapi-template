@@ -56,6 +56,7 @@ class BillingProviderABC(ABC):
         success_url: str,
         cancel_url: str,
         metadata: dict,
+        trial_period_days: int | None = None,
     ) -> CheckoutResult: ...
 
     @abstractmethod
@@ -77,6 +78,7 @@ class BillingProviderABC(ABC):
         external_subscription_id: str,
         new_external_price_id: str,
         skip_proration: bool = False,
+        new_amount: int = 0,
     ) -> ExternalSubscription: ...
 
     @abstractmethod
@@ -86,8 +88,14 @@ class BillingProviderABC(ABC):
 
     @abstractmethod
     async def create_subscription(
-        self, external_customer_id: str, external_price_id: str
+        self,
+        external_customer_id: str,
+        external_price_id: str,
+        trial_period_days: int | None = None,
     ) -> ExternalSubscription: ...
+
+    @abstractmethod
+    async def has_payment_method(self, external_customer_id: str) -> bool: ...
 
     @abstractmethod
     def construct_webhook_event(

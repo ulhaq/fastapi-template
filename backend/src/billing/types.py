@@ -33,6 +33,8 @@ class ExternalSubscription:  # pylint: disable=too-many-instance-attributes
     cancel_at_period_end: bool
     canceled_at: datetime | None
     external_price_id: str | None
+    cancel_at: datetime | None = None
+    trial_end: datetime | None = None
 
 
 @dataclass

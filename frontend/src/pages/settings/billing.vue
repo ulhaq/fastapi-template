@@ -13,6 +13,60 @@ meta:
       <Skeleton class="h-48 w-full rounded-lg" />
     </div>
 
+    <!-- Trial setup card (incomplete subscription) -->
+    <template v-else-if="subscription?.status === 'incomplete'">
+      <div class="rounded-lg border p-6 space-y-4">
+        <div>
+          <h3 class="font-semibold text-lg">{{ $t('billing.startTrialTitle') }}</h3>
+          <p class="text-muted-foreground text-sm mt-0.5">
+            {{ $t('billing.startTrialPlan', { plan: planName(subscription.plan_price) }) }}
+          </p>
+        </div>
+
+        <div>
+          <div class="text-2xl font-bold">
+            {{ $t('billing.startTrialDays', { days: subscription.plan_price?.trial_period_days ?? 14 }) }}
+          </div>
+          <p v-if="subscription.plan_price" class="text-sm text-muted-foreground mt-0.5">
+            {{ $t('billing.startTrialThen', { price: formatPrice(subscription.plan_price), interval: subscription.plan_price.interval }) }}
+          </p>
+        </div>
+
+        <p class="text-sm text-muted-foreground">{{ $t('billing.noCardRequired') }}</p>
+
+        <PermissionGuard v-if="subscription.plan_price_id" permission="manage:subscription">
+          <Button @click="handleCheckout(subscription.plan_price_id!)" :disabled="isCheckingOut">
+            <Loader2 v-if="isCheckingOut" class="w-4 h-4 mr-2 animate-spin" />
+            {{ $t('billing.startTrialButton') }}
+          </Button>
+        </PermissionGuard>
+      </div>
+    </template>
+
+    <!-- Paused card (trial ended, no payment method) -->
+    <template v-else-if="subscription?.status === 'paused'">
+      <div class="rounded-lg border p-6 space-y-4">
+        <div>
+          <h3 class="font-semibold text-lg">{{ $t('billing.trialEndedTitle') }}</h3>
+          <p class="text-muted-foreground text-sm mt-0.5">
+            {{ $t('billing.trialEndedDescription', { plan: planName(subscription.plan_price) }) }}
+          </p>
+        </div>
+
+        <div v-if="subscription.plan_price" class="text-2xl font-bold">
+          {{ formatPrice(subscription.plan_price) }}
+          <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
+        </div>
+
+        <PermissionGuard permission="manage:subscription">
+          <Button @click="handlePortal" :disabled="isPortalLoading">
+            <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
+            {{ $t('billing.addPaymentMethod') }}
+          </Button>
+        </PermissionGuard>
+      </div>
+    </template>
+
     <!-- Active subscription card -->
     <template v-else-if="subscription">
       <div class="rounded-lg border p-6 space-y-4">
@@ -26,6 +80,27 @@ meta:
           <Badge :class="statusBadgeClass(subscription.status)" class="shrink-0 border">
             {{ $t(`billing.status.${subscription.status}`) }}
           </Badge>
+        </div>
+
+        <!-- Trial-ending banner -->
+        <div v-if="subscription.status === 'trialing' && subscription.trial_end">
+          <!-- No payment method yet -->
+          <div v-if="!subscription.has_payment_method" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 flex items-start justify-between gap-4">
+            <p class="text-sm text-amber-800">
+              {{ $t('billing.trialEndsOn', { date: formatDate(subscription.trial_end) }) }}
+            </p>
+            <PermissionGuard permission="manage:subscription">
+              <button class="text-sm font-medium text-amber-900 underline whitespace-nowrap" :disabled="isPortalLoading" @click="handlePortal">
+                {{ $t('billing.addPaymentMethod') }}
+              </button>
+            </PermissionGuard>
+          </div>
+          <!-- Payment method already on file -->
+          <div v-else class="rounded-md border border-green-200 bg-green-50 px-4 py-3">
+            <p class="text-sm text-green-800">
+              {{ $t('billing.trialEndsAllSet', { date: formatDate(subscription.trial_end) }) }}
+            </p>
+          </div>
         </div>
 
         <div v-if="subscription.plan_price" class="text-2xl font-bold">
@@ -53,7 +128,7 @@ meta:
               {{ $t('billing.cancelSubscription') }}
             </Button>
           </PermissionGuard>
-          <PermissionGuard v-if="subscription.status !== 'incomplete'" permission="manage:subscription">
+          <PermissionGuard permission="manage:subscription">
             <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
               <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
               <ExternalLink v-else class="w-4 h-4 mr-2" />
@@ -66,9 +141,6 @@ meta:
       <!-- Available plans for upgrading -->
       <div v-if="availablePlans.length > 0" class="space-y-3">
         <h3 class="font-semibold">{{ $t('billing.availablePlans') }}</h3>
-        <p v-if="subscription.status === 'incomplete'" class="text-sm text-muted-foreground">
-          {{ $t('billing.incompleteNotice') }}
-        </p>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
             v-for="plan in availablePlans"
@@ -93,7 +165,7 @@ meta:
                   <span class="text-xs text-muted-foreground"> / {{ price.interval }}</span>
                 </div>
                 <PermissionGuard permission="manage:subscription">
-                  <Button size="sm" @click="handleSwitchPlan(price.id, price.amount)" :disabled="switchId === price.id || price.id === subscription?.plan_price_id || subscription?.status === 'incomplete'">
+                  <Button size="sm" @click="handleSwitchPlan(price.id, price.amount)" :disabled="switchId === price.id || price.id === subscription?.plan_price_id">
                     <Loader2 v-if="switchId === price.id" class="w-4 h-4 mr-2 animate-spin" />
                     {{ price.id === subscription?.plan_price_id ? $t('billing.currentPlan') : price.amount > (subscription?.plan_price?.amount ?? 0) ? $t('billing.upgrade') : $t('billing.downgrade') }}
                   </Button>
@@ -161,6 +233,7 @@ meta:
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Loader2, ExternalLink } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -169,11 +242,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
 import { billingApi } from '@/api/billing'
+import { useAuthStore } from '@/stores/auth'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { SubscriptionOut, PlanOut, PlanPriceOut } from '@/types'
 
+const route = useRoute()
+const authStore = useAuthStore()
 const { t } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
@@ -195,6 +271,8 @@ async function loadSubscription() {
   try {
     const { data } = await billingApi.getCurrentSubscription()
     subscription.value = data
+    authStore.subscriptionStatus = data.status
+    authStore.subscriptionTrialEnd = data.trial_end
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status
     if (status !== 404) {
@@ -213,6 +291,20 @@ function onVisibilityChange() {
 
 onMounted(async () => {
   await loadSubscription()
+
+  // // Auto-trigger checkout for incomplete subscriptions (e.g. right after registration).
+  // // Use sessionStorage to prevent redirect loops if the user navigates back from Stripe.
+  // const autoCheckoutKey = 'billing_auto_checkout_done'
+  // if (
+  //   subscription.value?.status === 'incomplete'
+  //   && subscription.value.plan_price_id
+  //   && !sessionStorage.getItem(autoCheckoutKey)
+  //   && !route.query.canceled
+  // ) {
+  //   sessionStorage.setItem(autoCheckoutKey, '1')
+  //   handleCheckout(subscription.value.plan_price_id)
+  //   return
+  // }
 
   plansLoading.value = true
   try {
@@ -240,6 +332,12 @@ function formatPrice(price: PlanPriceOut): string {
   }
 }
 
+function planName(price: PlanPriceOut | null): string {
+  if (!price) return ''
+  const plan = availablePlans.value.find((p) => p.prices.some((pr) => pr.id === price.id))
+  return plan?.name ?? ''
+}
+
 function resolvedPlanName(price: PlanPriceOut): string {
   const plan = availablePlans.value.find((p) => p.prices.some((pr) => pr.id === price.id))
   return plan ? `${plan.name} - ${formatPrice(price)} / ${price.interval}` : formatPrice(price)
@@ -256,6 +354,7 @@ function statusBadgeClass(status: string): string {
     past_due: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     canceled: 'bg-gray-100 text-gray-600 border-gray-200',
     incomplete: 'bg-red-100 text-red-600 border-red-200',
+    paused: 'bg-orange-100 text-orange-800 border-orange-200',
   }
   return map[status] ?? ''
 }
@@ -325,6 +424,8 @@ async function handleSwitchPlan(priceId: number, priceAmount: number) {
       window.location.href = data.checkout_url
     } else {
       subscription.value = data
+      authStore.subscriptionStatus = data.status
+      authStore.subscriptionTrialEnd = data.trial_end
       toast({ title: t('billing.switchPlanSuccess') })
       switchId.value = undefined
     }
