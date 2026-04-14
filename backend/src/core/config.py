@@ -96,7 +96,11 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_billing_urls(self) -> Self:
         if self.app_env == "production":
-            for field_name in ("billing_success_url", "billing_cancel_url"):
+            for field_name in (
+                "billing_success_url",
+                "billing_cancel_url",
+                "billing_portal_return_url",
+            ):
                 url = getattr(self, field_name)
                 if "localhost" in url or "127.0.0.1" in url:
                     raise ValueError(

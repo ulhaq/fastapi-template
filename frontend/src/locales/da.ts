@@ -258,6 +258,8 @@ export default {
     startTrialThen: "derefter {price} / {interval}",
     startTrialButton: "Start gratis prøveperiode",
     noCardRequired: "Intet kreditkort påkrævet",
+    startSubscriptionTitle: "Fuldfør dit abonnement",
+    selected: "Valgt",
     trialEndsOn: "Din gratis prøveperiode slutter den {date}. Tilføj en betalingsmetode for at undgå afbrydelse.",
     trialEndsAllSet: "Din gratis prøveperiode slutter den {date}. Alt er klar - dit abonnement aktiveres automatisk.",
     addPaymentMethod: "Tilføj betalingsmetode",

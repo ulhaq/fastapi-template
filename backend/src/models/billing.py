@@ -65,7 +65,7 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "billing_subscription"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('incomplete', 'active', 'trialing', 'past_due', 'canceled', 'unpaid', 'paused')",  # pylint: disable=line-too-long
+            "status IN ('incomplete', 'incomplete_expired', 'active', 'trialing', 'past_due', 'canceled', 'unpaid', 'paused')",  # pylint: disable=line-too-long
             name="ck_billing_subscription_status",
         ),
         Index(

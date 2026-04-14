@@ -1,7 +1,9 @@
+# pylint: disable=too-many-lines
 import asyncio
 import logging
+import math
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends
 from sqlalchemy import text
@@ -94,7 +96,7 @@ class SubscriptionService(BaseService):
         existing = await self.repos.subscription.get_active_for_tenant_locked(
             self.current_user.tenant_id
         )
-        if existing and existing.status in ("active", "trialing"):
+        if existing and existing.status in ("active", "trialing", "past_due", "paused"):
             raise AlreadyExistsException(
                 "Tenant already has an active subscription.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
@@ -118,7 +120,7 @@ class SubscriptionService(BaseService):
         existing = await self.repos.subscription.get_active_for_tenant_locked(
             self.current_user.tenant_id
         )
-        if existing and existing.status in ("active", "trialing"):
+        if existing and existing.status in ("active", "trialing", "past_due", "paused"):
             raise AlreadyExistsException(
                 "Tenant already has an active subscription.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
@@ -139,10 +141,7 @@ class SubscriptionService(BaseService):
             "tenant_id": str(self.current_user.tenant_id),
             "plan_price_id": str(price.id),
         }
-        # Use the price-level trial period, falling back to the global default.
-        # This ensures new registrations get a trial even if the price row
-        # doesn't have trial_period_days set explicitly.
-        trial_days = price.trial_period_days or settings.billing_trial_period_days
+        trial_days = price.trial_period_days
 
         result = await self.provider.create_checkout_session(
             external_customer_id=external_customer_id,
@@ -273,7 +272,7 @@ class SubscriptionService(BaseService):
                     trial_end = trial_end.replace(tzinfo=UTC)
                 now = datetime.now(UTC)
                 if trial_end > now:
-                    remaining = (trial_end - now).days
+                    remaining = math.ceil((trial_end - now).total_seconds() / 86400)
                     if remaining > 0:
                         trial_days = remaining
 
@@ -460,6 +459,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not tenant:
             return
 
+        # If we fell back to the metadata lookup the tenant has no external_customer_id
+        # yet. Stamp it now so future webhook events can find the tenant by customer ID.
+        if not tenant.external_customer_id:
+            await self.repos.tenant.update(tenant, external_customer_id=customer_id)
+
         sub = await self.repos.subscription.get_active_for_tenant_locked(tenant.id)
         if not sub:
             return
@@ -471,8 +475,6 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         updates: dict = {
             "external_subscription_id": subscription_id,
         }
-        if sub.status == "incomplete":
-            updates["status"] = "active"
         if plan_price_id_str:
             try:
                 updates["plan_price_id"] = int(plan_price_id_str)
@@ -751,6 +753,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                     sub.external_subscription_id,
                     exc,
                 )
+                raise
 
         return free_price
 
@@ -949,6 +952,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             interval=recurring.get("interval", "month"),
             interval_count=recurring.get("interval_count", 1),
             external_price_id=external_price_id,
+            trial_period_days=settings.billing_trial_period_days,
         )
 
     async def _handle_price_updated(self, raw: dict) -> None:
@@ -989,3 +993,27 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 sub, status="canceled", canceled_at=datetime.now(UTC)
             )
         return len(stale)
+
+
+async def run_stale_checkout_cleanup_loop(
+    session_factory: Any, billing_provider: Any
+) -> None:
+    """
+    Background loop that calls cleanup_stale_checkouts once every 24 hours.
+    Intended to be launched as an asyncio task from the application lifespan.
+    """
+    while True:
+        await asyncio.sleep(24 * 60 * 60)
+        try:
+            async with session_factory() as session:
+                async with session.begin():
+                    service = WebhookService.__new__(WebhookService)
+                    service.repos = RepositoryManager(session)
+                    service.provider = billing_provider
+                    count = await service.cleanup_stale_checkouts()
+                    log.info(
+                        "Stale checkout cleanup: %d subscription(s) canceled",
+                        count,
+                    )
+        except Exception as exc:  # pylint: disable=broad-except
+            log.error("Stale checkout cleanup loop error: %s", exc, exc_info=True)

@@ -25,6 +25,7 @@ _EVENT_TYPE_MAP: dict[str, str] = {
     "customer.subscription.deleted": "customer.subscription.deleted",
     "customer.subscription.trial_will_end": "customer.subscription.trial_will_end",
     "customer.subscription.paused": "customer.subscription.paused",
+    "customer.subscription.resumed": "customer.subscription.resumed",
     "invoice.payment_failed": "invoice.payment_failed",
     "invoice.payment_succeeded": "invoice.payment_succeeded",
     "invoice.payment_action_required": "invoice.payment_action_required",
@@ -320,7 +321,6 @@ class StripeProvider(BillingProviderABC):
         try:
             pms = await stripe.PaymentMethod.list_async(
                 customer=external_customer_id,
-                type="card",
                 limit=1,
                 api_key=self._api_key,
             )

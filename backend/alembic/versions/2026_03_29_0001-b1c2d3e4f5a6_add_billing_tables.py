@@ -34,7 +34,7 @@ permission_table = sa.table(
     sa.Column("updated_at", sa.DateTime),
 )
 
-_SUBSCRIPTION_STATUSES = ("incomplete", "active", "trialing", "past_due", "canceled", "unpaid", "paused")
+_SUBSCRIPTION_STATUSES = ("incomplete", "incomplete_expired", "active", "trialing", "past_due", "canceled", "unpaid", "paused")
 
 
 def upgrade() -> None:

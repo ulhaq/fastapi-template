@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import logging.config
+from contextlib import asynccontextmanager, suppress
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
@@ -15,7 +17,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import IntegrityError
 
+from src.billing.dependencies import get_billing_provider
 from src.core.config import settings
+from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.exceptions import ClientException
 from src.core.limiter import limiter
 from src.core.logging import LOGGING_CONFIG
@@ -23,6 +27,7 @@ from src.core.middlewares import ErrorHandlingMiddleware
 from src.enums import ErrorCode
 from src.routers import auth, billing, permission, role, tenant, user
 from src.schemas.common import ErrorResponse, ValidationDetail, ValidationErrorResponse
+from src.services.billing import run_stale_checkout_cleanup_loop
 
 logging.config.dictConfig(LOGGING_CONFIG)
 
@@ -38,7 +43,19 @@ if not settings.app_debug and not settings.auth_enabled:
     )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # pylint: disable=redefined-outer-name,unused-argument
+    cleanup_task = asyncio.create_task(
+        run_stale_checkout_cleanup_loop(ASYNC_SESSION_LOCAL, get_billing_provider())
+    )
+    yield
+    cleanup_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await cleanup_task
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.app_name,
     debug=settings.app_debug,
     middleware=[
