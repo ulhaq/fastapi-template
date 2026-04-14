@@ -141,7 +141,10 @@ class SubscriptionService(BaseService):
             "tenant_id": str(self.current_user.tenant_id),
             "plan_price_id": str(price.id),
         }
-        trial_days = price.trial_period_days
+        trial_days: int | None = None
+        if not tenant.trial_used and settings.billing_trial_period_days:
+            trial_days = settings.billing_trial_period_days
+            await self.repos.tenant.update(tenant, trial_used=True)
 
         result = await self.provider.create_checkout_session(
             external_customer_id=external_customer_id,
@@ -803,21 +806,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 for p in role.permissions
             ):
                 continue
-            if tenant.has_payment_method:
-                subject = (
-                    f"Your {settings.app_name} trial ends on {trial_end_date}"
-                    " - your card will be charged"
-                )
-            else:
-                subject = (
-                    f"Your {settings.app_name} trial ends on {trial_end_date}"
-                    " - add a payment method to continue"
-                )
             await asyncio.to_thread(
                 send_email,
                 address=user.email,
                 user_name=user.name,
-                subject=subject,
+                subject=f"Your {settings.app_name} trial ends on {trial_end_date}",
                 email_template="trial-ending",
                 data={
                     "trial_end_date": trial_end_date,
@@ -862,7 +855,13 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 )
             return
 
-        # Trial ended without payment method - downgrade to free immediately
+        # Trial ended without payment method - resume first (Stripe requires an
+        # active subscription to modify it), then downgrade to free. If the
+        # downgrade fails the webhook is retried; resuming an already-active
+        # subscription on retry is a no-op so the ordering is safe.
+        if sub.external_subscription_id and obj.get("status") == "paused":
+            await self.provider.resume_subscription(sub.external_subscription_id)
+
         free_price = await self._downgrade_to_free(sub)
         if not free_price:
             return
@@ -893,6 +892,43 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
     async def _handle_subscription_resumed(self, raw: dict) -> None:
         await self._handle_subscription_updated(raw)
+
+        # Only email on genuine user-initiated resumes. When we resume internally
+        # as part of the trial-end downgrade, pause_collection was already null
+        # so it won't appear in previous_attributes. A manual resume always
+        # transitions pause_collection from a set value to null.
+        prev = raw["data"].get("previous_attributes", {})
+        if "pause_collection" not in prev:
+            return
+
+        obj = raw["data"]["object"]
+        sub_id: str = obj["id"]
+
+        sub = await self.repos.subscription.get_by_external_subscription_id_locked(
+            sub_id
+        )
+        if not sub:
+            return
+
+        tenant = await self.repos.tenant.get(sub.tenant_id)
+        if not tenant:
+            return
+
+        for user in tenant.users:
+            if not any(
+                p.name == Permission.MANAGE_SUBSCRIPTION
+                for role in user.roles
+                for p in role.permissions
+            ):
+                continue
+            await asyncio.to_thread(
+                send_email,
+                address=user.email,
+                user_name=user.name,
+                subject=f"Your {settings.app_name} subscription has been resumed",
+                email_template="subscription-resumed",
+                data={"billing_url": f"{settings.frontend_url}/settings/billing"},
+            )
 
     async def _handle_product_created(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -952,7 +988,6 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             interval=recurring.get("interval", "month"),
             interval_count=recurring.get("interval_count", 1),
             external_price_id=external_price_id,
-            trial_period_days=settings.billing_trial_period_days,
         )
 
     async def _handle_price_updated(self, raw: dict) -> None:

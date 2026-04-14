@@ -3,6 +3,7 @@ from typing import Sequence
 
 from sqlalchemy import exists, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
 from src.repositories.base import SQLResourceRepository, TenantScopedRepository
@@ -11,7 +12,7 @@ from src.repositories.base import SQLResourceRepository, TenantScopedRepository
 
 
 class PlanRepository(SQLResourceRepository[Plan]):
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession) -> None:
         super().__init__(Plan, db)
 
     async def get_by_external_product_id(self, external_id: str) -> Plan | None:
@@ -28,7 +29,7 @@ class PlanRepository(SQLResourceRepository[Plan]):
 
 
 class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession) -> None:
         super().__init__(PlanPrice, db)
 
     async def get_by_plan(self, plan_id: int) -> Sequence[PlanPrice]:
@@ -99,7 +100,7 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
 
 
 class SubscriptionRepository(TenantScopedRepository[Subscription]):
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession) -> None:
         super().__init__(Subscription, db)
 
     async def get_active_for_tenant(self, tenant_id: int) -> Subscription | None:
@@ -188,7 +189,7 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
 
 
 class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession) -> None:
         super().__init__(WebhookEvent, db)
 
     async def get_by_external_event_id(

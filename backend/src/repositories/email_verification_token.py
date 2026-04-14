@@ -9,7 +9,9 @@ class EmailVerificationTokenRepository:
         self.db = db
 
     async def get_by_email(self, email: str) -> EmailVerificationToken | None:
-        stmt = select(EmailVerificationToken).where(EmailVerificationToken.email == email)
+        stmt = select(EmailVerificationToken).where(
+            EmailVerificationToken.email == email
+        )
         rs = await self.db.execute(stmt)
         return rs.scalar_one_or_none()
 
@@ -21,6 +23,8 @@ class EmailVerificationTokenRepository:
         return record
 
     async def delete_by_email(self, email: str) -> None:
-        stmt = delete(EmailVerificationToken).where(EmailVerificationToken.email == email)
+        stmt = delete(EmailVerificationToken).where(
+            EmailVerificationToken.email == email
+        )
         await self.db.execute(stmt)
         await self.db.flush()

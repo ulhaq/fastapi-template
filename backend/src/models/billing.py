@@ -55,7 +55,6 @@ class PlanPrice(Base, DeleteTimestampMixin, TimestampMixin):
     external_price_id: Mapped[str | None] = mapped_column(
         String, nullable=True, index=True, unique=True
     )
-    trial_period_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     plan: Mapped["Plan"] = relationship(back_populates="prices")

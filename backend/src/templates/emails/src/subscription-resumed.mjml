@@ -1,7 +1,7 @@
 <mjml>
   <mj-head>
-    <mj-title>Your trial is ending soon – {{ app_name }}</mj-title>
-    <mj-preview>Your free trial ends on {{ trial_end_date }}.</mj-preview>
+    <mj-title>Your subscription has been resumed – {{ app_name }}</mj-title>
+    <mj-preview>Your {{ app_name }} subscription is active again. Welcome back!</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>
   <mj-body background-color="#f7f7f7">
@@ -15,15 +15,11 @@
     <!-- Main Content -->
     <mj-section background-color="#ffffff" border-radius="6px" padding="32px">
       <mj-column>
-        <mj-text font-size="18px" font-weight="bold" color="#333333" padding-bottom="8px"> Your trial ends on {{ trial_end_date }} </mj-text>
+        <mj-text font-size="18px" font-weight="bold" color="#333333" padding-bottom="8px"> Your subscription has been resumed </mj-text>
 
         <mj-text font-size="16px" color="#555555"> Hi {{ user_name }}, </mj-text>
 
-        {% if has_payment_method %}
-        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Your card will be charged automatically to continue your subscription. </mj-text>
-        {% else %}
-        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Add a payment method before your trial expires to keep full access. </mj-text>
-        {% endif %}
+        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your {{ app_name }} subscription is active again and you have full access to all features. </mj-text>
 
         <mj-button background-color="#0052cc" color="#ffffff" border-radius="4px" font-size="16px" href="{{ billing_url }}" padding="12px 0"> Manage Billing </mj-button>
 

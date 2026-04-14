@@ -46,6 +46,10 @@ def upgrade() -> None:
             "has_payment_method", sa.Boolean, nullable=False, server_default="0"
         ),
     )
+    op.add_column(
+        "tenant",
+        sa.Column("trial_used", sa.Boolean, nullable=False, server_default="0"),
+    )
     op.create_index(
         "ix_tenant_external_customer_id",
         "tenant",
@@ -88,7 +92,6 @@ def upgrade() -> None:
         sa.Column("interval", sa.String, nullable=False),
         sa.Column("interval_count", sa.Integer, nullable=False, default=1),
         sa.Column("external_price_id", sa.String, nullable=True),
-        sa.Column("trial_period_days", sa.Integer, nullable=True),
         sa.Column("is_active", sa.Boolean, nullable=False, default=True),
         sa.Column("deleted_at", sa.DateTime, nullable=True),
         sa.Column("created_at", sa.DateTime, nullable=False),
@@ -212,5 +215,6 @@ def downgrade() -> None:
     op.drop_table("billing_plan")
 
     op.drop_index("ix_tenant_external_customer_id", table_name="tenant")
+    op.drop_column("tenant", "trial_used")
     op.drop_column("tenant", "has_payment_method")
     op.drop_column("tenant", "external_customer_id")

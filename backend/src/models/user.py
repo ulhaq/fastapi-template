@@ -11,7 +11,6 @@ if TYPE_CHECKING:
     from src.models.refresh_token import RefreshToken
     from src.models.role import Role
     from src.models.tenant import Tenant
-    from src.models.user_tenant import UserTenant
 
 
 # pylint: disable=too-few-public-methods

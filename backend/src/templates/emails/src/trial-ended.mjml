@@ -1,7 +1,7 @@
 <mjml>
   <mj-head>
     <mj-title>Your trial has ended – {{ app_name }}</mj-title>
-    <mj-preview>Your {{ app_name }} trial has ended. Add a payment method to resume access.</mj-preview>
+    <mj-preview>Your {{ app_name }} trial has ended. Upgrade to restore full access.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>
   <mj-body background-color="#f7f7f7">
@@ -19,9 +19,9 @@
 
         <mj-text font-size="16px" color="#555555"> Hi {{ user_name }}, </mj-text>
 
-        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your free trial of {{ app_name }} has ended. Your subscription has been paused. Add a payment method to resume full access - your data is safe and waiting for you. </mj-text>
+        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your free trial of {{ app_name }} has ended. Your account has been moved to the free plan. Upgrade at any time to restore full access - your data is safe and waiting for you. </mj-text>
 
-        <mj-button background-color="#0052cc" color="#ffffff" border-radius="4px" font-size="16px" href="{{ billing_url }}" padding="12px 0"> Add Payment Method </mj-button>
+        <mj-button background-color="#0052cc" color="#ffffff" border-radius="4px" font-size="16px" href="{{ billing_url }}" padding="12px 0"> Upgrade Now </mj-button>
 
         <mj-text font-size="16px" color="#555555" padding-top="16px"> If you have any questions, don't hesitate to reach out. </mj-text>
 

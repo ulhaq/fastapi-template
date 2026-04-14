@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
+
+from src.core.config import settings
 
 
 class CheckoutIn(BaseModel):
@@ -21,8 +23,13 @@ class PlanPriceOut(BaseModel):
     interval: str
     interval_count: int
     external_price_id: str | None
-    trial_period_days: int | None
     is_active: bool
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def trial_period_days(self) -> int | None:
+        return settings.billing_trial_period_days or None
+
     created_at: datetime
     updated_at: datetime
 

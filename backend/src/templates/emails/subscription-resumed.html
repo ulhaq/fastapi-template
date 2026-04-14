@@ -2,7 +2,7 @@
 <html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 
 <head>
-  <title>Your trial is ending soon – {{ app_name }}</title>
+  <title>Your subscription has been resumed – {{ app_name }}</title>
   <!--[if !mso]><!-->
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <!--<![endif]-->
@@ -83,8 +83,8 @@
 </head>
 
 <body style="word-spacing:normal;background-color:#f7f7f7;">
-  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">Your free trial ends on {{ trial_end_date }}.</div>
-  <div aria-label="Your trial is ending soon – {{ app_name }}" aria-roledescription="email" style="background-color:#f7f7f7;" role="article" lang="und" dir="auto">
+  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">Your {{ app_name }} subscription is active again. Welcome back!</div>
+  <div aria-label="Your subscription has been resumed – {{ app_name }}" aria-roledescription="email" style="background-color:#f7f7f7;" role="article" lang="und" dir="auto">
     <!-- Header -->
     <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#0052cc" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="background:#0052cc;background-color:#0052cc;margin:0px auto;max-width:600px;">
@@ -124,7 +124,7 @@
                   <tbody>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;padding-bottom:8px;word-break:break-word;">
-                        <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:18px;font-weight:bold;line-height:1;text-align:left;color:#333333;">Your trial ends on {{ trial_end_date }}</div>
+                        <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:18px;font-weight:bold;line-height:1;text-align:left;color:#333333;">Your subscription has been resumed</div>
                       </td>
                     </tr>
                     <tr>
@@ -134,11 +134,7 @@
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;padding-bottom:16px;word-break:break-word;">
-                        {% if has_payment_method %}
-                        <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:16px;line-height:1;text-align:left;color:#555555;">Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Your card will be charged automatically to continue your subscription.</div>
-                        {% else %}
-                        <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:16px;line-height:1;text-align:left;color:#555555;">Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Add a payment method before your trial expires to keep full access.</div>
-                        {% endif %}
+                        <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:16px;line-height:1;text-align:left;color:#555555;">Your {{ app_name }} subscription is active again and you have full access to all features.</div>
                       </td>
                     </tr>
                     <tr>

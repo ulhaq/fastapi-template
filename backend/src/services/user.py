@@ -6,7 +6,11 @@ from fastapi import Depends
 from src.billing.dependencies import BillingProviderDep
 from src.core.config import settings
 from src.core.dependencies import authenticate
-from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
+from src.core.exceptions import (
+    AlreadyExistsException,
+    NotFoundException,
+    PermissionDeniedException,
+)
 from src.core.security import Auth, authenticate_user, hash_secret, sign
 from src.enums import OWNER_ROLE_NAME, ErrorCode, Permission
 from src.models.role import Role
@@ -26,9 +30,7 @@ from src.services.utils import send_email
 
 
 class UserService(
-    ResourceService[
-        UserRepository, User, UserPatch | ChangePasswordIn, UserOut
-    ]
+    ResourceService[UserRepository, User, UserPatch | ChangePasswordIn, UserOut]
 ):
     current_user: Auth
 
@@ -164,7 +166,9 @@ class UserService(
             await super().get(identifier, include_deleted=include_deleted)
         )
 
-    async def invite_user(self, invite_in: InviteUserIn, schedule_task: Callable) -> None:
+    async def invite_user(
+        self, invite_in: InviteUserIn, schedule_task: Callable
+    ) -> None:
         existing = await self.repo.get_by_email(invite_in.email)
         if existing:
             membership = await self.repos.user_tenant.get_by_user_and_tenant(
@@ -191,6 +195,8 @@ class UserService(
         )
 
         tenant = await self.repos.tenant.get(self.current_user.tenant_id)
+        if not tenant:
+            raise NotFoundException("Tenant not found.")
 
         schedule_task(
             send_email,
@@ -199,7 +205,9 @@ class UserService(
             subject=f"You've been invited to {tenant.name}",
             email_template="invite-user",
             data={
-                "invite_url": f"{settings.frontend_url}/{settings.frontend_invite_path}{token}",
+                "invite_url": (
+                    f"{settings.frontend_url}/{settings.frontend_invite_path}{token}"
+                ),
                 "tenant_name": tenant.name,
                 "expiration_days": settings.invite_expiry // (60 * 60 * 24),
             },

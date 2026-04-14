@@ -25,6 +25,7 @@ class Tenant(Base, DeleteTimestampMixin, TimestampMixin):
     has_payment_method: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
+    trial_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     users: Mapped[list["User"]] = relationship(
         "User",

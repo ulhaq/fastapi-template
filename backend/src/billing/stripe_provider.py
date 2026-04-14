@@ -1,6 +1,5 @@
 import hashlib
 from datetime import UTC, datetime
-from typing import Literal
 
 import stripe
 
@@ -250,11 +249,22 @@ class StripeProvider(BillingProviderABC):
         self, external_subscription_id: str
     ) -> ExternalSubscription:
         try:
-            sub = await stripe.Subscription.modify_async(
+            current = await stripe.Subscription.retrieve_async(
                 external_subscription_id,
-                cancel_at_period_end=False,
                 api_key=self._api_key,
             )
+            if current.status == "paused":
+                sub = await stripe.Subscription.resume_async(
+                    external_subscription_id,
+                    billing_cycle_anchor="unchanged",
+                    api_key=self._api_key,
+                )
+            else:
+                sub = await stripe.Subscription.modify_async(
+                    external_subscription_id,
+                    cancel_at_period_end=False,
+                    api_key=self._api_key,
+                )
             return self._map_subscription(sub)
         except stripe.StripeError as exc:
             raise BillingProviderException(str(exc)) from exc
@@ -274,12 +284,9 @@ class StripeProvider(BillingProviderABC):
             if not sub.items.data:
                 raise BillingProviderException("Subscription has no items to update.")
             item_id: str = sub.items.data[0].id
-            proration_behavior: Literal[
-                "always_invoice", "create_prorations", "none"
-            ] = "none" if skip_proration else "create_prorations"
             modify_params: dict = {
                 "items": [{"id": item_id, "price": new_external_price_id}],
-                "proration_behavior": proration_behavior,
+                "proration_behavior": "none" if skip_proration else "create_prorations",
             }
             if settings.billing_automatic_tax:
                 modify_params["automatic_tax"] = {"enabled": new_amount > 0}
