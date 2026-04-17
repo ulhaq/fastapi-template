@@ -1,7 +1,6 @@
 # pylint: disable=too-many-lines
 import asyncio
 import logging
-import math
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
@@ -27,6 +26,7 @@ from src.schemas.billing import (
     CheckoutOut,
     CustomerPortalOut,
     PlanOut,
+    StartTrialIn,
     SubscriptionOut,
     SwitchPlanIn,
 )
@@ -96,7 +96,17 @@ class SubscriptionService(BaseService):
         existing = await self.repos.subscription.get_active_for_tenant_locked(
             self.current_user.tenant_id
         )
-        if existing and existing.status in ("active", "trialing", "past_due", "paused"):
+        is_active_free = (
+            existing is not None
+            and existing.status == "active"
+            and existing.plan_price is not None
+            and existing.plan_price.amount == 0
+        )
+        if (
+            existing
+            and existing.status in ("active", "trialing", "past_due", "paused")
+            and not is_active_free
+        ):
             raise AlreadyExistsException(
                 "Tenant already has an active subscription.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
@@ -120,7 +130,17 @@ class SubscriptionService(BaseService):
         existing = await self.repos.subscription.get_active_for_tenant_locked(
             self.current_user.tenant_id
         )
-        if existing and existing.status in ("active", "trialing", "past_due", "paused"):
+        is_active_free = (
+            existing is not None
+            and existing.status == "active"
+            and existing.plan_price is not None
+            and existing.plan_price.amount == 0
+        )
+        if (
+            existing
+            and existing.status in ("active", "trialing", "past_due", "paused")
+            and not is_active_free
+        ):
             raise AlreadyExistsException(
                 "Tenant already has an active subscription.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
@@ -141,10 +161,6 @@ class SubscriptionService(BaseService):
             "tenant_id": str(self.current_user.tenant_id),
             "plan_price_id": str(price.id),
         }
-        trial_days: int | None = None
-        if not tenant.trial_used and settings.billing_trial_period_days:
-            trial_days = settings.billing_trial_period_days
-            await self.repos.tenant.update(tenant, trial_used=True)
 
         result = await self.provider.create_checkout_session(
             external_customer_id=external_customer_id,
@@ -153,29 +169,103 @@ class SubscriptionService(BaseService):
             success_url=settings.billing_success_url,
             cancel_url=settings.billing_cancel_url,
             metadata=metadata,
-            trial_period_days=trial_days,
+            trial_period_days=None,
         )
 
-        # Upsert subscription row
-        if existing:
-            await self.repos.subscription.update(
-                existing,
-                plan_price_id=price.id,
-                status="incomplete",
-            )
-        else:
-            try:
-                await self.repos.subscription.create(
-                    tenant_id=self.current_user.tenant_id,
-                    plan_price_id=price.id,
-                    status="incomplete",
-                )
-            except IntegrityError as exc:
-                raise AlreadyExistsException(
-                    "Tenant already has an active subscription.",
-                    error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
-                ) from exc
+        # Do not touch the local subscription row here. The row is created or
+        # updated by _handle_subscription_created once Stripe confirms the
+        # subscription exists. This keeps start_checkout() a pure session
+        # factory: it creates a Stripe checkout session and nothing else.
+        # _handle_checkout_session_expired handles cleanup if checkout is
+        # abandoned; since no row is changed here, that handler is a no-op for
+        # free-plan users (status stays "active", not "incomplete").
 
+        return CheckoutOut(
+            checkout_url=result.checkout_url,
+            external_session_id=result.external_session_id,
+        )
+
+    async def start_trial(self, schema_in: StartTrialIn) -> CheckoutOut:
+        price = await self.repos.plan_price.get(schema_in.plan_price_id)
+        if not price or not price.is_active:
+            raise NotFoundException(
+                f"Plan price not found or inactive. [id={schema_in.plan_price_id}]"
+            )
+        if price.amount == 0:
+            raise ValidationException("Cannot start a trial on the free plan.")
+        if not price.external_price_id:
+            raise NotFoundException("Plan price is not synced with billing provider.")
+
+        if not settings.billing_trial_period_days:
+            raise ValidationException("Trials are not configured.")
+
+        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
+        if not tenant:
+            raise NotFoundException("Tenant not found.")
+
+        if tenant.trial_used:
+            raise ValidationException(
+                "Trial has already been used.",
+                error_code=ErrorCode.TRIAL_ALREADY_USED,
+            )
+
+        # Acquire lock to prevent concurrent trial starts from creating duplicate customers.
+        await self.repos.subscription.db.execute(
+            text("SELECT pg_advisory_xact_lock(:tid)"),
+            {"tid": self.current_user.tenant_id ^ _CHECKOUT_LOCK_NS},
+        )
+
+        # Re-check after acquiring the lock.
+        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
+        if not tenant or tenant.trial_used:
+            raise ValidationException(
+                "Trial has already been used.",
+                error_code=ErrorCode.TRIAL_ALREADY_USED,
+            )
+
+        existing = await self.repos.subscription.get_active_for_tenant_locked(
+            self.current_user.tenant_id
+        )
+        if existing and existing.status in ("trialing", "past_due", "paused"):
+            raise AlreadyExistsException(
+                "Cannot start a trial while an active subscription exists.",
+                error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
+            )
+        if (
+            existing
+            and existing.status == "active"
+            and existing.plan_price is not None
+            and existing.plan_price.amount > 0
+        ):
+            raise AlreadyExistsException(
+                "Cannot start a trial while an active paid subscription exists.",
+                error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
+            )
+
+        external_customer_id = tenant.external_customer_id
+        if not external_customer_id:
+            external_customer_id = await self.provider.get_or_create_customer(
+                tenant_id=self.current_user.tenant_id,
+                tenant_name=tenant.name,
+                email=self.current_user.email,
+            )
+            await self.repos.tenant.update(
+                tenant, external_customer_id=external_customer_id
+            )
+
+        metadata = {
+            "tenant_id": str(self.current_user.tenant_id),
+            "plan_price_id": str(price.id),
+        }
+        result = await self.provider.create_checkout_session(
+            external_customer_id=external_customer_id,
+            external_price_id=price.external_price_id,
+            amount=price.amount,
+            success_url=settings.billing_success_url,
+            cancel_url=settings.billing_cancel_url,
+            metadata=metadata,
+            trial_period_days=settings.billing_trial_period_days,
+        )
         return CheckoutOut(
             checkout_url=result.checkout_url,
             external_session_id=result.external_session_id,
@@ -194,10 +284,13 @@ class SubscriptionService(BaseService):
         tenant = await self.repos.tenant.get(self.current_user.tenant_id)
         if tenant:
             result.has_payment_method = tenant.has_payment_method
+            result.trial_used = tenant.trial_used
         return result
 
     async def cancel_subscription(self) -> SubscriptionOut:
         sub = await self._get_active_subscription()
+        if sub.plan_price and sub.plan_price.amount == 0:
+            raise ValidationException("You are already on the free plan.")
         if not sub.external_subscription_id:
             # Checkout was never completed - cancel locally, nothing to do in Stripe
             sub = await self.repos.subscription.update(
@@ -238,7 +331,9 @@ class SubscriptionService(BaseService):
         self, schema_in: SwitchPlanIn
     ) -> SubscriptionOut | CheckoutOut:
         sub = await self._get_active_subscription()
-        if not sub.external_subscription_id:
+        # Allow active free-plan subscriptions (external_subscription_id is None
+        # by design). Only block incomplete checkouts that were never completed.
+        if not sub.external_subscription_id and sub.status != "active":
             raise ValidationException(
                 "Your previous checkout is still pending. "
                 "Please cancel it before switching plans."
@@ -248,6 +343,11 @@ class SubscriptionService(BaseService):
         if not price or not price.is_active:
             raise NotFoundException(
                 f"Plan price not found or inactive. [id={schema_in.plan_price_id}]"
+            )
+        if price.amount == 0:
+            raise ValidationException(
+                "Cannot switch to the free plan. "
+                "Cancel your subscription to return to the free tier."
             )
         if not price.external_price_id:
             raise NotFoundException("Plan price is not synced with billing provider.")
@@ -261,23 +361,19 @@ class SubscriptionService(BaseService):
         # Route through the checkout flow so the user can enter their credit card.
         if old_amount == 0 and price.amount > 0:
             tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-            if not tenant or not tenant.external_customer_id:
-                raise ValidationException("No billing customer found for this tenant.")
+            if not tenant:
+                raise NotFoundException("Tenant not found.")
 
-            # Carry over any remaining trial days from the original trial.
-            # The trial is granted at registration, not per-plan, so switching to
-            # the free tier and back should not forfeit unused trial time.
-            trial_days: int | None = None
-            if sub.trial_end:
-                # Normalize to UTC-aware in case the DB driver returns a naive datetime
-                trial_end = sub.trial_end
-                if trial_end.tzinfo is None:
-                    trial_end = trial_end.replace(tzinfo=UTC)
-                now = datetime.now(UTC)
-                if trial_end > now:
-                    remaining = math.ceil((trial_end - now).total_seconds() / 86400)
-                    if remaining > 0:
-                        trial_days = remaining
+            external_customer_id = tenant.external_customer_id
+            if not external_customer_id:
+                external_customer_id = await self.provider.get_or_create_customer(
+                    tenant_id=self.current_user.tenant_id,
+                    tenant_name=tenant.name,
+                    email=self.current_user.email,
+                )
+                await self.repos.tenant.update(
+                    tenant, external_customer_id=external_customer_id
+                )
 
             metadata = {
                 "tenant_id": str(self.current_user.tenant_id),
@@ -285,13 +381,13 @@ class SubscriptionService(BaseService):
                 "old_subscription_id": sub.external_subscription_id or "",
             }
             result = await self.provider.create_checkout_session(
-                external_customer_id=tenant.external_customer_id,
+                external_customer_id=external_customer_id,
                 external_price_id=price.external_price_id,
                 amount=price.amount,
                 success_url=settings.billing_success_url,
                 cancel_url=settings.billing_cancel_url,
                 metadata=metadata,
-                trial_period_days=trial_days,
+                trial_period_days=None,
             )
             return CheckoutOut(
                 checkout_url=result.checkout_url,
@@ -299,6 +395,7 @@ class SubscriptionService(BaseService):
             )
 
         skip_proration = price.amount == 0
+        assert sub.external_subscription_id is not None  # guarded above
         ext_sub = await self.provider.switch_subscription_price(
             sub.external_subscription_id,
             price.external_price_id,
@@ -472,9 +569,6 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             return
 
         plan_price_id_str = metadata.get("plan_price_id")
-        old_external_subscription_id = (
-            metadata.get("old_subscription_id") or sub.external_subscription_id
-        )
         updates: dict = {
             "external_subscription_id": subscription_id,
         }
@@ -490,21 +584,6 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 )
 
         await self.repos.subscription.update(sub, **updates)
-
-        # If this checkout replaced a free plan subscription, cancel the old Stripe
-        # subscription immediately so it doesn't linger as an orphaned 0 subscription.
-        if (
-            old_external_subscription_id
-            and old_external_subscription_id != subscription_id
-        ):
-            try:
-                await self.provider.delete_subscription(old_external_subscription_id)
-            except BillingProviderException as exc:
-                log.warning(
-                    "Failed to cancel old subscription after checkout [old_sub=%s]: %s",
-                    old_external_subscription_id,
-                    exc,
-                )
 
     async def _handle_subscription_updated(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -556,14 +635,32 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub:
             return
 
-        canceled_at_ts = obj.get("canceled_at")
-        updates: dict = {"status": "canceled"}
-        if canceled_at_ts:
-            updates["canceled_at"] = datetime.fromtimestamp(canceled_at_ts, tz=UTC)
-        elif not sub.canceled_at:
-            # Stripe omitted the timestamp - fall back to now rather than nulling it
-            updates["canceled_at"] = datetime.now(UTC)
-        await self.repos.subscription.update(sub, **updates)
+        # Restore to free plan in-place. Updating the existing row (rather than
+        # cancel + new row) avoids a unique-constraint conflict - only one
+        # non-canceled subscription per tenant is allowed. If no free plan is
+        # configured, fall back to marking the row as canceled.
+        free_price = await self.repos.plan_price.get_free_price()
+        if free_price:
+            await self.repos.subscription.update(
+                sub,
+                plan_price_id=free_price.id,
+                status="active",
+                external_subscription_id=None,
+                current_period_start=None,
+                current_period_end=None,
+                canceled_at=None,
+                cancel_at=None,
+                cancel_at_period_end=False,
+            )
+        else:
+            canceled_at_ts = obj.get("canceled_at")
+            updates: dict = {"status": "canceled"}
+            if canceled_at_ts:
+                updates["canceled_at"] = datetime.fromtimestamp(canceled_at_ts, tz=UTC)
+            elif not sub.canceled_at:
+                # Stripe omitted the timestamp - fall back to now rather than nulling it
+                updates["canceled_at"] = datetime.now(UTC)
+            await self.repos.subscription.update(sub, **updates)
 
     async def _handle_payment_method_attached(self, raw: dict) -> None:
         customer_id: str | None = raw["data"]["object"].get("customer")
@@ -625,12 +722,13 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         obj = raw["data"]["object"]
         sub_id: str = obj["id"]
 
+        tenant = None
         sub = await self.repos.subscription.get_by_external_subscription_id_locked(
             sub_id
         )
         if not sub:
-            # subscription.created fires before checkout.session.completed, so
-            # external_subscription_id is not yet set - fall back to customer lookup
+            # subscription.created fires before checkout.session.completed so
+            # external_subscription_id is not yet set - fall back to customer lookup.
             customer_id: str | None = obj.get("customer")
             if customer_id:
                 tenant = await self.repos.tenant.get_by_external_customer_id_locked(
@@ -640,6 +738,20 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                     sub = await self.repos.subscription.get_active_for_tenant_locked(
                         tenant.id
                     )
+                    if not sub:
+                        # Edge case: no active subscription exists (e.g. free plan
+                        # seed failed at registration). Create one now so the
+                        # Stripe subscription is tracked locally.
+                        try:
+                            sub = await self.repos.subscription.create(
+                                tenant_id=tenant.id,
+                                plan_price_id=None,
+                                status="incomplete",
+                            )
+                        except IntegrityError:
+                            sub = await self.repos.subscription.get_active_for_tenant_locked(
+                                tenant.id
+                            )
         if not sub:
             return
 
@@ -665,6 +777,14 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                     updates["plan_price_id"] = new_price.id
 
         await self.repos.subscription.update(sub, **updates)
+
+        if updates.get("status") == "trialing":
+            if tenant is None:
+                tenant = await self.repos.tenant.get_by_external_customer_id_locked(
+                    obj.get("customer", "")
+                )
+            if tenant and not tenant.trial_used:
+                await self.repos.tenant.update(tenant, trial_used=True)
 
     async def _handle_checkout_session_expired(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -694,9 +814,24 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub or sub.status != "incomplete":
             return
 
-        await self.repos.subscription.update(
-            sub, status="canceled", canceled_at=datetime.now(UTC)
-        )
+        # Restore to the free plan rather than canceling outright. The incomplete
+        # row was either a brand-new user or an existing free user who abandoned
+        # checkout; in both cases the right state is an active free subscription.
+        free_price = await self.repos.plan_price.get_free_price()
+        if free_price:
+            await self.repos.subscription.update(
+                sub,
+                status="active",
+                plan_price_id=free_price.id,
+                external_subscription_id=None,
+                canceled_at=None,
+                cancel_at=None,
+                cancel_at_period_end=False,
+            )
+        else:
+            await self.repos.subscription.update(
+                sub, status="canceled", canceled_at=datetime.now(UTC)
+            )
 
     async def _handle_invoice_payment_action_required(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -727,9 +862,18 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
     async def _downgrade_to_free(self, sub: Subscription) -> PlanPrice | None:
         """
-        Switches the Stripe subscription to the free price and returns it.
-        If no free price is configured, cancels the subscription and returns None.
-        The caller is responsible for updating the local subscription record.
+        Cancels the Stripe subscription then downgrades the local record to the
+        free plan. The Stripe call is made first so that, on failure, the
+        BillingProviderException propagates to the webhook handler and Stripe
+        retries - keeping external_subscription_id intact for the retry.
+        Local state is only mutated after a successful Stripe cancellation.
+
+        Clearing external_subscription_id after deletion prevents the
+        customer.subscription.deleted webhook (fired synchronously by Stripe)
+        from finding and re-canceling the row; the row lock held by this
+        transaction serializes that webhook behind our update.
+
+        If no free price is configured the subscription is canceled outright.
         """
         free_price = await self.repos.plan_price.get_free_price()
         if not free_price:
@@ -737,26 +881,35 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 "No free price configured; canceling subscription directly [sub_id=%s]",
                 sub.external_subscription_id,
             )
+            if sub.external_subscription_id:
+                # Allow BillingProviderException to propagate so Stripe retries.
+                await self.provider.delete_subscription(sub.external_subscription_id)
             await self.repos.subscription.update(
                 sub, status="canceled", canceled_at=datetime.now(UTC)
             )
             return None
 
-        if free_price.external_price_id and sub.external_subscription_id:
-            try:
-                await self.provider.switch_subscription_price(
-                    sub.external_subscription_id,
-                    free_price.external_price_id,
-                    skip_proration=True,
-                    new_amount=0,
-                )
-            except BillingProviderException as exc:
-                log.warning(
-                    "Failed to downgrade subscription to free plan [sub_id=%s]: %s",
-                    sub.external_subscription_id,
-                    exc,
-                )
-                raise
+        if sub.external_subscription_id:
+            # Stripe-first: if this raises, local state is unchanged and the
+            # webhook will be retried with external_subscription_id still set.
+            await self.provider.delete_subscription(sub.external_subscription_id)
+
+        # Stripe subscription is gone - update local record to free plan.
+        # Clearing external_subscription_id prevents the customer.subscription.deleted
+        # webhook from finding this row and marking it canceled.
+        await self.repos.subscription.update(
+            sub,
+            plan_price_id=free_price.id,
+            status="active",
+            external_subscription_id=None,
+            current_period_start=None,
+            current_period_end=None,
+            canceled_at=None,
+            cancel_at=None,
+            cancel_at_period_end=False,
+            # trial_end is intentionally kept: switch_plan uses it to carry over
+            # any remaining days if the user re-subscribes while still in trial.
+        )
 
         return free_price
 
@@ -766,10 +919,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub:
             return
 
-        free_price = await self._downgrade_to_free(sub)
-        if free_price:
-            await self.repos.subscription.update(sub, plan_price_id=free_price.id)
-
+        await self._downgrade_to_free(sub)
         await self._notify_payment_failed(sub)
 
     async def _handle_subscription_trial_will_end(self, raw: dict) -> None:
@@ -855,20 +1005,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 )
             return
 
-        # Trial ended without payment method - resume first (Stripe requires an
-        # active subscription to modify it), then downgrade to free. If the
-        # downgrade fails the webhook is retried; resuming an already-active
-        # subscription on retry is a no-op so the ordering is safe.
-        if sub.external_subscription_id and obj.get("status") == "paused":
-            await self.provider.resume_subscription(sub.external_subscription_id)
-
-        free_price = await self._downgrade_to_free(sub)
-        if not free_price:
+        # Trial ended without payment method - downgrade to free locally and
+        # cancel the Stripe subscription. No need to resume first since we are
+        # cancelling rather than modifying the subscription price.
+        if not await self._downgrade_to_free(sub):
             return
-
-        await self.repos.subscription.update(
-            sub, plan_price_id=free_price.id, status="active"
-        )
 
         tenant = await self.repos.tenant.get(sub.tenant_id)
         if not tenant:

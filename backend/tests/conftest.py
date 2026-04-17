@@ -21,7 +21,7 @@ from src.billing import (
     get_billing_provider,
 )
 from src.core.database import Base, get_db
-from src.models.billing import Plan, PlanPrice
+from src.models.billing import Plan, PlanPrice, Subscription
 from src.core.security import hash_secret
 from src.enums import PERMISSION_DESCRIPTIONS
 from src.enums import Permission as PermissionEnum
@@ -117,11 +117,11 @@ async def prepare_database() -> AsyncGenerator[None]:
             )
         session.add_all(user_tenants)
 
-        # Seed free plan for auto-subscription on registration
+        # Seed free plan - local-only, no Stripe product/price IDs
         free_plan = Plan(
             name="Free",
             description="Free plan",
-            external_product_id="prod_free123",
+            external_product_id=None,
             is_active=True,
         )
         session.add(free_plan)
@@ -132,10 +132,25 @@ async def prepare_database() -> AsyncGenerator[None]:
             currency="usd",
             interval="month",
             interval_count=1,
-            external_price_id="price_free123",
+            external_price_id=None,
             is_active=True,
         )
         session.add(free_price)
+        await session.flush()
+
+        # Seed a free subscription for each test tenant, matching what
+        # _setup_new_tenant does in production. No Stripe customer is created
+        # at registration - external_customer_id is set when the tenant starts
+        # a trial or paid checkout. Tests that need a paid subscription
+        # activate it via checkout + webhook helpers (which will stamp the ID).
+        for tenant in tenants:
+            session.add(
+                Subscription(
+                    tenant_id=tenant.id,
+                    plan_price_id=free_price.id,
+                    status="active",
+                )
+            )
 
         await session.commit()
     yield
@@ -171,7 +186,10 @@ def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
     mock.archive_product.return_value = None
     mock.create_price.return_value = ExternalPrice(external_id="price_test123")
     mock.archive_price.return_value = None
-    mock.get_or_create_customer.return_value = "cus_test123"
+    _cus_ids = {1: "cus_test123", 2: "cus_test456"}
+    mock.get_or_create_customer.side_effect = (
+        lambda *, tenant_id, **kw: _cus_ids.get(tenant_id, f"cus_{tenant_id}")
+    )
     mock.create_checkout_session.return_value = CheckoutResult(
         checkout_url="https://checkout.stripe.com/test_session",
         external_session_id="cs_test123",
@@ -219,7 +237,7 @@ def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
         current_period_end=None,
         cancel_at_period_end=False,
         canceled_at=None,
-        external_price_id="price_free123",
+        external_price_id="price_test123",
     )
     mock.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_test123",

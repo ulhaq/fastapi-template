@@ -28,7 +28,6 @@ export interface SubscriptionOut {
   tenant_id: number
   plan_price_id: number | null
   external_subscription_id: string | null
-  external_customer_id: string | null
   status: 'incomplete' | 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
   current_period_start: string | null
   current_period_end: string | null
@@ -38,6 +37,7 @@ export interface SubscriptionOut {
   trial_end: string | null
   plan_price: PlanPriceOut | null
   has_payment_method: boolean
+  trial_used: boolean
   created_at: string
   updated_at: string
 }

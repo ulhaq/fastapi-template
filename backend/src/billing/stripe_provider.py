@@ -319,6 +319,9 @@ class StripeProvider(BillingProviderABC):
             }
             if trial_period_days:
                 params["trial_period_days"] = trial_period_days
+                params["trial_settings"] = {
+                    "end_behavior": {"missing_payment_method": "pause"}
+                }
             sub = await stripe.Subscription.create_async(**params)
             return self._map_subscription(sub)
         except stripe.StripeError as exc:

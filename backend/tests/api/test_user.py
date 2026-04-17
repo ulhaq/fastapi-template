@@ -8,7 +8,7 @@ from tests.conftest import TestSessionLocal
 from tests.utils import assert_filtering_of_items_list, assert_pagination, assert_sorting_of_items_list
 
 
-async def _seed_external_customer(tenant_id: int, external_customer_id: str) -> None:
+async def _seed_external_customer(tenant_id: int, external_customer_id: str | None) -> None:
     async with TestSessionLocal() as session:
         tenant = await session.get(Tenant, tenant_id)
         tenant.external_customer_id = external_customer_id
@@ -326,9 +326,13 @@ async def test_patch_profile_email_does_not_sync_when_not_owner(
     mock_billing_provider.update_customer.assert_not_called()
 
 
-async def test_patch_profile_email_no_sync_without_subscription(
+async def test_patch_profile_email_no_sync_without_external_customer(
     admin_authenticated: TestClient, mock_billing_provider
 ) -> None:
+    # Clear external_customer_id - simulates a tenant whose Stripe customer
+    # creation failed at registration. No sync should happen in that case.
+    await _seed_external_customer(tenant_id=1, external_customer_id=None)
+
     response = admin_authenticated.patch(
         "/v1/users/me", json={"email": "new_owner@example.org"}
     )

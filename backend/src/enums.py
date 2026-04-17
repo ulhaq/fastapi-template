@@ -62,6 +62,10 @@ class ErrorCode(Enum):
         "subscription_not_found",
         "No active subscription found for this tenant",
     )
+    TRIAL_ALREADY_USED = (
+        "trial_already_used",
+        "A free trial has already been used for this tenant",
+    )
     PROTECTED_ROLE_MODIFICATION = (
         "protected_role_modification",
         "Protected roles cannot be modified or deleted",

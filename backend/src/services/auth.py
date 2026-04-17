@@ -72,9 +72,7 @@ class AuthService(BaseService):
                 tenant_id=tenant.id,
                 last_active_at=datetime.now(UTC),
             )
-            await _setup_new_tenant(
-                self.repos, self.provider, tenant, existing, email_in.email
-            )
+            await _setup_new_tenant(self.repos, tenant, existing)
             schedule_task(
                 send_email,
                 address=email_in.email,
@@ -151,7 +149,7 @@ class AuthService(BaseService):
             last_active_at=datetime.now(UTC),
         )
 
-        await _setup_new_tenant(self.repos, self.provider, tenant, user, email)
+        await _setup_new_tenant(self.repos, tenant, user)
 
         # Re-fetch user so roles assigned by _setup_new_tenant are loaded
         user = await self.repos.user.get_one(user.id)

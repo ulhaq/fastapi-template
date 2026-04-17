@@ -1,10 +1,12 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 from httpx import Headers
+from sqlalchemy import select
 
 from src.billing.types import WebhookPayload
 from src.models.billing import Plan, PlanPrice, Subscription
+from src.models.tenant import Tenant
 from tests.conftest import TestSessionLocal
 
 
@@ -60,26 +62,13 @@ def test_start_checkout_requires_permission(client: TestClient) -> None:
     assert response.status_code == 403
 
 
-def test_get_current_subscription_not_found(admin_authenticated: TestClient) -> None:
+def test_get_current_subscription(admin_authenticated: TestClient) -> None:
+    # All registered users always have a free subscription seeded at registration.
     response = admin_authenticated.get("/v1/billing/subscriptions/current")
-    assert response.status_code == 404
-    assert response.json()["error_code"] == "subscription_not_found"
-
-
-def test_get_current_subscription(
-    admin_authenticated: TestClient, plan_with_price: dict
-) -> None:
-    price_id = plan_with_price["price"]["id"]
-    admin_authenticated.post(
-        "/v1/billing/subscriptions/checkout",
-        json={"plan_price_id": price_id},
-    )
-    response = admin_authenticated.get("/v1/billing/subscriptions/current")
-    # Subscription was created with status "incomplete"
     assert response.status_code == 200
     rs = response.json()
-    assert rs["status"] == "incomplete"
-    assert rs["plan_price_id"] == price_id
+    assert rs["status"] == "active"
+    assert rs["plan_price"]["amount"] == 0
     assert rs["has_payment_method"] is False
 
 
@@ -312,13 +301,13 @@ async def test_switch_plan_success(
     )
 
 
-def test_switch_plan_no_active_subscription(admin_authenticated) -> None:
+def test_switch_plan_to_free_is_rejected(admin_authenticated) -> None:
+    # Switching to the free plan via switch-plan is blocked; users must cancel instead.
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
-        json={"plan_price_id": 1},
+        json={"plan_price_id": 1},  # price ID 1 = free plan price seeded in conftest
     )
-    assert response.status_code == 404
-    assert response.json()["error_code"] == "subscription_not_found"
+    assert response.status_code == 422
 
 
 def test_switch_plan_invalid_price(
@@ -351,15 +340,24 @@ def test_switch_plan_same_price_rejected(
     assert response.status_code == 422
 
 
-def test_switch_plan_no_external_subscription_id(
+async def test_switch_plan_no_external_subscription_id(
     admin_authenticated, plan_with_price: dict
 ) -> None:
-    # Checkout sets status="incomplete" with no external_subscription_id
+    # Simulate an incomplete checkout (pending, never completed) - switching
+    # plan while a checkout is in progress should be rejected.
     price_id = plan_with_price["price"]["id"]
-    admin_authenticated.post(
-        "/v1/billing/subscriptions/checkout",
-        json={"plan_price_id": price_id},
-    )
+    async with TestSessionLocal() as session:
+        from sqlalchemy import select as _select
+
+        free_price = (
+            await session.execute(_select(PlanPrice).where(PlanPrice.amount == 0))
+        ).scalar_one()
+        # Update existing subscription to incomplete (no INSERT to avoid unique constraint)
+        sub = (await session.execute(_select(Subscription).where(Subscription.tenant_id == 1))).scalar_one()
+        sub.plan_price_id = free_price.id
+        sub.status = "incomplete"
+        sub.external_subscription_id = None
+        await session.commit()
 
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
@@ -382,76 +380,10 @@ def test_switch_plan_requires_permission(client) -> None:
     assert response.status_code == 403
 
 
-async def _setup_free_plan_subscription_with_trial(
-    client, plan_with_price: dict, mock_billing_provider, trial_end: datetime
-) -> int:
-    """
-    Activate a paid subscription, set trial_end on it, then switch to the free plan.
-    Returns the free price_id.
-    """
-    paid_price_id = plan_with_price["price"]["id"]
-    _activate_subscription(client, paid_price_id, mock_billing_provider, "evt_trial_setup")
-
-    # Stamp trial_end directly on the subscription row
-    async with TestSessionLocal() as session:
-        from sqlalchemy import select
-
-        sub = (await session.execute(select(Subscription))).scalar_one()
-        sub.trial_end = trial_end
-        await session.commit()
-
-    # Find the free price seeded in conftest
-    async with TestSessionLocal() as session:
-        from sqlalchemy import select
-
-        free_price = (
-            await session.execute(
-                select(PlanPrice).where(PlanPrice.amount == 0)
-            )
-        ).scalar_one()
-        free_price_id = free_price.id
-
-    # Switch to free plan
-    client.post(
-        "/v1/billing/subscriptions/current/switch-plan",
-        json={"plan_price_id": free_price_id},
-    )
-
-    return free_price_id
-
-
-async def test_switch_from_free_to_paid_carries_remaining_trial(
+def test_switch_from_free_to_paid_no_trial(
     admin_authenticated, plan_with_price: dict, mock_billing_provider
 ) -> None:
-    """Upgrading from free back to paid should pass remaining trial days to checkout."""
-    future_trial_end = datetime.now(UTC) + timedelta(days=7)
-    await _setup_free_plan_subscription_with_trial(
-        admin_authenticated, plan_with_price, mock_billing_provider, future_trial_end
-    )
-
-    mock_billing_provider.create_checkout_session.reset_mock()
-
-    response = admin_authenticated.post(
-        "/v1/billing/subscriptions/current/switch-plan",
-        json={"plan_price_id": plan_with_price["price"]["id"]},
-    )
-    assert response.status_code == 200
-    call_kwargs = mock_billing_provider.create_checkout_session.call_args.kwargs
-    assert call_kwargs.get("trial_period_days") is not None
-    assert call_kwargs["trial_period_days"] >= 6  # at least 6 of 7 days remain
-
-
-async def test_switch_from_free_to_paid_no_trial_when_expired(
-    admin_authenticated, plan_with_price: dict, mock_billing_provider
-) -> None:
-    """Upgrading from free to paid after the trial has expired should pass no trial days."""
-    past_trial_end = datetime.now(UTC) - timedelta(days=1)
-    await _setup_free_plan_subscription_with_trial(
-        admin_authenticated, plan_with_price, mock_billing_provider, past_trial_end
-    )
-
-    mock_billing_provider.create_checkout_session.reset_mock()
-
+    """Switching from free to paid via switch-plan passes no trial days - trial is separate."""
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
         json={"plan_price_id": plan_with_price["price"]["id"]},
@@ -461,19 +393,173 @@ async def test_switch_from_free_to_paid_no_trial_when_expired(
     assert call_kwargs.get("trial_period_days") is None
 
 
+def test_start_trial_returns_checkout_url(
+    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+) -> None:
+    price_id = plan_with_price["price"]["id"]
+    response = admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": price_id},
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["checkout_url"] == "https://checkout.stripe.com/test_session"
+    assert rs["external_session_id"] == "cs_test123"
+
+
+def test_start_trial_creates_stripe_customer_and_checkout_session(
+    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+) -> None:
+    price_id = plan_with_price["price"]["id"]
+    admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": price_id},
+    )
+    mock_billing_provider.get_or_create_customer.assert_called_once()
+    mock_billing_provider.create_checkout_session.assert_called_once()
+    call_kwargs = mock_billing_provider.create_checkout_session.call_args.kwargs
+    assert call_kwargs["external_price_id"] == "price_test123"
+    assert call_kwargs["trial_period_days"] is not None
+
+
+def test_start_trial_does_not_set_trial_used_flag_before_webhook(
+    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+) -> None:
+    price_id = plan_with_price["price"]["id"]
+    admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": price_id},
+    )
+    # trial_used must NOT be set until Stripe confirms the subscription via webhook
+    response = admin_authenticated.get("/v1/billing/subscriptions/current")
+    assert response.json()["trial_used"] is False
+
+
+def test_start_trial_sets_trial_used_flag_on_subscription_created_webhook(
+    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+) -> None:
+    price_id = plan_with_price["price"]["id"]
+    admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": price_id},
+    )
+
+    now_ts = int(datetime.now(UTC).timestamp())
+    mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
+        external_event_id="evt_trial_created",
+        event_type="customer.subscription.created",
+        raw={
+            "data": {
+                "object": {
+                    "id": "sub_trial_123",
+                    "customer": "cus_test123",
+                    "status": "trialing",
+                    "cancel_at_period_end": False,
+                    "current_period_start": now_ts,
+                    "current_period_end": now_ts + 1209600,
+                    "trial_end": now_ts + 1209600,
+                    "canceled_at": None,
+                    "items": {"data": [{"price": {"id": "price_test123"}}]},
+                }
+            }
+        },
+    )
+    admin_authenticated.post(
+        "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s"}
+    )
+
+    response = admin_authenticated.get("/v1/billing/subscriptions/current")
+    assert response.json()["trial_used"] is True
+
+
+async def test_start_trial_fails_when_already_trialed(
+    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+) -> None:
+    async with TestSessionLocal() as session:
+        tenant = await session.get(Tenant, 1)
+        if tenant:
+            tenant.trial_used = True
+        await session.commit()
+
+    price_id = plan_with_price["price"]["id"]
+    response = admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": price_id},
+    )
+    assert response.status_code == 422
+
+
+def test_start_trial_fails_on_free_price(
+    admin_authenticated: TestClient, mock_billing_provider
+) -> None:
+    # Price ID 1 is the free plan price seeded in conftest
+    response = admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": 1},
+    )
+    assert response.status_code == 422
+
+
+def test_start_trial_fails_on_missing_price(
+    admin_authenticated: TestClient, mock_billing_provider
+) -> None:
+    response = admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": 9999},
+    )
+    assert response.status_code == 404
+
+
+async def test_start_trial_fails_when_already_trialing(
+    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+) -> None:
+    price_id = plan_with_price["price"]["id"]
+
+    # Put subscription into trialing state
+    async with TestSessionLocal() as session:
+        sub = (
+            await session.execute(
+                select(Subscription).where(Subscription.tenant_id == 1)
+            )
+        ).scalar_one()
+        sub.status = "trialing"
+        sub.external_subscription_id = "sub_existing"
+        await session.commit()
+
+    response = admin_authenticated.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": price_id},
+    )
+    assert response.status_code == 409
+
+
+def test_start_trial_requires_permission(client: TestClient, plan_with_price: dict) -> None:
+    rs = client.post(
+        "/v1/auth/token",
+        data={"username": "standard@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()
+    client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
+    response = client.post(
+        "/v1/billing/subscriptions/trial",
+        json={"plan_price_id": plan_with_price["price"]["id"]},
+    )
+    assert response.status_code == 403
+
+
 def test_subscription_tenant_isolation(
     admin_authenticated: TestClient,
     tenant2_admin_authenticated: TestClient,
     plan_with_price: dict,
+    mock_billing_provider,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
-    # Tenant 1 creates a subscription
-    admin_authenticated.post(
-        "/v1/billing/subscriptions/checkout",
-        json={"plan_price_id": price_id},
-    )
+    # Activate a paid subscription for tenant 1
+    _activate_subscription(admin_authenticated, price_id, mock_billing_provider, "evt_iso")
 
-    # Tenant 2 should not see tenant 1's subscription
+    # Tenant 2 should still see only its own free subscription, not tenant 1's paid one
     response = tenant2_admin_authenticated.get("/v1/billing/subscriptions/current")
-    assert response.status_code == 404
+    assert response.status_code == 200
+    sub = response.json()
+    assert sub["plan_price"]["amount"] == 0  # tenant 2 is on free, not tenant 1's paid plan

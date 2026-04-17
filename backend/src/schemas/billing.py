@@ -13,6 +13,10 @@ class SwitchPlanIn(BaseModel):
     plan_price_id: int
 
 
+class StartTrialIn(BaseModel):
+    plan_price_id: int
+
+
 class PlanPriceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +67,7 @@ class SubscriptionOut(BaseModel):
     trial_end: datetime | None
     plan_price: PlanPriceOut | None
     has_payment_method: bool = False
+    trial_used: bool = False
     created_at: datetime
     updated_at: datetime
 

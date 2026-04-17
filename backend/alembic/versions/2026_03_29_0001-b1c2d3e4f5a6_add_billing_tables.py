@@ -37,6 +37,7 @@ permission_table = sa.table(
 _SUBSCRIPTION_STATUSES = ("incomplete", "incomplete_expired", "active", "trialing", "past_due", "canceled", "unpaid", "paused")
 
 
+
 def upgrade() -> None:
     # --- tenant: add billing fields ---
     op.add_column("tenant", sa.Column("external_customer_id", sa.String, nullable=True))
@@ -183,8 +184,9 @@ def upgrade() -> None:
         sa.Column("is_protected", sa.Boolean, nullable=False, server_default="0"),
     )
 
-    # --- seed new permissions ---
     now = datetime.now(UTC)
+
+    # --- seed new permissions ---
     op.bulk_insert(
         permission_table,
         [
@@ -195,6 +197,45 @@ def upgrade() -> None:
                 "updated_at": now,
             }
             for p in _NEW_PERMISSIONS
+        ],
+    )
+
+    # --- seed free plan (local-only, no Stripe IDs) ---
+    # The free plan represents the default state for every new tenant.
+    # _setup_new_tenant creates a billing_subscription row referencing this
+    # price when a user registers; absence of a Stripe subscription is the
+    # signal that the tenant is on the free tier.
+    op.bulk_insert(
+        plan_table,
+        [
+            {
+                "name": "Free",
+                "description": "Free plan",
+                "external_product_id": None,
+                "is_active": True,
+                "created_at": now,
+                "updated_at": now,
+            }
+        ],
+    )
+    conn = op.get_bind()
+    plan_id = conn.execute(
+        sa.text("SELECT id FROM billing_plan WHERE name = 'Free' LIMIT 1")
+    ).scalar_one()
+    op.bulk_insert(
+        price_table,
+        [
+            {
+                "plan_id": plan_id,
+                "amount": 0,
+                "currency": "dkk",
+                "interval": "month",
+                "interval_count": 1,
+                "external_price_id": None,
+                "is_active": True,
+                "created_at": now,
+                "updated_at": now,
+            }
         ],
     )
 

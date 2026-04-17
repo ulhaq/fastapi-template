@@ -11,6 +11,7 @@ from src.schemas.billing import (
     CheckoutOut,
     CustomerPortalOut,
     PlanOut,
+    StartTrialIn,
     SubscriptionOut,
     SwitchPlanIn,
 )
@@ -57,6 +58,17 @@ async def start_checkout(
     checkout_in: CheckoutIn,
 ) -> CheckoutOut:
     return await service.start_checkout(checkout_in)
+
+
+@subscription_router.post("/trial", status_code=status.HTTP_200_OK)
+@limiter.limit("3/minute")
+async def start_trial(
+    request: Request,  # pylint: disable=unused-argument
+    service: Annotated[SubscriptionService, Depends()],
+    _: Annotated[Auth, Depends(require_owner())],
+    trial_in: StartTrialIn,
+) -> CheckoutOut:
+    return await service.start_trial(trial_in)
 
 
 @subscription_router.get("/current", status_code=status.HTTP_200_OK)

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { formatDistanceToNow } from 'date-fns'
 import { setAccessToken } from '@/api/client'
 import { authApi } from '@/api/auth'
 import { billingApi } from '@/api/billing'
@@ -19,11 +20,6 @@ export const useAuthStore = defineStore('auth', () => {
   const hasActiveSubscription = computed(() =>
     subscriptionStatus.value === 'active' || subscriptionStatus.value === 'trialing',
   )
-  const trialDaysRemaining = computed<number | null>(() => {
-    if (subscriptionStatus.value !== 'trialing' || !subscriptionTrialEnd.value) return null
-    const diff = new Date(subscriptionTrialEnd.value).getTime() - Date.now()
-    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
-  })
 
   function hasPermission(permission: string): boolean {
     return permissions.value.includes(permission)
@@ -117,7 +113,6 @@ export const useAuthStore = defineStore('auth', () => {
     tenants,
     subscriptionStatus,
     subscriptionTrialEnd,
-    trialDaysRemaining,
     isInitialized,
     isAuthenticated,
     hasActiveSubscription,

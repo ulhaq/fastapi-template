@@ -4,12 +4,9 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from src.billing.abc import BillingProviderABC
-from src.billing.dependencies import BillingProviderDep
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
-    BillingProviderException,
     NotFoundException,
     PermissionDeniedException,
 )
@@ -29,10 +26,8 @@ log = logging.getLogger(__name__)
 
 async def _setup_new_tenant(
     repos: RepositoryManager,
-    provider: BillingProviderABC,
     tenant: Tenant,
     user: User,
-    user_email: str,
 ) -> None:
     permissions = await repos.permission.get_all()
     owner_role = await repos.role.create(
@@ -44,32 +39,19 @@ async def _setup_new_tenant(
     await repos.role.add_permissions(owner_role, *[p.id for p in permissions])
     await repos.user.add_roles(user, owner_role.id)
 
-    highest_price = await repos.plan_price.get_highest_price()
-    if highest_price and highest_price.external_price_id:
-        try:
-            external_customer_id = await provider.get_or_create_customer(
-                tenant_id=tenant.id,
-                tenant_name=tenant.name,
-                email=user_email,
-            )
-            await repos.tenant.update(tenant, external_customer_id=external_customer_id)
-            # Create an incomplete subscription row. The user must complete
-            # Stripe Checkout (which collects billing address and optional
-            # VAT ID) to start the trial - no credit card is required.
-            await repos.subscription.create(
-                tenant_id=tenant.id,
-                plan_price_id=highest_price.id,
-                status="incomplete",
-            )
-        except BillingProviderException as exc:
-            log.warning(
-                "Trial plan billing setup failed for tenant %s (non-fatal): %s",
-                tenant.id,
-                exc,
-            )
+    # Create a local active free subscription. No Stripe customer or subscription
+    # is created here - the free plan is local-only. A Stripe customer is created
+    # when the user starts a trial or paid checkout.
+    free_price = await repos.plan_price.get_free_price()
+    if free_price:
+        await repos.subscription.create(
+            tenant_id=tenant.id,
+            plan_price_id=free_price.id,
+            status="active",
+        )
     else:
         log.warning(
-            "No active plan found - skipping auto-subscription for tenant %s",
+            "No free plan found - skipping auto-subscription for tenant %s",
             tenant.id,
         )
 
@@ -83,11 +65,9 @@ class TenantService(
         self,
         repos: Annotated[RepositoryManager, Depends()],
         current_user: Annotated[Auth, Depends(authenticate)],
-        provider: BillingProviderDep,
     ) -> None:
         self.repo = repos.tenant
         self.current_user = current_user
-        self.provider = provider
         super().__init__(repos)
 
     async def get(self, identifier: int, include_deleted: bool = False) -> Tenant:
@@ -144,9 +124,7 @@ class TenantService(
         )
 
         user = await self.repos.user.get_one(self.current_user.id)
-        await _setup_new_tenant(
-            self.repos, self.provider, tenant, user, self.current_user.email
-        )
+        await _setup_new_tenant(self.repos, tenant, user)
 
         return TenantOut.model_validate(tenant)
 

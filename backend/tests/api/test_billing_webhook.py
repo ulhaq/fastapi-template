@@ -66,15 +66,15 @@ def test_webhook_checkout_completed_updates_subscription(
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
-    # Create an incomplete subscription via checkout
+    # Initiate checkout - subscription row is NOT changed (stays as active free)
     admin_authenticated.post(
         "/v1/billing/subscriptions/checkout",
         json={"plan_price_id": price_id},
     )
 
-    # Verify it's incomplete
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
-    assert sub["status"] == "incomplete"
+    assert sub["status"] == "active"
+    assert sub["plan_price"]["amount"] == 0  # still on free plan
 
     # Fire checkout.session.completed webhook
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
@@ -173,9 +173,11 @@ def test_webhook_subscription_deleted(
     )
     assert resp.status_code == 200
 
-    # The subscription is now "canceled" - not returned by get_active_for_tenant
-    sub_resp = admin_authenticated.get("/v1/billing/subscriptions/current")
-    assert sub_resp.status_code == 404
+    # Subscription is restored to the free plan - tenant is never left with nothing
+    sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
+    assert sub["status"] == "active"
+    assert sub["plan_price"]["amount"] == 0
+    assert sub["external_subscription_id"] is None
 
 
 def test_webhook_payment_failed_does_not_downgrade(
@@ -209,7 +211,7 @@ def test_webhook_payment_failed_does_not_downgrade(
         "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s"}
     )
 
-    # Stripe fires subscription.created right after checkout — sets status to active
+    # Stripe fires subscription.created right after checkout - sets status to active
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_sub_created_for_fail",
         event_type="customer.subscription.created",
@@ -377,14 +379,20 @@ def test_webhook_checkout_session_expired(
     plan_with_price: dict,
     mock_billing_provider,
 ) -> None:
+    """
+    checkout.session.expired is a no-op for free-plan users: the subscription
+    stays "active" because start_checkout no longer creates an incomplete row.
+    The handler only acts on genuinely incomplete rows (status="incomplete").
+    """
     price_id = plan_with_price["price"]["id"]
 
-    # Create an incomplete subscription
+    # Checkout does not change the free subscription row
     admin_authenticated.post(
         "/v1/billing/subscriptions/checkout", json={"plan_price_id": price_id}
     )
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
-    assert sub["status"] == "incomplete"
+    assert sub["status"] == "active"
+    assert sub["plan_price"]["amount"] == 0
 
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_checkout_expired",
@@ -402,9 +410,13 @@ def test_webhook_checkout_session_expired(
         "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s"}
     )
     assert resp.status_code == 200
-    assert (
-        admin_authenticated.get("/v1/billing/subscriptions/current").status_code == 404
-    )
+
+    # Free subscription unchanged - session expiry is a no-op here
+    sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
+    assert sub["status"] == "active"
+    assert sub["plan_price"]["amount"] == 0
+    assert sub["plan_price"]["amount"] == 0
+    assert sub["external_subscription_id"] is None
 
 
 def test_webhook_payment_action_required_sets_incomplete(
@@ -463,16 +475,6 @@ def test_webhook_marked_uncollectible_downgrades_to_free_plan(
         admin_authenticated, price_id, mock_billing_provider, "evt_act_muc", "sub_muc"
     )
 
-    mock_billing_provider.switch_subscription_price.return_value = ExternalSubscription(
-        external_subscription_id="sub_muc",
-        external_customer_id="cus_test123",
-        status="active",
-        current_period_start=None,
-        current_period_end=None,
-        cancel_at_period_end=False,
-        canceled_at=None,
-        external_price_id="price_free123",
-    )
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_marked_uncollectible",
         event_type="invoice.marked_uncollectible",
@@ -484,10 +486,11 @@ def test_webhook_marked_uncollectible_downgrades_to_free_plan(
     assert resp.status_code == 200
 
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
-    assert sub["plan_price"]["external_price_id"] == "price_free123"
-    mock_billing_provider.switch_subscription_price.assert_called_once_with(
-        "sub_muc", "price_free123", skip_proration=True, new_amount=0
-    )
+    assert sub["status"] == "active"
+    assert sub["plan_price"]["amount"] == 0
+    assert sub["external_subscription_id"] is None
+    mock_billing_provider.delete_subscription.assert_called_once_with("sub_muc")
+    mock_billing_provider.switch_subscription_price.assert_not_called()
 
 
 def test_webhook_product_created(
@@ -643,23 +646,107 @@ def test_webhook_price_created_unknown_product(
 
 
 @pytest.fixture
+async def free_plan_subscription(plan_with_price: dict) -> dict:
+    """
+    Set up tenant 1 with an active free-plan subscription and a Stripe customer ID,
+    simulating a user who registered and was assigned the free plan by _setup_new_tenant.
+    """
+    from tests.conftest import TestSessionLocal
+    from src.models.billing import PlanPrice, Subscription
+    from src.models.tenant import Tenant
+    from sqlalchemy import select
+
+    async with TestSessionLocal() as session:
+        tenant = await session.get(Tenant, 1)
+        tenant.external_customer_id = "cus_free123"
+        free_price = (
+            await session.execute(select(PlanPrice).where(PlanPrice.amount == 0))
+        ).scalar_one()
+        free_price_id = free_price.id  # capture before session closes
+        # Update the existing free subscription rather than inserting a new row
+        sub = (await session.execute(select(Subscription).where(Subscription.tenant_id == 1))).scalar_one()
+        sub.plan_price_id = free_price_id
+        sub.status = "active"
+        sub.external_subscription_id = None
+        await session.commit()
+    return {"free_price_id": free_price_id}
+
+
+async def test_free_plan_user_checkout_upgrades_to_trial(
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    free_plan_subscription: dict,
+    mock_billing_provider,
+) -> None:
+    """
+    A user registered on the free plan completes a Stripe checkout session.
+    The subscription should be updated to the paid plan with trial status.
+    This covers both event orderings (subscription.created before/after
+    checkout.session.completed).
+    """
+    price_id = plan_with_price["price"]["id"]
+
+    # Verify starting state: active free plan, no Stripe subscription
+    sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
+    assert sub["status"] == "active"
+    assert sub["plan_price"]["amount"] == 0
+    assert sub["external_subscription_id"] is None
+
+    # Start checkout - should succeed for active free-plan users
+    resp = admin_authenticated.post(
+        "/v1/billing/subscriptions/checkout",
+        json={"plan_price_id": price_id},
+    )
+    assert resp.status_code == 200
+
+    # Simulate: customer.subscription.created fires BEFORE checkout.session.completed
+    # (race condition - _handle_subscription_created falls back to customer lookup)
+    mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
+        external_event_id="evt_sub_created_free",
+        event_type="customer.subscription.created",
+        raw={
+            "data": {
+                "object": {
+                    "id": "sub_from_free123",
+                    "customer": "cus_free123",
+                    "status": "trialing",
+                    "cancel_at_period_end": False,
+                    "canceled_at": None,
+                    "trial_end": int(datetime(2026, 5, 15, tzinfo=UTC).timestamp()),
+                    "items": {"data": [{"price": {"id": "price_test123"}}]},
+                }
+            }
+        },
+    )
+    resp = admin_authenticated.post(
+        "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s1"}
+    )
+    assert resp.status_code == 200
+
+    sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
+    assert sub["status"] == "trialing"
+    assert sub["plan_price"]["amount"] == 999  # paid plan
+    assert sub["external_subscription_id"] == "sub_from_free123"
+    assert sub["trial_end"] is not None
+
+
+@pytest.fixture
 async def trialing_subscription(plan_with_price: dict) -> dict:
-    """Insert a trialing subscription row directly, bypassing the checkout endpoint."""
+    """Set the existing subscription for tenant 1 to trialing state with a Stripe customer."""
     from tests.conftest import TestSessionLocal
     from src.models.billing import Subscription
     from src.models.tenant import Tenant
+    from sqlalchemy import select
 
     price_id = plan_with_price["price"]["id"]
     async with TestSessionLocal() as session:
         tenant = await session.get(Tenant, 1)
-        tenant.external_customer_id = "cus_test123"
-        sub = Subscription(
-            tenant_id=1,  # admin@example.org belongs to tenant 1
-            plan_price_id=price_id,
-            external_subscription_id="sub_trial",
-            status="trialing",
-        )
-        session.add(sub)
+        if tenant and not tenant.external_customer_id:
+            tenant.external_customer_id = "cus_test123"
+        sub = (await session.execute(select(Subscription).where(Subscription.tenant_id == 1))).scalar_one()
+        sub.plan_price_id = price_id
+        sub.external_subscription_id = "sub_trial"
+        sub.status = "trialing"
         await session.commit()
     return {"external_subscription_id": "sub_trial"}
 
@@ -750,40 +837,10 @@ def test_webhook_uncollectible_downgrades_to_free_plan(
     """
     invoice.marked_uncollectible (all retries exhausted) should downgrade to free.
     """
-    mock_billing_provider.switch_subscription_price.return_value = ExternalSubscription(
-        external_subscription_id="sub_trial",
-        external_customer_id="cus_test123",
-        status="active",
-        current_period_start=None,
-        current_period_end=None,
-        cancel_at_period_end=False,
-        canceled_at=None,
-        external_price_id="price_free123",
-    )
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_uncollectible_downgrade",
         event_type="invoice.marked_uncollectible",
         raw={"data": {"object": {"subscription": "sub_trial"}}},
-    )
-    admin_authenticated.post(
-        "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s"}
-    )
-
-    # Stripe fires customer.subscription.updated after the price switch
-    mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
-        external_event_id="evt_uncollectible_downgrade_sub_updated",
-        event_type="customer.subscription.updated",
-        raw={
-            "data": {
-                "object": {
-                    "id": "sub_trial",
-                    "status": "active",
-                    "cancel_at_period_end": False,
-                    "canceled_at": None,
-                    "items": {"data": [{"price": {"id": "price_free123"}}]},
-                }
-            }
-        },
     )
     resp = admin_authenticated.post(
         "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s"}
@@ -792,10 +849,10 @@ def test_webhook_uncollectible_downgrades_to_free_plan(
 
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
-    assert sub["plan_price"]["external_price_id"] == "price_free123"
-    mock_billing_provider.switch_subscription_price.assert_called_once_with(
-        "sub_trial", "price_free123", skip_proration=True, new_amount=0
-    )
+    assert sub["plan_price"]["amount"] == 0
+    assert sub["external_subscription_id"] is None
+    mock_billing_provider.delete_subscription.assert_called_once_with("sub_trial")
+    mock_billing_provider.switch_subscription_price.assert_not_called()
 
 
 def test_webhook_uncollectible_falls_back_gracefully_on_provider_error(
@@ -805,12 +862,13 @@ def test_webhook_uncollectible_falls_back_gracefully_on_provider_error(
     mock_billing_provider,
 ) -> None:
     """
-    When the provider rejects the free-plan switch, the webhook returns 500 so Stripe
-    retries. Local state is not changed. On a successful Stripe retry the subsequent
-    customer.subscription.updated event will set the correct status.
+    When the Stripe cancellation call fails during downgrade, the webhook returns
+    500 so Stripe retries. Local state is NOT changed - external_subscription_id
+    remains intact so the next retry can attempt the Stripe call again.
+    This prevents a lingering active Stripe subscription from generating charges.
     """
-    mock_billing_provider.switch_subscription_price.side_effect = (
-        BillingProviderException("Stripe error")
+    mock_billing_provider.delete_subscription.side_effect = BillingProviderException(
+        "Stripe error"
     )
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_uncollectible_fallback",
@@ -822,30 +880,12 @@ def test_webhook_uncollectible_falls_back_gracefully_on_provider_error(
     )
     assert resp.status_code == 500
 
-    # Stripe fires customer.subscription.updated with past_due when the switch failed
-    mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
-        external_event_id="evt_uncollectible_fallback_sub_updated",
-        event_type="customer.subscription.updated",
-        raw={
-            "data": {
-                "object": {
-                    "id": "sub_trial",
-                    "status": "past_due",
-                    "cancel_at_period_end": False,
-                    "canceled_at": None,
-                    "items": {"data": [{"price": {"id": "price_test123"}}]},
-                }
-            }
-        },
-    )
-    resp = admin_authenticated.post(
-        "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s"}
-    )
-    assert resp.status_code == 200
-
+    # Local state must be unchanged - subscription still on the paid plan
+    # with external_subscription_id intact for retry
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
-    assert sub["status"] == "past_due"
-    assert sub["plan_price"]["external_price_id"] == "price_test123"
+    assert sub["status"] == "trialing"
+    assert sub["plan_price"]["amount"] == 999
+    assert sub["external_subscription_id"] == "sub_trial"
 
 
 @pytest.fixture
@@ -862,21 +902,10 @@ def test_webhook_subscription_paused_trial_end_downgrades_to_free(
     mocker,
 ) -> None:
     """
-    Trial ended without a payment method (pause_collection is null) — subscription
-    should be immediately downgraded to the free plan. The pause handler updates
-    plan_price_id only; the subsequent customer.subscription.updated event from
-    Stripe sets the correct status.
+    Trial ended without a payment method (pause_collection is null) - subscription
+    should be immediately downgraded to the free plan locally and the Stripe
+    subscription cancelled.
     """
-    mock_billing_provider.switch_subscription_price.return_value = ExternalSubscription(
-        external_subscription_id="sub_trial",
-        external_customer_id="cus_test123",
-        status="active",
-        current_period_start=None,
-        current_period_end=None,
-        cancel_at_period_end=False,
-        canceled_at=None,
-        external_price_id="price_free123",
-    )
     mock_send = mocker.patch("src.services.billing.send_email")
 
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
@@ -896,37 +925,17 @@ def test_webhook_subscription_paused_trial_end_downgrades_to_free(
     )
     assert resp.status_code == 200
 
-    mock_billing_provider.switch_subscription_price.assert_called_once_with(
-        "sub_trial", "price_free123", skip_proration=True, new_amount=0
-    )
+    mock_billing_provider.delete_subscription.assert_called_once_with("sub_trial")
+    mock_billing_provider.switch_subscription_price.assert_not_called()
+    mock_billing_provider.resume_subscription.assert_not_called()
     assert mock_send.called
     for call in mock_send.call_args_list:
         assert call.kwargs["email_template"] == "trial-ended"
 
-    # Stripe fires subscription.updated after the price switch — sets final status
-    mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
-        external_event_id="evt_sub_paused_trial_end_updated",
-        event_type="customer.subscription.updated",
-        raw={
-            "data": {
-                "object": {
-                    "id": "sub_trial",
-                    "status": "active",
-                    "cancel_at_period_end": False,
-                    "canceled_at": None,
-                    "items": {"data": [{"price": {"id": "price_free123"}}]},
-                }
-            }
-        },
-    )
-    resp = admin_authenticated.post(
-        "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s2"}
-    )
-    assert resp.status_code == 200
-
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
-    assert sub["plan_price"]["external_price_id"] == "price_free123"
+    assert sub["plan_price"]["amount"] == 0
+    assert sub["external_subscription_id"] is None
 
 
 def test_webhook_subscription_paused_manual_stays_paused(
@@ -935,7 +944,7 @@ def test_webhook_subscription_paused_manual_stays_paused(
     mock_billing_provider,
 ) -> None:
     """
-    Explicit manual pause (pause_collection is set) — subscription should be
+    Explicit manual pause (pause_collection is set) - subscription should be
     marked paused and the plan price must remain unchanged.
     """
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
@@ -967,7 +976,7 @@ def test_webhook_subscription_paused_trial_end_no_free_plan_cancels(
     mock_billing_provider,
 ) -> None:
     """
-    Trial ended without a payment method and no free plan is configured — subscription
+    Trial ended without a payment method and no free plan is configured - subscription
     should be canceled rather than left in a paused limbo.
     """
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
@@ -989,6 +998,7 @@ def test_webhook_subscription_paused_trial_end_no_free_plan_cancels(
 
     sub_resp = admin_authenticated.get("/v1/billing/subscriptions/current")
     assert sub_resp.status_code == 404
+    mock_billing_provider.delete_subscription.assert_called_once_with("sub_trial")
     mock_billing_provider.switch_subscription_price.assert_not_called()
 
 

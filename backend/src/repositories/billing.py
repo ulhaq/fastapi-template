@@ -45,7 +45,6 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
             .filter(
                 self.model.amount == 0,
                 self.model.is_active.is_(True),
-                self.model.external_price_id.isnot(None),
                 self.model.deleted_at.is_(None),
             )
             .limit(1)

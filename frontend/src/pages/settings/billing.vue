@@ -13,74 +13,124 @@ meta:
       <Skeleton class="h-48 w-full rounded-lg" />
     </div>
 
-    <!-- Trial setup card (incomplete subscription) -->
+    <!-- Pending checkout card (incomplete subscription - edge case) -->
     <template v-else-if="subscription?.status === 'incomplete'">
       <div class="rounded-lg border p-6 space-y-4">
         <div>
-          <h3 class="font-semibold text-lg">
-            {{ subscription.plan_price?.trial_period_days ? $t('billing.startTrialTitle') : $t('billing.startSubscriptionTitle') }}
-          </h3>
-          <p class="text-muted-foreground text-sm mt-0.5">
-            {{ $t('billing.startTrialPlan', { plan: planName(subscription.plan_price) }) }}
-          </p>
+          <h3 class="font-semibold text-lg">{{ $t('billing.startSubscriptionTitle') }}</h3>
+          <p class="text-muted-foreground text-sm mt-0.5">{{ $t('billing.incompleteNotice') }}</p>
         </div>
 
         <div v-if="subscription.plan_price" class="text-2xl font-bold">
-          <template v-if="subscription.plan_price.trial_period_days">
-            {{ $t('billing.startTrialDays', { days: subscription.plan_price.trial_period_days }) }}
-            <p class="text-sm font-normal text-muted-foreground mt-0.5">
-              {{ $t('billing.startTrialThen', { price: formatPrice(subscription.plan_price), interval: subscription.plan_price.interval }) }}
-            </p>
-          </template>
-          <template v-else>
-            {{ formatPrice(subscription.plan_price) }}
-            <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
-          </template>
+          {{ formatPrice(subscription.plan_price) }}
+          <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
         </div>
-
-        <p v-if="subscription.plan_price?.trial_period_days" class="text-sm text-muted-foreground">{{ $t('billing.noCardRequired') }}</p>
 
         <PermissionGuard v-if="subscription.plan_price_id" permission="manage:subscription">
           <Button @click="handleCheckout(subscription.plan_price_id!)" :disabled="isCheckingOut">
             <Loader2 v-if="isCheckingOut" class="w-4 h-4 mr-2 animate-spin" />
-            {{ subscription.plan_price?.trial_period_days ? $t('billing.startTrialButton') : $t('billing.subscribe') }}
+            {{ $t('billing.subscribe') }}
           </Button>
         </PermissionGuard>
       </div>
+    </template>
 
-      <!-- Plan picker — lets the user switch to a different plan before completing checkout -->
+    <!-- Free plan card (active free subscription - show trial/upgrade CTA) -->
+    <template v-else-if="subscription?.status === 'active' && subscription.plan_price?.amount === 0">
+      <div class="rounded-lg border p-6 space-y-4">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="font-semibold text-lg">{{ $t('billing.currentPlan') }}</h3>
+            <p class="text-muted-foreground text-sm mt-0.5">
+              <Skeleton v-if="plansLoading" class="h-4 w-16 inline-block" />
+              <span v-else>{{ planName(subscription.plan_price) || $t('billing.free') }}</span>
+            </p>
+          </div>
+          <Badge :class="statusBadgeClass('active')" variant="outline">
+            {{ $t('billing.status.active') }}
+          </Badge>
+        </div>
+
+        <div v-if="subscription.plan_price" class="text-2xl font-bold">
+          {{ formatPrice(subscription.plan_price) }}
+          <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
+        </div>
+
+      </div>
+
+      <!-- Trial CTA card - separate from the current plan card -->
+      <div v-if="!plansLoading && trialPrice && !subscription.trial_used" class="rounded-lg border border-primary/20 p-6 space-y-3">
+        <div>
+          <h3 class="font-semibold text-lg">{{ $t('billing.startTrialTitle') }}</h3>
+          <p class="text-muted-foreground text-sm mt-0.5">
+            {{ $t('billing.heroTrialSubtitle', { days: trialPrice.trial_period_days, price: formatPrice(trialPrice), interval: trialPrice.interval }) }}
+          </p>
+        </div>
+        <div class="flex items-center gap-4">
+          <PermissionGuard permission="manage:subscription">
+            <Button @click="handleTrial(trialPrice.id)" :disabled="isTrialing">
+              <Loader2 v-if="isTrialing" class="w-4 h-4 mr-2 animate-spin" />
+              {{ $t('billing.startTrialButton') }}
+            </Button>
+          </PermissionGuard>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+            <ShieldCheck class="w-3.5 h-3.5 shrink-0" />
+            {{ $t('billing.noCardRequired') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Plan picker - lets the user choose a specific plan -->
       <div v-if="plansLoading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Skeleton v-for="n in 3" :key="n" class="h-36 w-full rounded-lg" />
       </div>
-      <div v-else-if="availablePlans.length > 0" class="space-y-3">
+      <div v-else-if="availablePlans.filter(p => p.prices.some(pr => pr.is_active)).length > 0" class="space-y-3">
         <h3 class="font-semibold">{{ $t('billing.availablePlans') }}</h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
-            v-for="plan in availablePlans"
+            v-for="plan in availablePlans.filter(p => p.prices.some(pr => pr.is_active))"
             :key="plan.id"
             class="rounded-lg border p-4 space-y-3"
           >
-            <div>
-              <h4 class="font-semibold">{{ plan.name }}</h4>
-              <p v-if="plan.description" class="text-xs text-muted-foreground mt-0.5">{{ plan.description }}</p>
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h4 class="font-semibold">{{ plan.name }}</h4>
+                <p v-if="plan.description" class="text-xs text-muted-foreground mt-0.5">{{ plan.description }}</p>
+              </div>
+              <span
+                v-if="plan.prices.some(p => p.amount > 0 && p.is_active && p.trial_period_days) && !subscription?.trial_used"
+                class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 shrink-0"
+              >
+                <ShieldCheck class="w-3 h-3 shrink-0" />
+                {{ $t('billing.noCardRequired') }}
+              </span>
             </div>
-            <p v-if="plan.prices.filter(p => p.is_active).length === 0" class="text-xs text-muted-foreground">
-              {{ $t('billing.noPricesAvailable') }}
-            </p>
-            <div v-else class="space-y-2">
+            <div class="space-y-2">
               <div
                 v-for="price in plan.prices.filter(p => p.is_active)"
                 :key="price.id"
                 class="flex items-center justify-between gap-2"
               >
                 <div>
-                  <span class="text-sm font-medium">{{ formatPrice(price) }}</span>
-                  <span class="text-xs text-muted-foreground"> / {{ price.interval }}</span>
+                  <span class="text-sm font-medium">{{ price.amount === 0 ? $t('billing.free') : formatPrice(price) }}</span>
+                  <span v-if="price.amount > 0" class="text-xs text-muted-foreground"> / {{ price.interval }}</span>
                 </div>
                 <PermissionGuard permission="manage:subscription">
-                  <Button size="sm" @click="handleCheckout(price.id)" :disabled="checkoutId === price.id || isCheckingOut">
+                  <Button v-if="price.amount === 0" size="sm" disabled>
+                    {{ $t('billing.currentPlan') }}
+                  </Button>
+                  <Button
+                    v-else-if="price.trial_period_days && !subscription.trial_used"
+                    size="sm"
+                    @click="handleTrial(price.id)"
+                    :disabled="trialId === price.id || isTrialing"
+                  >
+                    <Loader2 v-if="trialId === price.id" class="w-4 h-4 mr-2 animate-spin" />
+                    {{ $t('billing.startTrialButton') }}
+                  </Button>
+                  <Button v-else size="sm" @click="handleCheckout(price.id)" :disabled="checkoutId === price.id || isCheckingOut">
                     <Loader2 v-if="checkoutId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ price.id === subscription.plan_price_id ? $t('billing.selected') : $t('billing.subscribe') }}
+                    {{ $t('billing.subscribe') }}
                   </Button>
                 </PermissionGuard>
               </div>
@@ -113,12 +163,12 @@ meta:
         </PermissionGuard>
       </div>
 
-      <!-- Available plans (allows downgrading to free without going through portal) -->
-      <div v-if="availablePlans.length > 0" class="space-y-3">
+      <!-- Available paid plans to subscribe to from the paused state -->
+      <div v-if="paidPlans.length > 0" class="space-y-3">
         <h3 class="font-semibold">{{ $t('billing.availablePlans') }}</h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
-            v-for="plan in availablePlans"
+            v-for="plan in paidPlans"
             :key="plan.id"
             class="rounded-lg border p-4 space-y-3"
           >
@@ -126,12 +176,9 @@ meta:
               <h4 class="font-semibold">{{ plan.name }}</h4>
               <p v-if="plan.description" class="text-xs text-muted-foreground mt-0.5">{{ plan.description }}</p>
             </div>
-            <p v-if="plan.prices.filter(p => p.is_active).length === 0" class="text-xs text-muted-foreground">
-              {{ $t('billing.noPricesAvailable') }}
-            </p>
-            <div v-else class="space-y-2">
+            <div class="space-y-2">
               <div
-                v-for="price in plan.prices.filter(p => p.is_active)"
+                v-for="price in plan.prices.filter(p => p.is_active && p.amount > 0)"
                 :key="price.id"
                 class="flex items-center justify-between gap-2"
               >
@@ -142,7 +189,7 @@ meta:
                 <PermissionGuard permission="manage:subscription">
                   <Button size="sm" @click="handleSwitchPlan(price.id, price.amount)" :disabled="switchId === price.id || price.id === subscription?.plan_price_id">
                     <Loader2 v-if="switchId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ price.id === subscription?.plan_price_id ? $t('billing.currentPlan') : price.amount === 0 ? $t('billing.downgrade') : $t('billing.upgrade') }}
+                    {{ price.id === subscription?.plan_price_id ? $t('billing.currentPlan') : $t('billing.subscribe') }}
                   </Button>
                 </PermissionGuard>
               </div>
@@ -159,10 +206,10 @@ meta:
           <div>
             <h3 class="font-semibold text-lg">{{ $t('billing.currentPlan') }}</h3>
             <p class="text-muted-foreground text-sm mt-0.5">
-              {{ subscription.plan_price ? resolvedPlanName(subscription.plan_price) : $t('billing.unknownPlan') }}
+              {{ subscription.plan_price ? planName(subscription.plan_price) : $t('billing.unknownPlan') }}
             </p>
           </div>
-          <Badge :class="statusBadgeClass(subscription.status)" class="shrink-0 border">
+          <Badge :class="statusBadgeClass(subscription.status)" class="shrink-0 border" variant="outline">
             {{ $t(`billing.status.${subscription.status}`) }}
           </Badge>
         </div>
@@ -172,7 +219,7 @@ meta:
           <!-- No payment method yet -->
           <div v-if="!subscription.has_payment_method" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 flex items-start justify-between gap-4">
             <p class="text-sm text-amber-800">
-              {{ $t('billing.trialEndsOn', { date: formatDate(subscription.trial_end) }) }}
+              {{ $t('billing.trialEndsIn', { date: formatDateTime(subscription.trial_end) }) }}
             </p>
             <PermissionGuard permission="manage:subscription">
               <button class="text-sm font-medium text-amber-900 underline whitespace-nowrap" :disabled="isPortalLoading" @click="handlePortal">
@@ -183,9 +230,21 @@ meta:
           <!-- Payment method already on file -->
           <div v-else class="rounded-md border border-green-200 bg-green-50 px-4 py-3">
             <p class="text-sm text-green-800">
-              {{ $t('billing.trialEndsAllSet', { date: formatDate(subscription.trial_end) }) }}
+              {{ $t('billing.trialEndsAllSet', { date: formatDateTime(subscription.trial_end) }) }}
             </p>
           </div>
+        </div>
+
+        <!-- Cancellation pending banner -->
+        <div v-if="subscription.cancel_at_period_end && subscription.current_period_end" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 flex items-start justify-between gap-4">
+          <p class="text-sm text-amber-800">
+            {{ $t('billing.cancelPending', { date: formatDate(subscription.current_period_end) }) }}
+          </p>
+          <PermissionGuard permission="manage:subscription">
+            <button class="text-sm font-medium text-amber-900 underline whitespace-nowrap" :disabled="isActing" @click="handleResume">
+              {{ $t('billing.resumeSubscription') }}
+            </button>
+          </PermissionGuard>
         </div>
 
         <div v-if="subscription.plan_price" class="text-2xl font-bold">
@@ -193,13 +252,8 @@ meta:
           <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
         </div>
 
-        <p v-if="subscription.current_period_end" class="text-sm text-muted-foreground">
-          <template v-if="subscription.cancel_at_period_end">
-            {{ $t('billing.cancelScheduled', { date: formatDate(subscription.current_period_end) }) }}
-          </template>
-          <template v-else>
-            {{ $t('billing.renewsOn', { date: formatDate(subscription.current_period_end) }) }}
-          </template>
+        <p v-if="subscription.current_period_end && !subscription.cancel_at_period_end" class="text-sm text-muted-foreground">
+          {{ $t('billing.renewsOn', { date: formatDate(subscription.current_period_end) }) }}
         </p>
 
         <div class="flex gap-2 flex-wrap">
@@ -223,12 +277,13 @@ meta:
         </div>
       </div>
 
-      <!-- Available plans for upgrading -->
-      <div v-if="availablePlans.length > 0" class="space-y-3">
+      <!-- Available paid plans for upgrading/downgrading.
+           Free plan is excluded - to return to free, cancel the subscription. -->
+      <div v-if="paidPlans.length > 0" class="space-y-3">
         <h3 class="font-semibold">{{ $t('billing.availablePlans') }}</h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
-            v-for="plan in availablePlans"
+            v-for="plan in paidPlans"
             :key="plan.id"
             class="rounded-lg border p-4 space-y-3"
           >
@@ -236,12 +291,9 @@ meta:
               <h4 class="font-semibold">{{ plan.name }}</h4>
               <p v-if="plan.description" class="text-xs text-muted-foreground mt-0.5">{{ plan.description }}</p>
             </div>
-            <p v-if="plan.prices.filter(p => p.is_active).length === 0" class="text-xs text-muted-foreground">
-              {{ $t('billing.noPricesAvailable') }}
-            </p>
-            <div v-else class="space-y-2">
+            <div class="space-y-2">
               <div
-                v-for="price in plan.prices.filter(p => p.is_active)"
+                v-for="price in plan.prices.filter(p => p.is_active && p.amount > 0)"
                 :key="price.id"
                 class="flex items-center justify-between gap-2"
               >
@@ -317,10 +369,9 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Loader2, ExternalLink } from 'lucide-vue-next'
+import { Loader2, ExternalLink, ShieldCheck } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -333,7 +384,6 @@ import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { SubscriptionOut, PlanOut, PlanPriceOut } from '@/types'
 
-const route = useRoute()
 const authStore = useAuthStore()
 const { t, locale } = useI18n()
 const { toast } = useToast()
@@ -346,9 +396,24 @@ const isActing = ref(false)
 const isPortalLoading = ref(false)
 const checkoutId = ref<number | undefined>(undefined)
 const isCheckingOut = ref(false)
+const isTrialing = ref(false)
+const trialId = ref<number | undefined>(undefined)
 const switchId = ref<number | undefined>(undefined)
 const subscription = ref<SubscriptionOut | null>(null)
 const availablePlans = ref<PlanOut[]>([])
+
+const trialPrice = computed<PlanPriceOut | undefined>(() => {
+  for (const price of availablePlans.value[availablePlans.value.length - 1].prices) {
+    if (price.is_active && price.amount > 0 && price.trial_period_days) {
+      return price
+    }
+  }
+  return undefined
+})
+
+const paidPlans = computed(() =>
+  availablePlans.value.filter(p => p.prices.some(pr => pr.is_active && pr.amount > 0))
+)
 const errorMessage = ref('')
 
 async function loadSubscription() {
@@ -377,24 +442,16 @@ function onVisibilityChange() {
 onMounted(async () => {
   await loadSubscription()
 
-  // // Auto-trigger checkout for incomplete subscriptions (e.g. right after registration).
-  // // Use sessionStorage to prevent redirect loops if the user navigates back from Stripe.
-  // const autoCheckoutKey = 'billing_auto_checkout_done'
-  // if (
-  //   subscription.value?.status === 'incomplete'
-  //   && subscription.value.plan_price_id
-  //   && !sessionStorage.getItem(autoCheckoutKey)
-  //   && !route.query.canceled
-  // ) {
-  //   sessionStorage.setItem(autoCheckoutKey, '1')
-  //   handleCheckout(subscription.value.plan_price_id)
-  //   return
-  // }
-
   plansLoading.value = true
   try {
     const { data } = await billingApi.listPlans()
-    availablePlans.value = data.filter((p) => p.is_active)
+    availablePlans.value = data
+      .filter((p) => p.is_active)
+      .sort((a, b) => {
+        const minPrice = (plan: typeof a) =>
+          Math.min(...plan.prices.filter((p) => p.is_active).map((p) => p.amount), Infinity)
+        return minPrice(a) - minPrice(b)
+      })
   } catch {
     // Non-critical - plan list is optional context
   } finally {
@@ -423,13 +480,18 @@ function planName(price: PlanPriceOut | null): string {
   return plan?.name ?? ''
 }
 
-function resolvedPlanName(price: PlanPriceOut): string {
-  const plan = availablePlans.value.find((p) => p.prices.some((pr) => pr.id === price.id))
-  return plan ? `${plan.name} - ${formatPrice(price)} / ${price.interval}` : formatPrice(price)
-}
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(locale.value, { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString(locale.value, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function monthlyEquivalent(price: PlanPriceOut): number {
@@ -522,6 +584,19 @@ async function handleSwitchPlan(priceId: number, priceAmount: number) {
   } catch (err: unknown) {
     toast({ title: resolveError(err), variant: 'destructive' })
     switchId.value = undefined
+  }
+}
+
+async function handleTrial(priceId: number) {
+  trialId.value = priceId
+  isTrialing.value = true
+  try {
+    const { data } = await billingApi.startTrial({ plan_price_id: priceId })
+    window.location.href = data.checkout_url
+  } catch (err: unknown) {
+    toast({ title: resolveError(err), variant: 'destructive' })
+    trialId.value = undefined
+    isTrialing.value = false
   }
 }
 

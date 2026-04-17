@@ -18,6 +18,10 @@ export const billingApi = {
   },
 
   // Subscriptions
+  startTrial(data: { plan_price_id: number }) {
+    return apiClient.post<CheckoutOut>('/v1/billing/subscriptions/trial', data)
+  },
+
   checkout(data: { plan_price_id: number }) {
     return apiClient.post<CheckoutOut>('/v1/billing/subscriptions/checkout', data)
   },

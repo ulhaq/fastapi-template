@@ -52,15 +52,15 @@ def test_cannot_create_a_tenant_with_already_existing_name(
     assert rs["msg"] == "Tenant already exists. [name=Tenant 1]"
 
 
-def test_create_a_tenant_creates_incomplete_subscription(
+def test_create_a_tenant_creates_free_subscription(
     admin_authenticated: TestClient,
     mock_billing_provider: MagicMock,
 ) -> None:
     admin_authenticated.post("/v1/tenants", json={"name": "billed tenant"})
 
-    mock_billing_provider.get_or_create_customer.assert_called_once()
-    # Subscription is no longer created directly via provider during tenant
-    # setup - the user must complete Stripe Checkout to start the trial.
+    # No Stripe customer is created at registration - deferred to trial or checkout
+    mock_billing_provider.get_or_create_customer.assert_not_called()
+    # Free plan subscription is local-only - no provider subscription is created
     mock_billing_provider.create_subscription.assert_not_called()
 
 
