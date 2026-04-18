@@ -88,7 +88,7 @@ const accountItems = computed(() => [
 const workspaceItems = computed(() => [
   { to: '/settings/users', label: t('nav.users'), icon: Users },
   { to: '/settings/roles', label: t('nav.roles'), icon: Shield },
-  ...(hasPermission('read:subscription') ? [{ to: '/settings/billing', label: t('nav.billing'), icon: Receipt }] : []),
+  ...(hasPermission('read:subscription') ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }] : []),
 ])
 
 const adminItems = computed(() => [

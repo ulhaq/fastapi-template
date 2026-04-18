@@ -4,13 +4,13 @@
     class="border-b border-amber-200 bg-amber-50 px-4 py-2.5 flex items-center justify-between gap-4"
   >
     <p class="text-sm text-amber-800">
-      {{ $t('billing.trialEnding', { time: timeRemaining }) }}
+      {{ $t('subscription.trialEnding', { time: timeRemaining }) }}
     </p>
     <RouterLink
       to="/settings/billing"
       class="shrink-0 text-sm font-medium text-amber-800 underline underline-offset-2 hover:text-amber-900"
     >
-      {{ $t('billing.manageBilling') }}
+      {{ $t('subscription.manageBilling') }}
     </RouterLink>
   </div>
 </template>

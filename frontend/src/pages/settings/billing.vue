@@ -1,12 +1,12 @@
 <route lang="yaml">
 meta:
   permission: read:subscription
-  breadcrumb: nav.billing
+  breadcrumb: nav.subscription
 </route>
 
 <template>
   <div class="animate-fade-in space-y-6">
-    <PageHeader :title="$t('billing.title')" :description="$t('billing.description')" />
+    <PageHeader :title="$t('subscription.title')" :description="$t('subscription.description')" />
 
     <!-- Loading skeleton -->
     <div v-if="isLoading" class="space-y-4">
@@ -17,8 +17,8 @@ meta:
     <template v-else-if="subscription?.status === 'incomplete'">
       <div class="rounded-lg border p-6 space-y-4">
         <div>
-          <h3 class="font-semibold text-lg">{{ $t('billing.startSubscriptionTitle') }}</h3>
-          <p class="text-muted-foreground text-sm mt-0.5">{{ $t('billing.incompleteNotice') }}</p>
+          <h3 class="font-semibold text-lg">{{ $t('subscription.startSubscriptionTitle') }}</h3>
+          <p class="text-muted-foreground text-sm mt-0.5">{{ $t('subscription.incompleteNotice') }}</p>
         </div>
 
         <div v-if="subscription.plan_price" class="text-2xl font-bold">
@@ -29,7 +29,7 @@ meta:
         <PermissionGuard v-if="subscription.plan_price_id" permission="manage:subscription">
           <Button @click="handleCheckout(subscription.plan_price_id!)" :disabled="isCheckingOut">
             <Loader2 v-if="isCheckingOut" class="w-4 h-4 mr-2 animate-spin" />
-            {{ $t('billing.subscribe') }}
+            {{ $t('subscription.subscribe') }}
           </Button>
         </PermissionGuard>
       </div>
@@ -40,14 +40,14 @@ meta:
       <div class="rounded-lg border p-6 space-y-4">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h3 class="font-semibold text-lg">{{ $t('billing.currentPlan') }}</h3>
+            <h3 class="font-semibold text-lg">{{ $t('subscription.currentPlan') }}</h3>
             <p class="text-muted-foreground text-sm mt-0.5">
               <Skeleton v-if="plansLoading" class="h-4 w-16 inline-block" />
-              <span v-else>{{ planName(subscription.plan_price) || $t('billing.free') }}</span>
+              <span v-else>{{ planName(subscription.plan_price) || $t('subscription.free') }}</span>
             </p>
           </div>
           <Badge :class="statusBadgeClass('active')" variant="outline">
-            {{ $t('billing.status.active') }}
+            {{ $t('subscription.status.active') }}
           </Badge>
         </div>
 
@@ -60,7 +60,7 @@ meta:
           <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
             <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
             <ExternalLink v-else class="w-4 h-4 mr-2" />
-            {{ $t('billing.manageBilling') }}
+            {{ $t('subscription.manageBilling') }}
           </Button>
         </PermissionGuard>
 
@@ -69,21 +69,21 @@ meta:
       <!-- Trial CTA card - separate from the current plan card -->
       <div v-if="!plansLoading && trialPrice && !subscription.trial_used" class="rounded-lg border border-primary/20 p-6 space-y-3">
         <div>
-          <h3 class="font-semibold text-lg">{{ $t('billing.startTrialTitle') }}</h3>
+          <h3 class="font-semibold text-lg">{{ $t('subscription.startTrialTitle') }}</h3>
           <p class="text-muted-foreground text-sm mt-0.5">
-            {{ $t('billing.heroTrialSubtitle', { days: trialPrice.trial_period_days, price: formatPrice(trialPrice), interval: trialPrice.interval }) }}
+            {{ $t('subscription.heroTrialSubtitle', { days: trialPrice.trial_period_days, price: formatPrice(trialPrice), interval: trialPrice.interval }) }}
           </p>
         </div>
         <div class="flex items-center gap-4">
           <PermissionGuard permission="manage:subscription">
             <Button @click="handleTrial(trialPrice.id)" :disabled="isTrialing">
               <Loader2 v-if="isTrialing" class="w-4 h-4 mr-2 animate-spin" />
-              {{ $t('billing.startTrialButton') }}
+              {{ $t('subscription.startTrialButton') }}
             </Button>
           </PermissionGuard>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
             <ShieldCheck class="w-3.5 h-3.5 shrink-0" />
-            {{ $t('billing.noCardRequired') }}
+            {{ $t('subscription.noCardRequired') }}
           </span>
         </div>
       </div>
@@ -93,7 +93,7 @@ meta:
         <Skeleton v-for="n in 3" :key="n" class="h-36 w-full rounded-lg" />
       </div>
       <div v-else-if="availablePlans.filter(p => p.prices.some(pr => pr.is_active)).length > 0" class="space-y-3">
-        <h3 class="font-semibold">{{ $t('billing.availablePlans') }}</h3>
+        <h3 class="font-semibold">{{ $t('subscription.availablePlans') }}</h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
             v-for="plan in availablePlans.filter(p => p.prices.some(pr => pr.is_active))"
@@ -110,7 +110,7 @@ meta:
                 class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 shrink-0"
               >
                 <ShieldCheck class="w-3 h-3 shrink-0" />
-                {{ $t('billing.noCardRequired') }}
+                {{ $t('subscription.noCardRequired') }}
               </span>
             </div>
             <div class="space-y-2">
@@ -120,12 +120,12 @@ meta:
                 class="flex items-center justify-between gap-2"
               >
                 <div>
-                  <span class="text-sm font-medium">{{ price.amount === 0 ? $t('billing.free') : formatPrice(price) }}</span>
+                  <span class="text-sm font-medium">{{ price.amount === 0 ? $t('subscription.free') : formatPrice(price) }}</span>
                   <span v-if="price.amount > 0" class="text-xs text-muted-foreground"> / {{ price.interval }}</span>
                 </div>
                 <PermissionGuard permission="manage:subscription">
                   <Button v-if="price.amount === 0" size="sm" disabled>
-                    {{ $t('billing.currentPlan') }}
+                    {{ $t('subscription.currentPlan') }}
                   </Button>
                   <Button
                     v-else-if="price.trial_period_days && !subscription.trial_used"
@@ -134,11 +134,11 @@ meta:
                     :disabled="trialId === price.id || isTrialing"
                   >
                     <Loader2 v-if="trialId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ $t('billing.startTrialButton') }}
+                    {{ $t('subscription.startTrialButton') }}
                   </Button>
                   <Button v-else size="sm" @click="handleCheckout(price.id)" :disabled="checkoutId === price.id || isCheckingOut">
                     <Loader2 v-if="checkoutId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ $t('billing.subscribe') }}
+                    {{ $t('subscription.subscribe') }}
                   </Button>
                 </PermissionGuard>
               </div>
@@ -152,9 +152,9 @@ meta:
     <template v-else-if="subscription?.status === 'paused'">
       <div class="rounded-lg border p-6 space-y-4">
         <div>
-          <h3 class="font-semibold text-lg">{{ $t('billing.trialEndedTitle') }}</h3>
+          <h3 class="font-semibold text-lg">{{ $t('subscription.trialEndedTitle') }}</h3>
           <p class="text-muted-foreground text-sm mt-0.5">
-            {{ $t('billing.trialEndedDescription', { plan: planName(subscription.plan_price) }) }}
+            {{ $t('subscription.trialEndedDescription', { plan: planName(subscription.plan_price) }) }}
           </p>
         </div>
 
@@ -166,14 +166,14 @@ meta:
         <PermissionGuard permission="manage:subscription">
           <Button @click="handlePortal" :disabled="isPortalLoading">
             <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
-            {{ $t('billing.addPaymentMethod') }}
+            {{ $t('subscription.addPaymentMethod') }}
           </Button>
         </PermissionGuard>
       </div>
 
       <!-- Available paid plans to subscribe to from the paused state -->
       <div v-if="paidPlans.length > 0" class="space-y-3">
-        <h3 class="font-semibold">{{ $t('billing.availablePlans') }}</h3>
+        <h3 class="font-semibold">{{ $t('subscription.availablePlans') }}</h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
             v-for="plan in paidPlans"
@@ -197,7 +197,7 @@ meta:
                 <PermissionGuard permission="manage:subscription">
                   <Button size="sm" @click="handleSwitchPlan(price.id, price.amount)" :disabled="switchId === price.id || price.id === subscription?.plan_price_id">
                     <Loader2 v-if="switchId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ price.id === subscription?.plan_price_id ? $t('billing.currentPlan') : $t('billing.subscribe') }}
+                    {{ price.id === subscription?.plan_price_id ? $t('subscription.currentPlan') : $t('subscription.subscribe') }}
                   </Button>
                 </PermissionGuard>
               </div>
@@ -212,13 +212,13 @@ meta:
       <div class="rounded-lg border p-6 space-y-4">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h3 class="font-semibold text-lg">{{ $t('billing.currentPlan') }}</h3>
+            <h3 class="font-semibold text-lg">{{ $t('subscription.currentPlan') }}</h3>
             <p class="text-muted-foreground text-sm mt-0.5">
-              {{ subscription.plan_price ? planName(subscription.plan_price) : $t('billing.unknownPlan') }}
+              {{ subscription.plan_price ? planName(subscription.plan_price) : $t('subscription.unknownPlan') }}
             </p>
           </div>
           <Badge :class="statusBadgeClass(subscription.status)" class="shrink-0 border" variant="outline">
-            {{ $t(`billing.status.${subscription.status}`) }}
+            {{ $t(`subscription.status.${subscription.status}`) }}
           </Badge>
         </div>
 
@@ -227,18 +227,18 @@ meta:
           <!-- No payment method yet -->
           <div v-if="!subscription.has_payment_method" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 flex items-start justify-between gap-4">
             <p class="text-sm text-amber-800">
-              {{ $t('billing.trialEndsIn', { date: formatDateTime(subscription.trial_end) }) }}
+              {{ $t('subscription.trialEndsIn', { date: formatDateTime(subscription.trial_end) }) }}
             </p>
             <PermissionGuard permission="manage:subscription">
               <button class="text-sm font-medium text-amber-900 underline whitespace-nowrap" :disabled="isPortalLoading" @click="handlePortal">
-                {{ $t('billing.addPaymentMethod') }}
+                {{ $t('subscription.addPaymentMethod') }}
               </button>
             </PermissionGuard>
           </div>
           <!-- Payment method already on file -->
           <div v-else class="rounded-md border border-green-200 bg-green-50 px-4 py-3">
             <p class="text-sm text-green-800">
-              {{ $t('billing.trialEndsAllSet', { date: formatDateTime(subscription.trial_end) }) }}
+              {{ $t('subscription.trialEndsAllSet', { date: formatDateTime(subscription.trial_end) }) }}
             </p>
           </div>
         </div>
@@ -246,11 +246,11 @@ meta:
         <!-- Cancellation pending banner -->
         <div v-if="subscription.cancel_at_period_end && subscription.current_period_end" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 flex items-start justify-between gap-4">
           <p class="text-sm text-amber-800">
-            {{ $t('billing.cancelPending', { date: formatDate(subscription.current_period_end) }) }}
+            {{ $t('subscription.cancelPending', { date: formatDate(subscription.current_period_end) }) }}
           </p>
           <PermissionGuard permission="manage:subscription">
             <button class="text-sm font-medium text-amber-900 underline whitespace-nowrap" :disabled="isActing" @click="handleResume">
-              {{ $t('billing.resumeSubscription') }}
+              {{ $t('subscription.resumeSubscription') }}
             </button>
           </PermissionGuard>
         </div>
@@ -261,25 +261,25 @@ meta:
         </div>
 
         <p v-if="subscription.current_period_end && !subscription.cancel_at_period_end" class="text-sm text-muted-foreground">
-          {{ $t('billing.renewsOn', { date: formatDate(subscription.current_period_end) }) }}
+          {{ $t('subscription.renewsOn', { date: formatDate(subscription.current_period_end) }) }}
         </p>
 
         <div class="flex gap-2 flex-wrap">
           <PermissionGuard permission="manage:subscription">
             <Button v-if="subscription.cancel_at_period_end" @click="handleResume" :disabled="isActing">
               <Loader2 v-if="isActing" class="w-4 h-4 mr-2 animate-spin" />
-              {{ $t('billing.resumeSubscription') }}
+              {{ $t('subscription.resumeSubscription') }}
             </Button>
             <Button v-else variant="outline" @click="handleCancel" :disabled="isActing">
               <Loader2 v-if="isActing" class="w-4 h-4 mr-2 animate-spin" />
-              {{ $t('billing.cancelSubscription') }}
+              {{ $t('subscription.cancelSubscription') }}
             </Button>
           </PermissionGuard>
           <PermissionGuard permission="manage:subscription">
             <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
               <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
               <ExternalLink v-else class="w-4 h-4 mr-2" />
-              {{ $t('billing.manageBilling') }}
+              {{ $t('subscription.manageBilling') }}
             </Button>
           </PermissionGuard>
         </div>
@@ -288,7 +288,7 @@ meta:
       <!-- Available paid plans for upgrading/downgrading.
            Free plan is excluded - to return to free, cancel the subscription. -->
       <div v-if="paidPlans.length > 0" class="space-y-3">
-        <h3 class="font-semibold">{{ $t('billing.availablePlans') }}</h3>
+        <h3 class="font-semibold">{{ $t('subscription.availablePlans') }}</h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
             v-for="plan in paidPlans"
@@ -312,7 +312,7 @@ meta:
                 <PermissionGuard permission="manage:subscription">
                   <Button size="sm" @click="handleSwitchPlan(price.id, price.amount)" :disabled="switchId === price.id || price.id === subscription?.plan_price_id">
                     <Loader2 v-if="switchId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ price.id === subscription?.plan_price_id ? $t('billing.currentPlan') : (subscription?.plan_price && monthlyEquivalent(price) > monthlyEquivalent(subscription.plan_price)) ? $t('billing.upgrade') : $t('billing.downgrade') }}
+                    {{ price.id === subscription?.plan_price_id ? $t('subscription.currentPlan') : (subscription?.plan_price && monthlyEquivalent(price) > monthlyEquivalent(subscription.plan_price)) ? $t('subscription.upgrade') : $t('subscription.downgrade') }}
                   </Button>
                 </PermissionGuard>
               </div>
@@ -326,15 +326,15 @@ meta:
     <template v-else>
       <div class="rounded-lg border p-6 space-y-4">
         <div>
-          <h3 class="font-semibold text-lg">{{ $t('billing.noSubscription') }}</h3>
-          <p class="text-muted-foreground text-sm mt-0.5">{{ $t('billing.choosePlan') }}</p>
+          <h3 class="font-semibold text-lg">{{ $t('subscription.noSubscription') }}</h3>
+          <p class="text-muted-foreground text-sm mt-0.5">{{ $t('subscription.choosePlan') }}</p>
         </div>
 
         <div v-if="plansLoading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Skeleton v-for="n in 3" :key="n" class="h-36 w-full rounded-lg" />
         </div>
         <p v-else-if="availablePlans.length === 0" class="text-sm text-muted-foreground">
-          {{ $t('billing.noPlansAvailable') }}
+          {{ $t('subscription.noPlansAvailable') }}
         </p>
         <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
@@ -347,7 +347,7 @@ meta:
               <p v-if="plan.description" class="text-xs text-muted-foreground mt-0.5">{{ plan.description }}</p>
             </div>
             <p v-if="plan.prices.filter(p => p.is_active).length === 0" class="text-xs text-muted-foreground">
-              {{ $t('billing.noPricesAvailable') }}
+              {{ $t('subscription.noPricesAvailable') }}
             </p>
             <div v-else class="space-y-2">
               <div
@@ -362,7 +362,7 @@ meta:
                 <PermissionGuard permission="manage:subscription">
                   <Button size="sm" @click="handleCheckout(price.id)" :disabled="checkoutId === price.id || isCheckingOut">
                     <Loader2 v-if="checkoutId === price.id" class="w-4 h-4 mr-2 animate-spin" />
-                    {{ $t('billing.subscribe') }}
+                    {{ $t('subscription.subscribe') }}
                   </Button>
                 </PermissionGuard>
               </div>
@@ -521,16 +521,16 @@ function statusBadgeClass(status: string): string {
 
 async function handleCancel() {
   const ok = await confirm(
-    t('billing.cancelTitle'),
-    t('billing.cancelDescription'),
-    t('billing.cancelConfirm'),
+    t('subscription.cancelTitle'),
+    t('subscription.cancelDescription'),
+    t('subscription.cancelConfirm'),
   )
   if (!ok) return
   isActing.value = true
   try {
     const { data } = await billingApi.cancelSubscription()
     subscription.value = data
-    toast({ title: t('billing.cancelScheduledSuccess') })
+    toast({ title: t('subscription.cancelScheduledSuccess') })
   } catch (err: unknown) {
     toast({ title: resolveError(err), variant: 'destructive' })
   } finally {
@@ -543,7 +543,7 @@ async function handleResume() {
   try {
     const { data } = await billingApi.resumeSubscription()
     subscription.value = data
-    toast({ title: t('billing.resumed') })
+    toast({ title: t('subscription.resumed') })
   } catch (err: unknown) {
     toast({ title: resolveError(err), variant: 'destructive' })
   } finally {
@@ -570,9 +570,9 @@ async function handleSwitchPlan(priceId: number, priceAmount: number) {
   const isUpgrade = priceAmount > currentAmount
   const isFreeToPaid = currentAmount === 0
   const ok = await confirm(
-    t('billing.switchPlanTitle'),
-    t(isFreeToPaid ? 'billing.switchPlanCheckoutDescription' : 'billing.switchPlanDescription'),
-    t(isUpgrade ? 'billing.upgrade' : 'billing.downgrade'),
+    t('subscription.switchPlanTitle'),
+    t(isFreeToPaid ? 'subscription.switchPlanCheckoutDescription' : 'subscription.switchPlanDescription'),
+    t(isUpgrade ? 'subscription.upgrade' : 'subscription.downgrade'),
     isUpgrade ? 'default' : 'destructive',
   )
   if (!ok) return
@@ -586,7 +586,7 @@ async function handleSwitchPlan(priceId: number, priceAmount: number) {
       subscription.value = data
       subscriptionStore.subscriptionStatus = data.status
       subscriptionStore.subscriptionTrialEnd = data.trial_end
-      toast({ title: t('billing.switchPlanSuccess') })
+      toast({ title: t('subscription.switchPlanSuccess') })
       switchId.value = undefined
     }
   } catch (err: unknown) {

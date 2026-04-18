@@ -2,12 +2,12 @@
 meta:
   layout: dashboard
   requiresAuth: true
-  breadcrumb: billing.checkoutSuccess
+  breadcrumb: subscription.checkoutSuccess
 </route>
 
 <template>
   <div class="animate-fade-in space-y-6">
-    <PageHeader :title="$t('billing.title')" />
+    <PageHeader :title="$t('subscription.title')" />
 
     <div v-if="isLoading" class="space-y-4">
       <Skeleton class="h-48 w-full rounded-lg" />
@@ -15,29 +15,29 @@ meta:
 
     <div v-else-if="isSuccess" class="rounded-lg border p-6 space-y-4">
       <div>
-        <h3 class="font-semibold text-lg">{{ $t('billing.checkoutSuccess') }}</h3>
-        <p class="text-muted-foreground text-sm mt-0.5">{{ $t('billing.checkoutSuccessDescription') }}</p>
+        <h3 class="font-semibold text-lg">{{ $t('subscription.checkoutSuccess') }}</h3>
+        <p class="text-muted-foreground text-sm mt-0.5">{{ $t('subscription.checkoutSuccessDescription') }}</p>
       </div>
-      <Button @click="router.push('/')">{{ $t('billing.goToDashboard') }}</Button>
+      <Button @click="router.push('/')">{{ $t('subscription.goToDashboard') }}</Button>
     </div>
 
     <div v-else-if="isPending" class="rounded-lg border p-6 space-y-4">
       <div>
-        <h3 class="font-semibold text-lg">{{ $t('billing.checkoutPending') }}</h3>
-        <p class="text-muted-foreground text-sm mt-0.5">{{ $t('billing.checkoutPendingDescription') }}</p>
+        <h3 class="font-semibold text-lg">{{ $t('subscription.checkoutPending') }}</h3>
+        <p class="text-muted-foreground text-sm mt-0.5">{{ $t('subscription.checkoutPendingDescription') }}</p>
       </div>
       <Button variant="outline" @click="router.push('/settings/billing')">
-        {{ $t('billing.returnToBilling') }}
+        {{ $t('subscription.returnToBilling') }}
       </Button>
     </div>
 
     <div v-else class="rounded-lg border p-6 space-y-4">
       <div>
         <h3 class="font-semibold text-lg">{{ $t('errors.common') }}</h3>
-        <p class="text-muted-foreground text-sm mt-0.5">{{ $t('billing.checkoutPendingDescription') }}</p>
+        <p class="text-muted-foreground text-sm mt-0.5">{{ $t('subscription.checkoutPendingDescription') }}</p>
       </div>
       <Button variant="outline" @click="router.push('/settings/billing')">
-        {{ $t('billing.returnToBilling') }}
+        {{ $t('subscription.returnToBilling') }}
       </Button>
     </div>
   </div>
