@@ -1,84 +1,48 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { formatDistanceToNow } from 'date-fns'
-import { setAccessToken } from '@/api/client'
+import { computed } from 'vue'
 import { authApi } from '@/api/auth'
-import { billingApi } from '@/api/billing'
-import { usersApi } from '@/api/users'
-import type { UserOut, Token, TenantOut } from '@/types'
+import { useSessionStore } from '@/stores/session'
+import { useProfileStore } from '@/stores/profile'
+import { useTenancyStore } from '@/stores/tenancy'
+import { useSubscriptionStore } from '@/stores/subscription'
+import type { Token } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<UserOut | null>(null)
-  const accessToken = ref<string | null>(null)
-  const permissions = ref<string[]>([])
-  const tenants = ref<TenantOut[]>([])
-  const isInitialized = ref(false)
-  const subscriptionStatus = ref<string | null>(null)
-  const subscriptionTrialEnd = ref<string | null>(null)
+  const session = useSessionStore()
+  const profile = useProfileStore()
+  const tenancy = useTenancyStore()
+  const subscription = useSubscriptionStore()
 
-  const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
-  const hasActiveSubscription = computed(() =>
-    subscriptionStatus.value === 'active' || subscriptionStatus.value === 'trialing',
-  )
-
-  function hasPermission(permission: string): boolean {
-    return permissions.value.includes(permission)
-  }
+  const isInitialized = computed(() => session.isInitialized)
+  const isAuthenticated = computed(() => session.isAuthenticated)
+  const hasActiveSubscription = computed(() => subscription.hasActiveSubscription)
 
   function setSession(token: Token): void {
-    accessToken.value = token.access_token
-    setAccessToken(token.access_token)
+    session.setToken(token.access_token)
   }
 
   function clearSession(): void {
-    user.value = null
-    accessToken.value = null
-    permissions.value = []
-    tenants.value = []
-    subscriptionStatus.value = null
-    subscriptionTrialEnd.value = null
-    setAccessToken(null)
-  }
-
-  async function fetchMe(): Promise<void> {
-    const { data } = await usersApi.getMe()
-    user.value = data
-    permissions.value = [...new Set(data.roles.flatMap((r) => r.permissions.map((p) => p.name)))]
-  }
-
-  async function fetchTenants(): Promise<void> {
-    const { data } = await usersApi.getMyTenants()
-    tenants.value = data
-  }
-
-  async function fetchSubscriptionStatus(): Promise<void> {
-    try {
-      const { data } = await billingApi.getCurrentSubscription()
-      subscriptionStatus.value = data.status
-      subscriptionTrialEnd.value = data.trial_end
-    } catch {
-      subscriptionStatus.value = null
-      subscriptionTrialEnd.value = null
-    }
+    session.clear()
+    profile.clear()
+    tenancy.clear()
+    subscription.clear()
   }
 
   async function initialize(): Promise<void> {
     try {
-      // Restore session from the httponly refresh-token cookie (silent refresh).
       const { data: token } = await authApi.refresh()
-      accessToken.value = token.access_token
-      setAccessToken(token.access_token)
-      await Promise.all([fetchMe(), fetchTenants(), fetchSubscriptionStatus()])
+      session.setToken(token.access_token)
+      await Promise.all([profile.fetchMe(), tenancy.fetchTenants(), subscription.fetchSubscriptionStatus()])
     } catch {
       // No valid session cookie - proceed as unauthenticated.
     }
-    isInitialized.value = true
+    session.isInitialized = true
   }
 
   async function login(email: string, password: string): Promise<void> {
     const { data: token } = await authApi.login(email, password)
     setSession(token)
-    await Promise.all([fetchMe(), fetchTenants(), fetchSubscriptionStatus()])
+    await Promise.all([profile.fetchMe(), tenancy.fetchTenants(), subscription.fetchSubscriptionStatus()])
   }
 
   async function logout(): Promise<void> {
@@ -97,31 +61,22 @@ export const useAuthStore = defineStore('auth', () => {
       password,
     })
     setSession(token)
-    await Promise.all([fetchMe(), fetchTenants(), fetchSubscriptionStatus()])
+    await Promise.all([profile.fetchMe(), tenancy.fetchTenants(), subscription.fetchSubscriptionStatus()])
   }
 
   async function switchTenant(tenantId: number): Promise<void> {
     const { data: token } = await authApi.switchTenant({ tenant_id: tenantId })
     setSession(token)
-    await Promise.all([fetchMe(), fetchSubscriptionStatus()])
+    await Promise.all([profile.fetchMe(), subscription.fetchSubscriptionStatus()])
+    // tenants list does not change on switch
   }
 
   return {
-    user,
-    accessToken,
-    permissions,
-    tenants,
-    subscriptionStatus,
-    subscriptionTrialEnd,
     isInitialized,
     isAuthenticated,
     hasActiveSubscription,
-    hasPermission,
     setSession,
     clearSession,
-    fetchMe,
-    fetchTenants,
-    fetchSubscriptionStatus,
     initialize,
     login,
     logout,

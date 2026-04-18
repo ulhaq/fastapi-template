@@ -67,12 +67,16 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
+import { useProfileStore } from '@/stores/profile'
+import { useTenancyStore } from '@/stores/tenancy'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
+const profileStore = useProfileStore()
+const tenancyStore = useTenancyStore()
 const { resolveError } = useErrorHandler()
 
 const inviteToken = (route.query.token as string) || ''
@@ -103,7 +107,7 @@ async function onSubmit() {
       password: form.password,
     })
     authStore.setSession(token)
-    await Promise.all([authStore.fetchMe(), authStore.fetchTenants()])
+    await Promise.all([profileStore.fetchMe(), tenancyStore.fetchTenants()])
     router.push('/')
   } catch (err: unknown) {
     errorMessage.value = resolveError(err)

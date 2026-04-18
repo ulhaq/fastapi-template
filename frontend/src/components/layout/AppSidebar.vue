@@ -92,17 +92,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
+import { useProfileStore } from '@/stores/profile'
+import { useTenancyStore } from '@/stores/tenancy'
+import { useSessionStore } from '@/stores/session'
 import { useToast } from '@/composables/useToast'
 import { usePermission } from '@/composables/usePermission'
 
 const authStore = useAuthStore()
+const profileStore = useProfileStore()
+const tenancyStore = useTenancyStore()
+const sessionStore = useSessionStore()
 const route = useRoute()
 const { toast } = useToast()
 const { t } = useI18n()
 const { hasPermission } = usePermission()
 
-const user = computed(() => authStore.user)
-const tenants = computed(() => authStore.tenants)
+const user = computed(() => profileStore.user)
+const tenants = computed(() => tenancyStore.tenants)
 
 const userInitials = computed(() => {
   if (!user.value?.name) return '?'
@@ -115,7 +121,7 @@ const userInitials = computed(() => {
 })
 
 const currentTenantId = computed(() => {
-  const token = authStore.accessToken
+  const token = sessionStore.accessToken
   if (!token) return null
   try {
     const payload = JSON.parse(atob(token.split('.')[1]!))

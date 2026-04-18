@@ -378,13 +378,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
 import { billingApi } from '@/api/billing'
-import { useAuthStore } from '@/stores/auth'
+import { useSubscriptionStore } from '@/stores/subscription'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { SubscriptionOut, PlanOut, PlanPriceOut } from '@/types'
 
-const authStore = useAuthStore()
+const subscriptionStore = useSubscriptionStore()
 const { t, locale } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
@@ -421,8 +421,8 @@ async function loadSubscription() {
   try {
     const { data } = await billingApi.getCurrentSubscription()
     subscription.value = data
-    authStore.subscriptionStatus = data.status
-    authStore.subscriptionTrialEnd = data.trial_end
+    subscriptionStore.subscriptionStatus = data.status
+    subscriptionStore.subscriptionTrialEnd = data.trial_end
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status
     if (status !== 404) {
@@ -576,8 +576,8 @@ async function handleSwitchPlan(priceId: number, priceAmount: number) {
       window.location.href = data.checkout_url
     } else {
       subscription.value = data
-      authStore.subscriptionStatus = data.status
-      authStore.subscriptionTrialEnd = data.trial_end
+      subscriptionStore.subscriptionStatus = data.status
+      subscriptionStore.subscriptionTrialEnd = data.trial_end
       toast({ title: t('billing.switchPlanSuccess') })
       switchId.value = undefined
     }

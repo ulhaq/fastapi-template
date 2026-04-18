@@ -20,18 +20,18 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDuration, intervalToDuration } from 'date-fns'
 import { da as daLocale } from 'date-fns/locale'
-import { useAuthStore } from '@/stores/auth'
+import { useSubscriptionStore } from '@/stores/subscription'
 
 const { locale } = useI18n()
-const authStore = useAuthStore()
+const subscriptionStore = useSubscriptionStore()
 
 const showBanner = computed(
-  () => authStore.subscriptionStatus === 'trialing' && authStore.subscriptionTrialEnd !== null,
+  () => subscriptionStore.subscriptionStatus === 'trialing' && subscriptionStore.subscriptionTrialEnd !== null,
 )
 
 const timeRemaining = computed(() => {
-  if (!authStore.subscriptionTrialEnd) return ''
-  const end = new Date(authStore.subscriptionTrialEnd)
+  if (!subscriptionStore.subscriptionTrialEnd) return ''
+  const end = new Date(subscriptionStore.subscriptionTrialEnd)
   const now = new Date()
 
   if (end <= now) return ''

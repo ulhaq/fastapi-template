@@ -43,10 +43,10 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { usersApi } from '@/api/users'
-import { useAuthStore } from '@/stores/auth'
+import { useProfileStore } from '@/stores/profile'
 import { useToast } from '@/composables/useToast'
 
-const authStore = useAuthStore()
+const profileStore = useProfileStore()
 const { toast } = useToast()
 const { t } = useI18n()
 
@@ -56,9 +56,9 @@ const profileError = ref('')
 const savingProfile = ref(false)
 
 onMounted(() => {
-  if (authStore.user) {
-    profile.name = authStore.user.name
-    profile.email = authStore.user.email
+  if (profileStore.user) {
+    profile.name = profileStore.user.name
+    profile.email = profileStore.user.email
   }
 })
 
@@ -71,7 +71,7 @@ async function saveProfile() {
   profileError.value = ''
   try {
     const { data } = await usersApi.patchMe({ name: profile.name, email: profile.email })
-    authStore.user = data
+    profileStore.user = data
     toast({ title: t('settings.profileUpdated') })
   } catch {
     profileError.value = t('settings.failedToSaveChanges')

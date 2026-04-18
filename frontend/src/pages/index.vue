@@ -54,25 +54,25 @@ import StatCard from '@/components/common/StatCard.vue'
 import { usersApi } from '@/api/users'
 import { rolesApi } from '@/api/roles'
 import { permissionsApi } from '@/api/permissions'
-import { useAuthStore } from '@/stores/auth'
+import { usePermission } from '@/composables/usePermission'
 
-const authStore = useAuthStore()
+const { hasPermission } = usePermission()
 
 const loading = ref(true)
 const stats = ref<{ users: number | string; tenants: number | string; roles: number | string; permissions: number | string }>({ users: 0, tenants: 0, roles: 0, permissions: 0 })
 
 onMounted(async () => {
   const requests = []
-  if (authStore.hasPermission('read:user')) requests.push(usersApi.list({ page_size: 10 }))
+  if (hasPermission('read:user')) requests.push(usersApi.list({ page_size: 10 }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  if (authStore.hasPermission('read:tenant')) requests.push(usersApi.getMyTenants())
+  if (hasPermission('read:tenant')) requests.push(usersApi.getMyTenants())
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  if (authStore.hasPermission('read:role')) requests.push(rolesApi.list({ page_size: 10 }))
+  if (hasPermission('read:role')) requests.push(rolesApi.list({ page_size: 10 }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  if (authStore.hasPermission('read:permission')) requests.push(permissionsApi.list({ page_size: 10 }))
+  if (hasPermission('read:permission')) requests.push(permissionsApi.list({ page_size: 10 }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
   const [users, tenants, roles, permissions] = await Promise.allSettled(requests)

@@ -81,9 +81,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
+import { useProfileStore } from '@/stores/profile'
 import { useUiStore } from '@/stores/ui'
 
 const authStore = useAuthStore()
+const profileStore = useProfileStore()
 const uiStore = useUiStore()
 const route = useRoute()
 const router = useRouter()
@@ -100,7 +102,7 @@ function toggleLocale() {
   localStorage.setItem('locale', locale.value)
 }
 
-const user = computed(() => authStore.user)
+const user = computed(() => profileStore.user)
 const breadcrumb = computed(() => {
   const key = route.meta.breadcrumb as string | undefined
   return key ? t(key) : ''
