@@ -22,24 +22,26 @@ class Auth(BaseModel):
     id: int
     name: str
     email: str
-    tenant_id: int
+    organization_id: int
     roles: list[str]
     permissions: list[str]
 
     @classmethod
-    def from_user_model(cls, user_model: User, active_tenant_id: int) -> Self:
-        tenant_roles = [r for r in user_model.roles if r.tenant_id == active_tenant_id]
+    def from_user_model(cls, user_model: User, active_organization_id: int) -> Self:
+        organization_roles = [
+            r for r in user_model.roles if r.organization_id == active_organization_id
+        ]
         return cls(
             id=user_model.id,
             name=user_model.name,
             email=user_model.email,
-            tenant_id=active_tenant_id,
+            organization_id=active_organization_id,
             permissions=[
                 permission.name
-                for role in tenant_roles
+                for role in organization_roles
                 for permission in role.permissions
             ],
-            roles=[role.name for role in tenant_roles],
+            roles=[role.name for role in organization_roles],
         )
 
     def has_permission(self, permission_name: str) -> bool:
@@ -68,7 +70,7 @@ class JWTTokenClaims(BaseModel):
 
     name: str | None = None
     email: str | None = None
-    tid: int | None = None
+    oid: int | None = None
 
 
 type SignSalt = Literal[
@@ -131,7 +133,7 @@ def create_token(
     expiry: int,
     *,
     include_user_claims: bool = True,
-    tenant_id: int | None = None,
+    organization_id: int | None = None,
 ) -> str:
     claims = JWTTokenClaims(
         iss=settings.app_name,
@@ -145,7 +147,7 @@ def create_token(
     if include_user_claims:
         claims.name = user.name
         claims.email = user.email
-        claims.tid = tenant_id
+        claims.oid = organization_id
     return encode(
         claims.model_dump(exclude_none=True),
         settings.app_secret.get_secret_value(),

@@ -1,0 +1,52 @@
+from collections.abc import Sequence
+from datetime import UTC, datetime
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.models.user_organization import UserOrganization
+from src.repositories.base import SQLResourceRepository
+
+
+class UserOrganizationRepository(SQLResourceRepository[UserOrganization]):
+    def __init__(self, db: AsyncSession) -> None:
+        super().__init__(UserOrganization, db)
+
+    async def get_by_user_and_organization(
+        self, user_id: int, organization_id: int
+    ) -> UserOrganization | None:
+        stmt = select(UserOrganization).where(
+            UserOrganization.user_id == user_id,
+            UserOrganization.organization_id == organization_id,
+        )
+        rs = await self.db.execute(stmt)
+        return rs.scalar_one_or_none()
+
+    async def get_all_for_user(self, user_id: int) -> Sequence[UserOrganization]:
+        stmt = (
+            select(UserOrganization)
+            .where(UserOrganization.user_id == user_id)
+            .order_by(
+                UserOrganization.last_active_at.desc().nulls_last(),
+                UserOrganization.created_at.asc(),
+            )
+        )
+        rs = await self.db.execute(stmt)
+        return rs.scalars().all()
+
+    async def get_active_organization_for_user(
+        self, user_id: int
+    ) -> UserOrganization | None:
+        """
+        Return the most-recently-active membership row.
+
+        Falls back to earliest created if none has ever been active.
+        Returns None if the user has no organization memberships.
+        """
+        rows = await self.get_all_for_user(user_id)
+        return rows[0] if rows else None
+
+    async def update_last_active(
+        self, membership: UserOrganization
+    ) -> UserOrganization:
+        return await self.update(membership, last_active_at=datetime.now(UTC))

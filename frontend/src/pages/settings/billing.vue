@@ -56,6 +56,14 @@ meta:
           <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
         </div>
 
+        <PermissionGuard v-if="subscription.trial_end" permission="manage:subscription">
+          <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
+            <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
+            <ExternalLink v-else class="w-4 h-4 mr-2" />
+            {{ $t('billing.manageBilling') }}
+          </Button>
+        </PermissionGuard>
+
       </div>
 
       <!-- Trial CTA card - separate from the current plan card -->

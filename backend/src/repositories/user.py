@@ -9,9 +9,9 @@ from src.models.password_reset_token import PasswordResetToken
 from src.models.permission import Permission
 from src.models.role import Role
 from src.models.user import User
-from src.models.user_tenant import UserTenant
+from src.models.user_organization import UserOrganization
 from src.repositories.abc import ResourceRepositoryABC
-from src.repositories.base import SQLResourceRepository, TenantScopedRepository
+from src.repositories.base import OrganizationScopedRepository, SQLResourceRepository
 
 
 class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
@@ -50,19 +50,19 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
     ) -> bool: ...
 
 
-class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
+class UserRepository(OrganizationScopedRepository[User], UserRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(User, db)
 
-    def _apply_tenant_scope(self, stmt: Select) -> Select:
-        if self._tenant_id is not None:
-            stmt = stmt.join(UserTenant, UserTenant.user_id == User.id).filter(
-                UserTenant.tenant_id == self._tenant_id
-            )
+    def _apply_organization_scope(self, stmt: Select) -> Select:
+        if self._organization_id is not None:
+            stmt = stmt.join(
+                UserOrganization, UserOrganization.user_id == User.id
+            ).filter(UserOrganization.organization_id == self._organization_id)
         return stmt
 
     async def create(self, **kwargs: Any) -> User:
-        # Skip TenantScopedRepository.create - User has no tenant_id column.
+        # Skip OrganizationScopedRepository.create - User has no organization_id column.
         return await SQLResourceRepository.create(self, **kwargs)
 
     async def get_by_email(
@@ -112,7 +112,7 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
             .join(Role.permissions)
             .where(User.id != exclude_user_id, Permission.name == permission)
         )
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt)
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none() is not None
@@ -125,7 +125,7 @@ class UserRepository(TenantScopedRepository[User], UserRepositoryABC):
             .join(User.roles)
             .where(Role.id == role_id, User.id != exclude_user_id)
         )
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt)
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none() is not None

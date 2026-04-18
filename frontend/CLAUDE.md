@@ -14,21 +14,21 @@ npm run typecheck # tsc --noEmit
 
 ```
 src/
-├── api/          # Axios client + domain API modules (auth, users, roles, tenants, billing)
+├── api/          # Axios client + domain API modules (auth, users, roles, organizations, billing)
 ├── components/
 │   ├── ui/       # Base shadcn-style components (Button, Input, Dialog, Card, etc.)
 │   ├── common/   # Shared app components (DataTable, PageHeader, ConfirmDialog, PermissionGuard)
 │   ├── layout/   # AppSidebar, AppTopbar, MobileSidebar
 │   ├── users/    # Domain components
 │   ├── roles/
-│   └── tenants/
+│   └── organizations/
 ├── composables/  # useDataTable, useErrorHandler, usePermission, useConfirm
 ├── layouts/      # DashboardLayout, AuthLayout
 ├── locales/      # i18n strings (en, da)
 ├── pages/        # File-based routes — each .vue file = a route
 ├── plugins/      # i18n setup
 ├── router/       # Router config + navigation guards
-├── stores/       # auth.ts (user, token, permissions, tenants), ui.ts (sidebar)
+├── stores/       # auth.ts (user, token, permissions, organizations), ui.ts (sidebar)
 └── types/        # Shared TypeScript types
 ```
 
@@ -53,9 +53,9 @@ The router guard in `src/router/index.ts` enforces `requiresAuth`, `guestOnly`, 
 ## State Management
 
 **`stores/auth.ts`** — Auth + authorization:
-- `user`, `accessToken`, `permissions[]`, `tenants[]`
+- `user`, `accessToken`, `permissions[]`, `organizations[]`
 - `initialize()` — silent refresh from httponly cookie (called once on app load)
-- `login()` / `logout()` / `switchTenant()`
+- `login()` / `logout()` / `switchOrganization()`
 - `hasPermission(name)` — checks flattened permissions from user roles
 
 **`stores/ui.ts`** — UI state:

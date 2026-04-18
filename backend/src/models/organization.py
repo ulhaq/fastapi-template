@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 # pylint: disable=too-few-public-methods
 
 
-class Tenant(Base, DeleteTimestampMixin, TimestampMixin):
-    __tablename__ = "tenant"
+class Organization(Base, DeleteTimestampMixin, TimestampMixin):
+    __tablename__ = "organization"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
@@ -29,11 +29,11 @@ class Tenant(Base, DeleteTimestampMixin, TimestampMixin):
 
     users: Mapped[list["User"]] = relationship(
         "User",
-        secondary="user_tenant",
-        back_populates="tenants",
+        secondary="user_organization",
+        back_populates="organizations",
         lazy="selectin",
         passive_deletes=True,
     )
     roles: Mapped[list["Role"]] = relationship(
-        back_populates="tenant", passive_deletes=True
+        back_populates="organization", passive_deletes=True
     )

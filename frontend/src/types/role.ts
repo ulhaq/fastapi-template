@@ -18,7 +18,7 @@ export interface RolePermissionIn {
 
 export interface RoleOut extends RoleBase {
   id: number
-  tenant_id: number
+  organization_id: number
   is_protected: boolean
   permissions: PermissionOut[]
   created_at: string

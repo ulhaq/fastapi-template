@@ -39,27 +39,27 @@ _SUBSCRIPTION_STATUSES = ("incomplete", "incomplete_expired", "active", "trialin
 
 
 def upgrade() -> None:
-    # --- tenant: add billing fields ---
-    op.add_column("tenant", sa.Column("external_customer_id", sa.String, nullable=True))
+    # --- organization: add billing fields ---
+    op.add_column("organization", sa.Column("external_customer_id", sa.String, nullable=True))
     op.add_column(
-        "tenant",
+        "organization",
         sa.Column(
             "has_payment_method", sa.Boolean, nullable=False, server_default="0"
         ),
     )
     op.add_column(
-        "tenant",
+        "organization",
         sa.Column("trial_used", sa.Boolean, nullable=False, server_default="0"),
     )
     op.create_index(
-        "ix_tenant_external_customer_id",
-        "tenant",
+        "ix_organization_external_customer_id",
+        "organization",
         ["external_customer_id"],
         unique=True,
     )
 
     # --- billing_plan ---
-    op.create_table(
+    plan_table = op.create_table(
         "billing_plan",
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("name", sa.String, nullable=False),
@@ -79,7 +79,7 @@ def upgrade() -> None:
     )
 
     # --- billing_plan_price ---
-    op.create_table(
+    plan_price_table = op.create_table(
         "billing_plan_price",
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column(
@@ -111,9 +111,9 @@ def upgrade() -> None:
         "billing_subscription",
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column(
-            "tenant_id",
+            "organization_id",
             sa.Integer,
-            sa.ForeignKey("tenant.id", ondelete="CASCADE"),
+            sa.ForeignKey("organization.id", ondelete="CASCADE"),
             nullable=False,
         ),
         sa.Column(
@@ -143,18 +143,18 @@ def upgrade() -> None:
         ),
     )
     op.create_index(
-        "ix_billing_subscription_tenant_id", "billing_subscription", ["tenant_id"]
+        "ix_billing_subscription_organization_id", "billing_subscription", ["organization_id"]
     )
     op.create_index(
         "ix_billing_subscription_external_subscription_id",
         "billing_subscription",
         ["external_subscription_id"],
     )
-    # Partial unique index: at most one non-canceled subscription per tenant
+    # Partial unique index: at most one non-canceled subscription per organization
     op.create_index(
-        "uq_billing_subscription_active_tenant",
+        "uq_billing_subscription_active_organization",
         "billing_subscription",
-        ["tenant_id"],
+        ["organization_id"],
         unique=True,
         postgresql_where=sa.text("status != 'canceled' AND deleted_at IS NULL"),
     )
@@ -201,10 +201,10 @@ def upgrade() -> None:
     )
 
     # --- seed free plan (local-only, no Stripe IDs) ---
-    # The free plan represents the default state for every new tenant.
-    # _setup_new_tenant creates a billing_subscription row referencing this
+    # The free plan represents the default state for every new organization.
+    # _setup_new_organization creates a billing_subscription row referencing this
     # price when a user registers; absence of a Stripe subscription is the
-    # signal that the tenant is on the free tier.
+    # signal that the organization is on the free tier.
     op.bulk_insert(
         plan_table,
         [
@@ -218,15 +218,11 @@ def upgrade() -> None:
             }
         ],
     )
-    conn = op.get_bind()
-    plan_id = conn.execute(
-        sa.text("SELECT id FROM billing_plan WHERE name = 'Free' LIMIT 1")
-    ).scalar_one()
     op.bulk_insert(
-        price_table,
+        plan_price_table,
         [
             {
-                "plan_id": plan_id,
+                "plan_id": 1,
                 "amount": 0,
                 "currency": "dkk",
                 "interval": "month",
@@ -249,13 +245,13 @@ def downgrade() -> None:
 
     op.drop_column("role", "is_protected")
 
-    op.drop_index("uq_billing_subscription_active_tenant", table_name="billing_subscription")
+    op.drop_index("uq_billing_subscription_active_organization", table_name="billing_subscription")
     op.drop_table("billing_webhook_event")
     op.drop_table("billing_subscription")
     op.drop_table("billing_plan_price")
     op.drop_table("billing_plan")
 
-    op.drop_index("ix_tenant_external_customer_id", table_name="tenant")
-    op.drop_column("tenant", "trial_used")
-    op.drop_column("tenant", "has_payment_method")
-    op.drop_column("tenant", "external_customer_id")
+    op.drop_index("ix_organization_external_customer_id", table_name="organization")
+    op.drop_column("organization", "trial_used")
+    op.drop_column("organization", "has_payment_method")
+    op.drop_column("organization", "external_customer_id")

@@ -41,7 +41,7 @@ class BillingProviderABC(ABC):
 
     @abstractmethod
     async def get_or_create_customer(
-        self, tenant_id: int, tenant_name: str, email: str | None = None
+        self, organization_id: int, organization_name: str, email: str | None = None
     ) -> str: ...
 
     @abstractmethod

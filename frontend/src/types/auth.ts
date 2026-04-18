@@ -24,8 +24,8 @@ export interface ChangePasswordIn {
   confirm_password: string
 }
 
-export interface SwitchTenantIn {
-  tenant_id: number
+export interface SwitchOrganizationIn {
+  organization_id: number
 }
 
 export interface RegisterIn {
@@ -60,7 +60,7 @@ export interface JwtPayload {
   sub: string
   name?: string
   email?: string
-  tid?: number
+  oid?: number
   permissions?: string[]
   exp: number
   iat: number

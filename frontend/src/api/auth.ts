@@ -9,7 +9,7 @@ import type {
   CompleteInviteIn,
   ResetPasswordRequestIn,
   ResetPasswordIn,
-  SwitchTenantIn,
+  SwitchOrganizationIn,
 } from '@/types'
 
 export const authApi = {
@@ -50,8 +50,8 @@ export const authApi = {
     return apiClient.post('/v1/auth/reset-password', data)
   },
 
-  switchTenant(data: SwitchTenantIn) {
-    return apiClient.post<Token>('/v1/auth/switch-tenant', data)
+  switchOrganization(data: SwitchOrganizationIn) {
+    return apiClient.post<Token>('/v1/auth/switch-organization', data)
   },
 
   completeInvite(data: CompleteInviteIn) {

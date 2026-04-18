@@ -2,16 +2,16 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ isEdit ? $t('tenants.form.editTitle') : $t('tenants.form.createTitle') }}</DialogTitle>
+        <DialogTitle>{{ isEdit ? $t('organizations.form.editTitle') : $t('organizations.form.createTitle') }}</DialogTitle>
         <DialogDescription>
-          {{ isEdit ? $t('tenants.form.editDescription') : $t('tenants.form.createDescription') }}
+          {{ isEdit ? $t('organizations.form.editDescription') : $t('organizations.form.createDescription') }}
         </DialogDescription>
       </DialogHeader>
 
       <form @submit.prevent="onSubmit" class="space-y-4">
         <div class="space-y-2">
           <Label>{{ $t('common.name') }}</Label>
-          <Input v-model="form.name" :placeholder="$t('tenants.form.namePlaceholder')" :disabled="isLoading" />
+          <Input v-model="form.name" :placeholder="$t('organizations.form.namePlaceholder')" :disabled="isLoading" />
           <p v-if="errors.name" class="text-xs text-destructive">{{ errors.name }}</p>
         </div>
 
@@ -37,25 +37,25 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { tenantsApi } from '@/api/tenants'
+import { organizationsApi } from '@/api/organizations'
 import { useErrorHandler } from '@/composables/useErrorHandler'
-import { useTenancyStore } from '@/stores/tenancy'
-import type { TenantOut } from '@/types'
+import { useOrganizationStore } from '@/stores/organization'
+import type { OrganizationOut } from '@/types'
 
-const props = defineProps<{ open: boolean; tenant?: TenantOut | null }>()
+const props = defineProps<{ open: boolean; organization?: OrganizationOut | null }>()
 const emit = defineEmits<{ 'update:open': [boolean]; saved: [] }>()
 
 const { t } = useI18n()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
-const tenancyStore = useTenancyStore()
-const isEdit = computed(() => !!props.tenant)
+const organizationStore = useOrganizationStore()
+const isEdit = computed(() => !!props.organization)
 const form = reactive({ name: '' })
 const errors = reactive({ name: '' })
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-watch(() => props.tenant, (tenant) => {
-  form.name = tenant?.name ?? ''
+watch(() => props.organization, (organization) => {
+  form.name = organization?.name ?? ''
   errors.name = ''
   errorMessage.value = ''
 }, { immediate: true })
@@ -66,12 +66,12 @@ async function onSubmit() {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    if (isEdit.value && props.tenant) {
-      await tenantsApi.patch(props.tenant.id, { name: form.name })
+    if (isEdit.value && props.organization) {
+      await organizationsApi.patch(props.organization.id, { name: form.name })
     } else {
-      await tenantsApi.create({ name: form.name })
+      await organizationsApi.create({ name: form.name })
     }
-    await tenancyStore.fetchTenants()
+    await organizationStore.fetchOrganizations()
     emit('update:open', false)
     emit('saved')
   } catch (err: unknown) {

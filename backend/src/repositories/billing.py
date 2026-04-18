@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
-from src.repositories.base import SQLResourceRepository, TenantScopedRepository
+from src.repositories.base import OrganizationScopedRepository, SQLResourceRepository
 
 # pylint: disable=too-few-public-methods
 
@@ -98,15 +98,17 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
         return bool(rs.scalar_one())
 
 
-class SubscriptionRepository(TenantScopedRepository[Subscription]):
+class SubscriptionRepository(OrganizationScopedRepository[Subscription]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Subscription, db)
 
-    async def get_active_for_tenant(self, tenant_id: int) -> Subscription | None:
+    async def get_active_for_organization(
+        self, organization_id: int
+    ) -> Subscription | None:
         stmt = (
             select(self.model)
             .filter(
-                self.model.tenant_id == tenant_id,
+                self.model.organization_id == organization_id,
                 self.model.status.in_(
                     ["active", "trialing", "past_due", "incomplete", "paused"]
                 ),
@@ -118,16 +120,18 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
-    async def get_active_for_tenant_locked(self, tenant_id: int) -> Subscription | None:
+    async def get_active_for_organization_locked(
+        self, organization_id: int
+    ) -> Subscription | None:
         """
-        Same as get_active_for_tenant but acquires a row lock (SELECT FOR UPDATE)
+        Same as get_active_for_organization but acquires a row lock (SELECT FOR UPDATE)
         Use this before any write that depends on
         the subscription not changing concurrently
         """
         stmt = (
             select(self.model)
             .filter(
-                self.model.tenant_id == tenant_id,
+                self.model.organization_id == organization_id,
                 self.model.status.in_(
                     ["active", "trialing", "past_due", "incomplete", "paused"]
                 ),
@@ -143,7 +147,7 @@ class SubscriptionRepository(TenantScopedRepository[Subscription]):
     async def get_by_external_subscription_id(
         self, external_id: str
     ) -> Subscription | None:
-        # Intentionally bypasses tenant scope - needed in webhook handler
+        # Intentionally bypasses organization scope - needed in webhook handler
         stmt = select(self.model).filter(
             self.model.external_subscription_id == external_id,
             self.model.deleted_at.is_(None),

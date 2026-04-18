@@ -3,60 +3,60 @@ from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
 
-def test_user_tenants_list_only_shows_own_tenant(
-    tenant2_admin_authenticated: TestClient,
+def test_user_organizations_list_only_shows_own_organization(
+    organization2_admin_authenticated: TestClient,
 ) -> None:
-    response = tenant2_admin_authenticated.get("/v1/tenants")
+    response = organization2_admin_authenticated.get("/v1/organizations")
     assert response.status_code == 200
     rs = response.json()
     assert len(rs) == 1
-    assert rs[0]["name"] == "Tenant 2"
+    assert rs[0]["name"] == "Organization 2"
 
 
-def test_create_a_tenant(admin_authenticated: TestClient) -> None:
+def test_create_an_organization(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
-        "/v1/tenants",
+        "/v1/organizations",
         json={
-            "name": "test tenant",
+            "name": "test organization",
         },
     )
     assert response.status_code == 201
     rs = response.json()
     assert rs["id"] == 3
-    assert rs["name"] == "test tenant"
+    assert rs["name"] == "test organization"
     assert rs["created_at"]
     assert rs["updated_at"]
 
     # Creator should be a member and have owner access
-    response = admin_authenticated.get("/v1/tenants/3")
+    response = admin_authenticated.get("/v1/organizations/3")
     assert response.status_code == 200
 
-    response = admin_authenticated.get("/v1/tenants/3/users")
+    response = admin_authenticated.get("/v1/organizations/3/users")
     assert response.status_code == 200
     rs = response.json()
     assert rs["total"] == 1
     assert rs["items"][0]["roles"][0]["name"] == "Owner"
 
 
-def test_cannot_create_a_tenant_with_already_existing_name(
+def test_cannot_create_an_organization_with_already_existing_name(
     admin_authenticated: TestClient,
 ) -> None:
     response = admin_authenticated.post(
-        "/v1/tenants",
+        "/v1/organizations",
         json={
-            "name": "Tenant 1",
+            "name": "Organization 1",
         },
     )
     assert response.status_code == 409
     rs = response.json()
-    assert rs["msg"] == "Tenant already exists. [name=Tenant 1]"
+    assert rs["msg"] == "Organization already exists. [name=Organization 1]"
 
 
-def test_create_a_tenant_creates_free_subscription(
+def test_create_an_organization_creates_free_subscription(
     admin_authenticated: TestClient,
     mock_billing_provider: MagicMock,
 ) -> None:
-    admin_authenticated.post("/v1/tenants", json={"name": "billed tenant"})
+    admin_authenticated.post("/v1/organizations", json={"name": "billed organization"})
 
     # No Stripe customer is created at registration - deferred to trial or checkout
     mock_billing_provider.get_or_create_customer.assert_not_called()
@@ -64,82 +64,82 @@ def test_create_a_tenant_creates_free_subscription(
     mock_billing_provider.create_subscription.assert_not_called()
 
 
-def test_patch_a_tenant(admin_authenticated: TestClient) -> None:
+def test_patch_an_organization(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.patch(
-        "/v1/tenants/1",
-        json={"name": "Patched Tenant"},
+        "/v1/organizations/1",
+        json={"name": "Patched Organization"},
     )
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Patched Tenant"
+    assert rs["name"] == "Patched Organization"
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
-def test_patch_a_tenant_with_partial_body(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.patch("/v1/tenants/1", json={})
+def test_patch_an_organization_with_partial_body(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/organizations/1", json={})
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Tenant 1"
+    assert rs["name"] == "Organization 1"
 
 
-def test_retrieve_a_tenant(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/v1/tenants/1")
+def test_retrieve_an_organization(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/organizations/1")
     assert response.status_code == 200
     rs = response.json()
 
     assert rs["id"] == 1
-    assert rs["name"] == "Tenant 1"
+    assert rs["name"] == "Organization 1"
     assert rs["created_at"]
     assert rs["updated_at"]
 
 
-def test_delete_a_tenant(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.delete("/v1/tenants/1")
+def test_delete_an_organization(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.delete("/v1/organizations/1")
     assert response.status_code == 204
 
-    response = admin_authenticated.get("/v1/tenants/1")
+    response = admin_authenticated.get("/v1/organizations/1")
     assert response.status_code == 404
 
 
-def test_cannot_access_other_tenant(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.get("/v1/tenants/2")
+def test_cannot_access_other_organization(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/organizations/2")
     assert response.status_code == 403
 
-    response = admin_authenticated.patch("/v1/tenants/2", json={"name": "Hacked"})
+    response = admin_authenticated.patch("/v1/organizations/2", json={"name": "Hacked"})
     assert response.status_code == 403
 
-    response = admin_authenticated.delete("/v1/tenants/2")
+    response = admin_authenticated.delete("/v1/organizations/2")
     assert response.status_code == 403
 
 
-def test_cannot_patch_a_tenant_while_unauthorized(
+def test_cannot_patch_an_organization_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
     response = standard_authenticated.patch(
-        "/v1/tenants/1",
-        json={"name": "Patched Tenant"},
+        "/v1/organizations/1",
+        json={"name": "Patched Organization"},
     )
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-def test_cannot_retrieve_a_tenant_while_unauthorized(
+def test_cannot_retrieve_an_organization_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/v1/tenants/1")
+    response = standard_authenticated.get("/v1/organizations/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-def test_cannot_delete_a_tenant_while_unauthorized(
+def test_cannot_delete_an_organization_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.delete("/v1/tenants/1")
+    response = standard_authenticated.delete("/v1/organizations/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"

@@ -3,14 +3,14 @@ import { computed } from 'vue'
 import { authApi } from '@/api/auth'
 import { useSessionStore } from '@/stores/session'
 import { useProfileStore } from '@/stores/profile'
-import { useTenancyStore } from '@/stores/tenancy'
+import { useOrganizationStore } from '@/stores/organization'
 import { useSubscriptionStore } from '@/stores/subscription'
 import type { Token } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const session = useSessionStore()
   const profile = useProfileStore()
-  const tenancy = useTenancyStore()
+  const organizationStore = useOrganizationStore()
   const subscription = useSubscriptionStore()
 
   const isInitialized = computed(() => session.isInitialized)
@@ -24,7 +24,7 @@ export const useAuthStore = defineStore('auth', () => {
   function clearSession(): void {
     session.clear()
     profile.clear()
-    tenancy.clear()
+    organizationStore.clear()
     subscription.clear()
   }
 
@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data: token } = await authApi.refresh()
       session.setToken(token.access_token)
-      await Promise.all([profile.fetchMe(), tenancy.fetchTenants(), subscription.fetchSubscriptionStatus()])
+      await Promise.all([profile.fetchMe(), organizationStore.fetchOrganizations(), subscription.fetchSubscriptionStatus()])
     } catch {
       // No valid session cookie - proceed as unauthenticated.
     }
@@ -42,7 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email: string, password: string): Promise<void> {
     const { data: token } = await authApi.login(email, password)
     setSession(token)
-    await Promise.all([profile.fetchMe(), tenancy.fetchTenants(), subscription.fetchSubscriptionStatus()])
+    await Promise.all([profile.fetchMe(), organizationStore.fetchOrganizations(), subscription.fetchSubscriptionStatus()])
   }
 
   async function logout(): Promise<void> {
@@ -61,14 +61,14 @@ export const useAuthStore = defineStore('auth', () => {
       password,
     })
     setSession(token)
-    await Promise.all([profile.fetchMe(), tenancy.fetchTenants(), subscription.fetchSubscriptionStatus()])
+    await Promise.all([profile.fetchMe(), organizationStore.fetchOrganizations(), subscription.fetchSubscriptionStatus()])
   }
 
-  async function switchTenant(tenantId: number): Promise<void> {
-    const { data: token } = await authApi.switchTenant({ tenant_id: tenantId })
+  async function switchOrganization(organizationId: number): Promise<void> {
+    const { data: token } = await authApi.switchOrganization({ organization_id: organizationId })
     setSession(token)
     await Promise.all([profile.fetchMe(), subscription.fetchSubscriptionStatus()])
-    // tenants list does not change on switch
+    // organizations list does not change on switch
   }
 
   return {
@@ -81,6 +81,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     completeRegistration,
-    switchTenant,
+    switchOrganization,
   }
 })

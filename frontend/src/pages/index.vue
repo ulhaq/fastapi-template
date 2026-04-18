@@ -19,8 +19,8 @@ meta:
         icon-color="text-blue-500"
       />
       <StatCard
-        :label="$t('dashboard.tenants')"
-        :value="stats.tenants"
+        :label="$t('dashboard.organizations')"
+        :value="stats.organizations"
         :icon="Building2"
         :loading="loading"
         icon-bg="bg-violet-50 dark:bg-violet-950"
@@ -59,14 +59,14 @@ import { usePermission } from '@/composables/usePermission'
 const { hasPermission } = usePermission()
 
 const loading = ref(true)
-const stats = ref<{ users: number | string; tenants: number | string; roles: number | string; permissions: number | string }>({ users: 0, tenants: 0, roles: 0, permissions: 0 })
+const stats = ref<{ users: number | string; organizations: number | string; roles: number | string; permissions: number | string }>({ users: 0, organizations: 0, roles: 0, permissions: 0 })
 
 onMounted(async () => {
   const requests = []
   if (hasPermission('read:user')) requests.push(usersApi.list({ page_size: 10 }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  if (hasPermission('read:tenant')) requests.push(usersApi.getMyTenants())
+  if (hasPermission('read:organization')) requests.push(usersApi.getMyOrganizations())
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
   if (hasPermission('read:role')) requests.push(rolesApi.list({ page_size: 10 }))
@@ -75,12 +75,11 @@ onMounted(async () => {
   if (hasPermission('read:permission')) requests.push(permissionsApi.list({ page_size: 10 }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  const [users, tenants, roles, permissions] = await Promise.allSettled(requests)
+  const [users, organizations, roles, permissions] = await Promise.allSettled(requests)
 
-  console.log(tenants)
   stats.value = {
     users: users.status === 'fulfilled' ? (users.value as { data: { total: number } }).data.total : '-',
-    tenants: tenants.status === 'fulfilled' ? tenants.value.data.length : '-',
+    organizations: organizations.status === 'fulfilled' ? organizations.value.data.length : '-',
     roles: roles.status === 'fulfilled' ? (roles.value as { data: { total: number } }).data.total : '-',
     permissions: permissions.status === 'fulfilled' ? (permissions.value as { data: { total: number } }).data.total : '-',
   }

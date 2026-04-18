@@ -2,8 +2,8 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ $t('tenants.usersDialog.title') }}</DialogTitle>
-        <DialogDescription>{{ $t('tenants.usersDialog.description', { name: tenant?.name }) }}</DialogDescription>
+        <DialogTitle>{{ $t('organizations.usersDialog.title') }}</DialogTitle>
+        <DialogDescription>{{ $t('organizations.usersDialog.description', { name: organization?.name }) }}</DialogDescription>
       </DialogHeader>
 
       <div v-if="loading" class="py-4 space-y-2">
@@ -24,7 +24,7 @@
               <p class="text-xs text-muted-foreground">{{ user.email }}</p>
             </div>
           </div>
-          <PermissionGuard permission="manage:tenant_user">
+          <PermissionGuard permission="manage:organization_user">
             <Button variant="ghost" size="sm" class="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" @click="removeUser(user.id)">
               <X class="w-4 h-4" />
             </Button>
@@ -32,8 +32,8 @@
         </div>
         <EmptyState
           v-if="!users.length"
-          :title="$t('tenants.usersDialog.noMembers')"
-          :description="$t('tenants.usersDialog.noUsers')"
+          :title="$t('organizations.usersDialog.noMembers')"
+          :description="$t('organizations.usersDialog.noUsers')"
         />
       </div>
 
@@ -53,11 +53,11 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
-import { tenantsApi } from '@/api/tenants'
-import type { TenantOut, UserOut } from '@/types'
+import { organizationsApi } from '@/api/organizations'
+import type { OrganizationOut, UserOut } from '@/types'
 import { useToast } from '@/composables/useToast'
 
-const props = defineProps<{ open: boolean; tenant?: TenantOut | null }>()
+const props = defineProps<{ open: boolean; organization?: OrganizationOut | null }>()
 defineEmits<{ 'update:open': [boolean] }>()
 
 const { toast } = useToast()
@@ -66,10 +66,10 @@ const users = ref<UserOut[]>([])
 const loading = ref(false)
 
 watch(() => props.open, async (open) => {
-  if (!open || !props.tenant) return
+  if (!open || !props.organization) return
   loading.value = true
   try {
-    const { data } = await tenantsApi.getUsers(props.tenant.id)
+    const { data } = await organizationsApi.getUsers(props.organization.id)
     users.value = data.items
   } finally {
     loading.value = false
@@ -77,13 +77,13 @@ watch(() => props.open, async (open) => {
 })
 
 async function removeUser(userId: number) {
-  if (!props.tenant) return
+  if (!props.organization) return
   try {
-    await tenantsApi.removeUser(props.tenant.id, userId)
+    await organizationsApi.removeUser(props.organization.id, userId)
     users.value = users.value.filter((u) => u.id !== userId)
-    toast({ title: t('tenants.usersDialog.userRemoved') })
+    toast({ title: t('organizations.usersDialog.userRemoved') })
   } catch {
-    toast({ title: t('tenants.usersDialog.removeFailed'), variant: 'destructive' })
+    toast({ title: t('organizations.usersDialog.removeFailed'), variant: 'destructive' })
   }
 }
 

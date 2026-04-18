@@ -313,7 +313,7 @@ def test_owner_cannot_register_a_new_account(
     assert rs["msg"] == "Account already exists. [email=admin@example.org]"
 
 
-def test_non_owner_user_can_register_new_tenant(
+def test_non_owner_user_can_register_new_organization(
     client: TestClient,
 ) -> None:
     response = client.post(
@@ -532,7 +532,7 @@ def test_invited_user_can_login(
     assert response.json()["access_token"]
 
 
-def test_invited_user_is_added_to_tenant_with_roles(
+def test_invited_user_is_added_to_organization_with_roles(
     mocker: MockerFixture, admin_authenticated: TestClient, client: TestClient
 ) -> None:
     mock_send = mocker.patch("src.services.user.send_email")

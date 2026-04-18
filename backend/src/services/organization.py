@@ -1,0 +1,269 @@
+import logging
+from datetime import UTC, datetime
+from typing import Annotated
+
+from fastapi import Depends
+
+from src.core.dependencies import authenticate
+from src.core.exceptions import (
+    AlreadyExistsException,
+    NotFoundException,
+    PermissionDeniedException,
+)
+from src.core.security import Auth
+from src.enums import OWNER_ROLE_NAME, Permission
+from src.models.organization import Organization
+from src.models.user import User
+from src.repositories.organization import OrganizationRepository
+from src.repositories.repository_manager import RepositoryManager
+from src.schemas.common import PageQueryParams, PaginatedResponse
+from src.schemas.organization import (
+    OrganizationBase,
+    OrganizationOut,
+    OrganizationPatch,
+)
+from src.schemas.user import UserOut
+from src.services.base import ResourceService
+
+log = logging.getLogger(__name__)
+
+
+async def _setup_new_organization(
+    repos: RepositoryManager,
+    organization: Organization,
+    user: User,
+) -> None:
+    permissions = await repos.permission.get_all()
+    owner_role = await repos.role.create(
+        name=OWNER_ROLE_NAME,
+        description="Full access to all system features and settings.",
+        is_protected=True,
+        organization=organization,
+    )
+    await repos.role.add_permissions(owner_role, *[p.id for p in permissions])
+    await repos.user.add_roles(user, owner_role.id)
+
+    # Create a local active free subscription. No Stripe customer or subscription
+    # is created here - the free plan is local-only. A Stripe customer is created
+    # when the user starts a trial or paid checkout.
+    free_price = await repos.plan_price.get_free_price()
+    if free_price:
+        await repos.subscription.create(
+            organization_id=organization.id,
+            plan_price_id=free_price.id,
+            status="active",
+        )
+    else:
+        log.warning(
+            "No free plan found - skipping auto-subscription for organization %s",
+            organization.id,
+        )
+
+
+class OrganizationService(
+    ResourceService[
+        OrganizationRepository,
+        Organization,
+        OrganizationBase | OrganizationPatch,
+        OrganizationOut,
+    ]
+):
+    current_user: Auth
+
+    def __init__(
+        self,
+        repos: Annotated[RepositoryManager, Depends()],
+        current_user: Annotated[Auth, Depends(authenticate)],
+    ) -> None:
+        self.repo = repos.organization
+        self.current_user = current_user
+        super().__init__(repos)
+
+    async def get(self, identifier: int, include_deleted: bool = False) -> Organization:
+        membership = await self.repos.user_organization.get_by_user_and_organization(
+            self.current_user.id, identifier
+        )
+        if not membership:
+            raise PermissionDeniedException(
+                "You are not allowed to access other organizations"
+            )
+        return await super().get(identifier, include_deleted=include_deleted)
+
+    async def paginate(
+        self,
+        schema_out: type[OrganizationOut],
+        page_query_params: PageQueryParams,
+        include_deleted: bool = False,
+    ) -> PaginatedResponse[OrganizationOut]:
+        return await super().paginate(
+            schema_out=schema_out,
+            page_query_params=page_query_params,
+            include_deleted=include_deleted,
+        )
+
+    async def get_all_organizations(self) -> list[OrganizationOut]:
+        memberships = await self.repos.user_organization.get_all_for_user(
+            self.current_user.id
+        )
+        organization_ids = [m.organization_id for m in memberships]
+        organizations = await self.repos.organization.filter_by_ids(organization_ids)
+        organization_map = {o.id: o for o in organizations}
+        return [
+            OrganizationOut.model_validate(organization_map[oid])
+            for oid in organization_ids
+            if oid in organization_map
+        ]
+
+    async def create_organization(self, schema_in: OrganizationBase) -> OrganizationOut:
+        existing = await self.repo.get_one_by_name(schema_in.name, include_deleted=True)
+        if existing is not None and existing.deleted_at is None:
+            raise AlreadyExistsException(
+                f"Organization already exists. [name={schema_in.name}]"
+            )
+
+        if existing is not None and existing.deleted_at is not None:
+            organization = await self.repo.restore(existing)
+        else:
+            organization = await self.repo.create(name=schema_in.name)
+
+        await self.repos.user_organization.create(
+            user_id=self.current_user.id,
+            organization_id=organization.id,
+            last_active_at=datetime.now(UTC),
+        )
+
+        user = await self.repos.user.get_one(self.current_user.id)
+        await _setup_new_organization(self.repos, organization, user)
+
+        return OrganizationOut.model_validate(organization)
+
+    async def patch_organization(
+        self, identifier: int, schema_in: OrganizationPatch
+    ) -> OrganizationOut:
+        async def validate() -> None:
+            if schema_in.name:
+                existing_org = await self.repo.get_one_by_name(schema_in.name)
+                if existing_org and existing_org.id != identifier:
+                    raise AlreadyExistsException(
+                        f"Organization already exists. [name={schema_in.name}]"
+                    )
+
+        return OrganizationOut.model_validate(
+            await super().patch(identifier, schema_in, validate)
+        )
+
+    async def get_organization(self, identifier: int) -> OrganizationOut:
+        return OrganizationOut.model_validate(await self.get(identifier))
+
+    async def delete_organization(
+        self, identifier: int, force_delete: bool = False
+    ) -> None:
+        await super().delete(identifier, force_delete=force_delete)
+
+    async def add_user_to_organization(
+        self, organization_id: int, user_id: int
+    ) -> None:
+        if organization_id != self.current_user.organization_id:
+            raise PermissionDeniedException(
+                "You can only manage users in your active organization"
+            )
+
+        await self.get(
+            organization_id
+        )  # validates organization exists and caller has access
+
+        user = await self.repos.user.get(user_id)
+        if not user:
+            raise NotFoundException(f"User not found. [user_id={user_id}]")
+
+        existing = await self.repos.user_organization.get_by_user_and_organization(
+            user_id, organization_id
+        )
+        if existing:
+            raise AlreadyExistsException(
+                "User is already a member of this organization"
+            )
+
+        await self.repos.user_organization.create(
+            user_id=user_id,
+            organization_id=organization_id,
+        )
+
+    async def remove_user_from_organization(
+        self, organization_id: int, user_id: int
+    ) -> None:
+        if organization_id != self.current_user.organization_id:
+            raise PermissionDeniedException(
+                "You can only manage users in your active organization"
+            )
+
+        membership = await self.repos.user_organization.get_by_user_and_organization(
+            user_id, organization_id
+        )
+        if not membership:
+            raise NotFoundException("User is not a member of this organization")
+
+        user = await self.repos.user.get(user_id)
+        if user:
+            self.repos.user.set_organization_scope(organization_id)
+            organization_roles = [
+                r for r in user.roles if r.organization_id == organization_id
+            ]
+            user_permissions = {
+                p.name for role in organization_roles for p in role.permissions
+            }
+            if Permission.MANAGE_USER_ROLE.value in user_permissions:
+                if not await self.repos.user.has_other_user_with_permission(
+                    Permission.MANAGE_USER_ROLE.value, exclude_user_id=user_id
+                ):
+                    raise PermissionDeniedException(
+                        "Cannot remove this user: organization must retain "
+                        "at least one user with role management access"
+                    )
+
+            # Invalidate refresh token if this was the user's active organization
+            active = (
+                await self.repos.user_organization.get_active_organization_for_user(
+                    user_id
+                )
+            )
+            if active and active.organization_id == organization_id:
+                await self.repos.refresh_token.delete_by_user(user)
+
+        await self.repos.user_organization.force_delete(membership)
+
+    async def get_organization_users(
+        self, organization_id: int, page_query_params: PageQueryParams
+    ) -> PaginatedResponse[UserOut]:
+        await self.get(organization_id)  # validates access
+
+        self.repos.user.set_organization_scope(organization_id)
+        items, total = await self.repos.user.paginate(
+            sort=page_query_params.sort,
+            filters=page_query_params.filters,
+            page_size=page_query_params.page_size,
+            page_number=page_query_params.page_number,
+        )
+        result = [
+            UserOut.model_validate(
+                {
+                    "id": user.id,
+                    "name": user.name,
+                    "email": user.email,
+                    "created_at": user.created_at,
+                    "updated_at": user.updated_at,
+                    "roles": [
+                        role
+                        for role in user.roles
+                        if role.organization_id == organization_id
+                    ],
+                }
+            )
+            for user in items
+        ]
+        return PaginatedResponse(
+            items=result,
+            page_number=page_query_params.page_number,
+            page_size=page_query_params.page_size,
+            total=total,
+        )

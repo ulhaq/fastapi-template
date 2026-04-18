@@ -1,16 +1,16 @@
 <route lang="yaml">
 meta:
-  permission: read:tenant
-  breadcrumb: nav.tenants
+  permission: read:organization
+  breadcrumb: nav.organizations
 </route>
 
 <template>
   <div class="animate-fade-in">
-    <PageHeader :title="$t('tenants.title')" :description="$t('tenants.description')">
+    <PageHeader :title="$t('organizations.title')" :description="$t('organizations.description')">
       <template #actions>
         <Button size="sm" @click="openCreate">
           <Plus class="w-4 h-4 mr-2" />
-          {{ $t('tenants.createTenant') }}
+          {{ $t('organizations.createOrganization') }}
         </Button>
       </template>
     </PageHeader>
@@ -20,8 +20,8 @@ meta:
       :items="items"
       :total="total"
       :loading="isLoading"
-      :empty-title="$t('tenants.noTenantsFound')"
-      :empty-description="$t('tenants.createFirstTenant')"
+      :empty-title="$t('organizations.noOrganizationsFound')"
+      :empty-description="$t('organizations.createFirstOrganization')"
       :show-pagination="false"
       @sort="setSort"
     >
@@ -38,14 +38,14 @@ meta:
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem @click="openUsers(item)" class="cursor-pointer">
-              <Users class="w-4 h-4 mr-2" />{{ $t('tenants.viewMembers') }}
+              <Users class="w-4 h-4 mr-2" />{{ $t('organizations.viewMembers') }}
             </DropdownMenuItem>
-            <PermissionGuard permission="update:tenant">
+            <PermissionGuard permission="update:organization">
               <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
                 <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
               </DropdownMenuItem>
             </PermissionGuard>
-            <PermissionGuard permission="delete:tenant">
+            <PermissionGuard permission="delete:organization">
               <DropdownMenuSeparator />
               <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
                 <Trash2 class="w-4 h-4 mr-2" />{{ $t('common.delete') }}
@@ -56,8 +56,8 @@ meta:
       </template>
     </DataTable>
 
-    <TenantForm v-model:open="showForm" :tenant="selectedTenant" @saved="refresh" />
-    <TenantUsersDialog v-model:open="showUsers" :tenant="selectedTenant" />
+    <OrganizationForm v-model:open="showForm" :organization="selectedOrganization" @saved="refresh" />
+    <OrganizationUsersDialog v-model:open="showUsers" :organization="selectedOrganization" />
   </div>
 </template>
 
@@ -71,48 +71,48 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
-import TenantForm from '@/components/tenants/TenantForm.vue'
-import TenantUsersDialog from '@/components/tenants/TenantUsersDialog.vue'
-import { tenantsApi } from '@/api/tenants'
+import OrganizationForm from '@/components/organizations/OrganizationForm.vue'
+import OrganizationUsersDialog from '@/components/organizations/OrganizationUsersDialog.vue'
+import { organizationsApi } from '@/api/organizations'
 import { usersApi } from '@/api/users'
 import { useDataTable } from '@/composables/useDataTable'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
-import type { TenantOut } from '@/types'
+import type { OrganizationOut } from '@/types'
 
 const { t } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 
 const columns = [
-  { key: 'name', label: t('tenants.columns.name'), sortable: true },
-  { key: 'created_at', label: t('tenants.columns.created'), sortable: true },
+  { key: 'name', label: t('organizations.columns.name'), sortable: true },
+  { key: 'created_at', label: t('organizations.columns.created'), sortable: true },
 ]
 
 const { items, total, isLoading, setSort, refresh } =
-  useDataTable<TenantOut>({ fetcher: usersApi.getMyTenants, defaultPageSize: 1000 })
+  useDataTable<OrganizationOut>({ fetcher: usersApi.getMyOrganizations, defaultPageSize: 1000 })
 
 const showForm = ref(false)
 const showUsers = ref(false)
-const selectedTenant = ref<TenantOut | null>(null)
+const selectedOrganization = ref<OrganizationOut | null>(null)
 
-function openCreate() { selectedTenant.value = null; showForm.value = true }
-function openEdit(tenant: TenantOut) { selectedTenant.value = tenant; showForm.value = true }
-function openUsers(tenant: TenantOut) { selectedTenant.value = tenant; showUsers.value = true }
+function openCreate() { selectedOrganization.value = null; showForm.value = true }
+function openEdit(organization: OrganizationOut) { selectedOrganization.value = organization; showForm.value = true }
+function openUsers(organization: OrganizationOut) { selectedOrganization.value = organization; showUsers.value = true }
 
-async function handleDelete(tenant: TenantOut) {
+async function handleDelete(organization: OrganizationOut) {
   const ok = await confirm(
-    t('tenants.deleteTitle'),
-    t('tenants.deleteDescription', { name: tenant.name }),
+    t('organizations.deleteTitle'),
+    t('organizations.deleteDescription', { name: organization.name }),
     t('common.delete'),
   )
   if (!ok) return
   try {
-    await tenantsApi.delete(tenant.id)
-    toast({ title: t('tenants.deleted') })
+    await organizationsApi.delete(organization.id)
+    toast({ title: t('organizations.deleted') })
     refresh()
   } catch {
-    toast({ title: t('tenants.deleteFailed'), variant: 'destructive' })
+    toast({ title: t('organizations.deleteFailed'), variant: 'destructive' })
   }
 }
 

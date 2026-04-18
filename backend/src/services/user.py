@@ -41,14 +41,16 @@ class UserService(
         provider: BillingProviderDep,
     ):
         self.repo = repos.user
-        self.repo.set_tenant_scope(current_user.tenant_id)
+        self.repo.set_organization_scope(current_user.organization_id)
         self.current_user = current_user
         self.provider = provider
         super().__init__(repos)
 
     def _user_out(self, user: User) -> UserOut:
-        tenant_roles = [
-            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        organization_roles = [
+            r
+            for r in user.roles
+            if r.organization_id == self.current_user.organization_id
         ]
         return UserOut.model_validate(
             {
@@ -57,16 +59,22 @@ class UserService(
                 "email": user.email,
                 "created_at": user.created_at,
                 "updated_at": user.updated_at,
-                "roles": tenant_roles,
+                "roles": organization_roles,
             }
         )
 
     async def _assert_not_last_owner(self, user: User, new_roles: list) -> None:
-        tenant_roles = [
-            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        organization_roles = [
+            r
+            for r in user.roles
+            if r.organization_id == self.current_user.organization_id
         ]
         owner_role = next(
-            (r for r in tenant_roles if r.is_protected and r.name == OWNER_ROLE_NAME),
+            (
+                r
+                for r in organization_roles
+                if r.is_protected and r.name == OWNER_ROLE_NAME
+            ),
             None,
         )
         if owner_role is None:
@@ -77,22 +85,26 @@ class UserService(
             owner_role.id, exclude_user_id=user.id
         ):
             raise PermissionDeniedException(
-                "Cannot remove the last Owner from a tenant",
+                "Cannot remove the last Owner from a organization",
                 error_code=ErrorCode.LAST_OWNER_REMOVAL,
             )
 
     async def _assert_not_last_admin(self, user: User) -> None:
-        tenant_roles = [
-            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        organization_roles = [
+            r
+            for r in user.roles
+            if r.organization_id == self.current_user.organization_id
         ]
-        user_permissions = {p.name for role in tenant_roles for p in role.permissions}
+        user_permissions = {
+            p.name for role in organization_roles for p in role.permissions
+        }
         if Permission.MANAGE_USER_ROLE.value not in user_permissions:
             return
         if not await self.repo.has_other_user_with_permission(
             Permission.MANAGE_USER_ROLE.value, exclude_user_id=user.id
         ):
             raise PermissionDeniedException(
-                "Cannot perform this action: tenant must retain at least one "
+                "Cannot perform this action: organization must retain at least one "
                 "user with role management access"
             )
 
@@ -132,17 +144,21 @@ class UserService(
         user = await super().patch(self.current_user.id, schema_in, validate)
 
         if schema_in.email:
-            tenant_roles = [
-                r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+            organization_roles = [
+                r
+                for r in user.roles
+                if r.organization_id == self.current_user.organization_id
             ]
             is_owner = any(
-                r.is_protected and r.name == OWNER_ROLE_NAME for r in tenant_roles
+                r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles
             )
             if is_owner:
-                tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-                if tenant and tenant.external_customer_id:
+                organization = await self.repos.organization.get(
+                    self.current_user.organization_id
+                )
+                if organization and organization.external_customer_id:
                     await self.provider.update_customer(
-                        tenant.external_customer_id, email=schema_in.email
+                        organization.external_customer_id, email=schema_in.email
                     )
 
         return self._user_out(user)
@@ -171,19 +187,23 @@ class UserService(
     ) -> None:
         existing = await self.repo.get_by_email(invite_in.email)
         if existing:
-            membership = await self.repos.user_tenant.get_by_user_and_tenant(
-                user_id=existing.id, tenant_id=self.current_user.tenant_id
+            membership = (
+                await self.repos.user_organization.get_by_user_and_organization(
+                    user_id=existing.id,
+                    organization_id=self.current_user.organization_id,
+                )
             )
             if membership:
                 raise AlreadyExistsException(
-                    f"User already exists in this tenant. [email={invite_in.email}]",
+                    "User already exists in this organization."
+                    f" [email={invite_in.email}]",
                     error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
                 )
 
         token = sign(
             data={
                 "email": invite_in.email,
-                "tenant_id": self.current_user.tenant_id,
+                "organization_id": self.current_user.organization_id,
                 "role_ids": invite_in.role_ids,
             },
             salt="invite",
@@ -194,21 +214,23 @@ class UserService(
             email=invite_in.email, token=hash_secret(token)
         )
 
-        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-        if not tenant:
-            raise NotFoundException("Tenant not found.")
+        organization = await self.repos.organization.get(
+            self.current_user.organization_id
+        )
+        if not organization:
+            raise NotFoundException("Organization not found.")
 
         schedule_task(
             send_email,
             address=invite_in.email,
             user_name=invite_in.email,
-            subject=f"You've been invited to {tenant.name}",
+            subject=f"You've been invited to {organization.name}",
             email_template="invite-user",
             data={
                 "invite_url": (
                     f"{settings.frontend_url}/{settings.frontend_invite_path}{token}"
                 ),
-                "tenant_name": tenant.name,
+                "organization_name": organization.name,
                 "expiration_days": settings.invite_expiry // (60 * 60 * 24),
             },
         )
@@ -229,20 +251,22 @@ class UserService(
         new_roles: list[Role] = []
 
         if schema_in.role_ids:
-            self.repos.role.set_tenant_scope(self.current_user.tenant_id)
+            self.repos.role.set_organization_scope(self.current_user.organization_id)
             new_roles = list(await self.repos.role.filter_by_ids(schema_in.role_ids))
             if len(new_roles) != len(schema_in.role_ids):
                 raise PermissionDeniedException(
-                    "One or more roles do not belong to your tenant"
+                    "One or more roles do not belong to your organization"
                 )
 
         manage_permission = Permission.MANAGE_USER_ROLE.value
-        tenant_user_roles = [
-            r for r in user.roles if r.tenant_id == self.current_user.tenant_id
+        organization_user_roles = [
+            r
+            for r in user.roles
+            if r.organization_id == self.current_user.organization_id
         ]
         user_has_manage_permission = any(
             manage_permission in {p.name for p in role.permissions}
-            for role in tenant_user_roles
+            for role in organization_user_roles
         )
         new_roles_have_manage_permission = any(
             manage_permission in {p.name for p in role.permissions}
@@ -253,7 +277,7 @@ class UserService(
 
         await self._assert_not_last_owner(user, new_roles)
 
-        current_roles = {role.id for role in tenant_user_roles}
+        current_roles = {role.id for role in organization_user_roles}
         schema_in_role_ids = set(schema_in.role_ids)
 
         if roles_to_add := schema_in_role_ids - current_roles:

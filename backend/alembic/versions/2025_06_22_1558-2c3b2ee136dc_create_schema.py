@@ -22,7 +22,7 @@ def upgrade() -> None:
     # Standalone tables (no foreign keys)
 
     op.create_table(
-        "tenant",
+        "organization",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
@@ -30,7 +30,7 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_tenant_name"), "tenant", ["name"])
+    op.create_index(op.f("ix_organization_name"), "organization", ["name"])
 
     op.create_table(
         "permission",
@@ -67,14 +67,14 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
-        sa.Column("tenant_id", sa.Integer(), nullable=False),
+        sa.Column("organization_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["tenant_id"],
-            ["tenant.id"],
-            name="fk_role_tenant_id_tenant",
+            ["organization_id"],
+            ["organization.id"],
+            name="fk_role_organization_id_organization",
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
@@ -84,17 +84,17 @@ def upgrade() -> None:
     # Junction tables
 
     op.create_table(
-        "user_tenant",
+        "user_organization",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("tenant_id", sa.Integer(), nullable=False),
+        sa.Column("organization_id", sa.Integer(), nullable=False),
         sa.Column("last_active_at", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["tenant_id"], ["tenant.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["organization_id"], ["organization.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("user_id", "tenant_id", name="uq_user_tenant"),
+        sa.UniqueConstraint("user_id", "organization_id", name="uq_user_organization"),
     )
 
     op.create_table(
@@ -168,12 +168,12 @@ def downgrade() -> None:
     op.drop_table("password_reset_token")
     op.drop_table("role_permission")
     op.drop_table("user_role")
-    op.drop_table("user_tenant")
+    op.drop_table("user_organization")
     op.drop_index(op.f("ix_role_name"), table_name="role")
     op.drop_table("role")
     op.drop_index(op.f("ix_user_name"), table_name="user")
     op.drop_table("user")
     op.drop_index(op.f("ix_permission_name"), table_name="permission")
     op.drop_table("permission")
-    op.drop_index(op.f("ix_tenant_name"), table_name="tenant")
-    op.drop_table("tenant")
+    op.drop_index(op.f("ix_organization_name"), table_name="organization")
+    op.drop_table("organization")

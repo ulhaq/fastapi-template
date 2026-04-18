@@ -26,11 +26,11 @@ from src.core.security import hash_secret
 from src.enums import PERMISSION_DESCRIPTIONS
 from src.enums import Permission as PermissionEnum
 from src.main import app
-from src.models.tenant import Tenant
+from src.models.organization import Organization
 from src.models.role import Role
 from src.models.permission import Permission
 from src.models.user import User
-from src.models.user_tenant import UserTenant
+from src.models.user_organization import UserOrganization
 from src.init_db import INIT_AUTH_DATA
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -56,10 +56,10 @@ async def prepare_database() -> AsyncGenerator[None]:
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestSessionLocal() as session:
-        tenants = []
-        for tenant in INIT_AUTH_DATA["tenants"]:
-            tenants.append(Tenant(name=tenant["name"]))
-        session.add_all(tenants)
+        organizations = []
+        for organization in INIT_AUTH_DATA["organizations"]:
+            organizations.append(Organization(name=organization["name"]))
+        session.add_all(organizations)
 
         permissions = []
         for permission in PermissionEnum:
@@ -78,7 +78,7 @@ async def prepare_database() -> AsyncGenerator[None]:
                     name=role["name"],
                     description=role["description"],
                     is_protected=role.get("is_protected", False),
-                    tenant=tenants[role["tenant"] - 1],
+                    organization=organizations[role["organization"] - 1],
                     permissions=[
                         permission
                         for permission in permissions
@@ -106,16 +106,16 @@ async def prepare_database() -> AsyncGenerator[None]:
 
         await session.flush()
 
-        user_tenants = []
+        user_organizations = []
         for user_data, user in zip(INIT_AUTH_DATA["users"], users):
-            user_tenants.append(
-                UserTenant(
+            user_organizations.append(
+                UserOrganization(
                     user_id=user.id,
-                    tenant_id=tenants[user_data["tenant"] - 1].id,
+                    organization_id=organizations[user_data["organization"] - 1].id,
                     last_active_at=datetime.now(UTC),
                 )
             )
-        session.add_all(user_tenants)
+        session.add_all(user_organizations)
 
         # Seed free plan - local-only, no Stripe product/price IDs
         free_plan = Plan(
@@ -138,15 +138,15 @@ async def prepare_database() -> AsyncGenerator[None]:
         session.add(free_price)
         await session.flush()
 
-        # Seed a free subscription for each test tenant, matching what
-        # _setup_new_tenant does in production. No Stripe customer is created
-        # at registration - external_customer_id is set when the tenant starts
+        # Seed a free subscription for each test organization, matching what
+        # _setup_new_organization does in production. No Stripe customer is created
+        # at registration - external_customer_id is set when the organization starts
         # a trial or paid checkout. Tests that need a paid subscription
         # activate it via checkout + webhook helpers (which will stamp the ID).
-        for tenant in tenants:
+        for organization in organizations:
             session.add(
                 Subscription(
-                    tenant_id=tenant.id,
+                    organization_id=organization.id,
                     plan_price_id=free_price.id,
                     status="active",
                 )
@@ -188,7 +188,7 @@ def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
     mock.archive_price.return_value = None
     _cus_ids = {1: "cus_test123", 2: "cus_test456"}
     mock.get_or_create_customer.side_effect = (
-        lambda *, tenant_id, **kw: _cus_ids.get(tenant_id, f"cus_{tenant_id}")
+        lambda *, organization_id, **kw: _cus_ids.get(organization_id, f"cus_{organization_id}")
     )
     mock.create_checkout_session.return_value = CheckoutResult(
         checkout_url="https://checkout.stripe.com/test_session",
@@ -283,7 +283,7 @@ def standard_authenticated(client: TestClient) -> TestClient:
 
 
 @pytest.fixture
-def tenant2_admin_authenticated() -> Generator[TestClient, None, None]:
+def organization2_admin_authenticated() -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         rs = c.post(
             "/v1/auth/token",

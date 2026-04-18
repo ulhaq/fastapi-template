@@ -138,19 +138,19 @@ class StripeProvider(BillingProviderABC):
             raise BillingProviderException(str(exc)) from exc
 
     async def get_or_create_customer(
-        self, tenant_id: int, tenant_name: str, email: str | None = None
+        self, organization_id: int, organization_name: str, email: str | None = None
     ) -> str:
         try:
             existing = await stripe.Customer.search_async(
-                query=f'metadata["tenant_id"]:"{tenant_id}"',
+                query=f'metadata["organization_id"]:"{organization_id}"',
                 api_key=self._api_key,
             )
             if existing.data:
                 return existing.data[0].id
 
             params: dict = {
-                "name": tenant_name,
-                "metadata": {"tenant_id": str(tenant_id)},
+                "name": organization_name,
+                "metadata": {"organization_id": str(organization_id)},
             }
             if email:
                 params["email"] = email

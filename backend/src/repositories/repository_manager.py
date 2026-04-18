@@ -13,12 +13,12 @@ from src.repositories.billing import (
     WebhookEventRepository,
 )
 from src.repositories.email_verification_token import EmailVerificationTokenRepository
+from src.repositories.organization import OrganizationRepository
 from src.repositories.permission import PermissionRepository
 from src.repositories.refresh_token import RefreshTokenRepository
 from src.repositories.role import RoleRepository
-from src.repositories.tenant import TenantRepository
 from src.repositories.user import UserRepository
-from src.repositories.user_tenant import UserTenantRepository
+from src.repositories.user_organization import UserOrganizationRepository
 
 
 class RepositoryManager:  # pylint: disable=too-many-instance-attributes
@@ -26,12 +26,12 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
 
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> None:
         self.db = db
-        self._tenant: TenantRepository | None = None
+        self._organization: OrganizationRepository | None = None
         self._user: UserRepository | None = None
         self._role: RoleRepository | None = None
         self._permission: PermissionRepository | None = None
         self._refresh_token: RefreshTokenRepository | None = None
-        self._user_tenant: UserTenantRepository | None = None
+        self._user_organization: UserOrganizationRepository | None = None
         self._plan: PlanRepository | None = None
         self._plan_price: PlanPriceRepository | None = None
         self._subscription: SubscriptionRepository | None = None
@@ -39,10 +39,10 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         self._email_verification_token: EmailVerificationTokenRepository | None = None
 
     @property
-    def tenant(self) -> TenantRepository:
-        if self._tenant is None:
-            self._tenant = TenantRepository(self.db)
-        return self._tenant
+    def organization(self) -> OrganizationRepository:
+        if self._organization is None:
+            self._organization = OrganizationRepository(self.db)
+        return self._organization
 
     @property
     def user(self) -> UserRepository:
@@ -69,10 +69,10 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         return self._refresh_token
 
     @property
-    def user_tenant(self) -> UserTenantRepository:
-        if self._user_tenant is None:
-            self._user_tenant = UserTenantRepository(self.db)
-        return self._user_tenant
+    def user_organization(self) -> UserOrganizationRepository:
+        if self._user_organization is None:
+            self._user_organization = UserOrganizationRepository(self.db)
+        return self._user_organization
 
     @property
     def plan(self) -> PlanRepository:

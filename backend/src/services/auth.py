@@ -37,7 +37,7 @@ from src.schemas.user import (
     VerifyEmailIn,
 )
 from src.services.base import BaseService
-from src.services.tenant import _setup_new_tenant
+from src.services.organization import _setup_new_organization
 from src.services.utils import send_email
 
 log = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class AuthService(BaseService):
         self.provider = provider
         super().__init__(repos)
 
-    async def register_tenant(
+    async def register_organization(
         self, email_in: EmailIn, schedule_task: Callable
     ) -> RegisterOut:
         existing = await self.repos.user.get_by_email(email_in.email)
@@ -65,14 +65,16 @@ class AuthService(BaseService):
                     error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
                 )
 
-            # Existing non-owner user - create a new tenant for them immediately
-            tenant = await self.repos.tenant.create(name=f"{existing.name}'s Tenant")
-            await self.repos.user_tenant.create(
+            # Existing non-owner user - create a new organization for them immediately
+            organization = await self.repos.organization.create(
+                name=f"{existing.name}'s Organization"
+            )
+            await self.repos.user_organization.create(
                 user_id=existing.id,
-                tenant_id=tenant.id,
+                organization_id=organization.id,
                 last_active_at=datetime.now(UTC),
             )
-            await _setup_new_tenant(self.repos, tenant, existing)
+            await _setup_new_organization(self.repos, organization, existing)
             schedule_task(
                 send_email,
                 address=email_in.email,
@@ -142,16 +144,18 @@ class AuthService(BaseService):
             password=hashed_pw,
         )
 
-        tenant = await self.repos.tenant.create(name=f"{schema_in.name}'s Tenant")
-        await self.repos.user_tenant.create(
+        organization = await self.repos.organization.create(
+            name=f"{schema_in.name}'s Organization"
+        )
+        await self.repos.user_organization.create(
             user_id=user.id,
-            tenant_id=tenant.id,
+            organization_id=organization.id,
             last_active_at=datetime.now(UTC),
         )
 
-        await _setup_new_tenant(self.repos, tenant, user)
+        await _setup_new_organization(self.repos, organization, user)
 
-        # Re-fetch user so roles assigned by _setup_new_tenant are loaded
+        # Re-fetch user so roles assigned by _setup_new_organization are loaded
         user = await self.repos.user.get_one(user.id)
 
         schedule_task(
@@ -164,7 +168,7 @@ class AuthService(BaseService):
         )
 
         access_token = create_token(
-            user, settings.auth_access_token_expiry, tenant_id=tenant.id
+            user, settings.auth_access_token_expiry, organization_id=organization.id
         )
         refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False
@@ -186,7 +190,7 @@ class AuthService(BaseService):
             max_age=settings.invite_expiry,
         )
         email: str = data["email"]
-        tenant_id: int = data["tenant_id"]
+        organization_id: int = data["organization_id"]
         role_ids: list[int] = data.get("role_ids", [])
 
         record = await self.repos.email_verification_token.get_by_email(email)
@@ -210,14 +214,14 @@ class AuthService(BaseService):
             password=hashed_pw,
         )
 
-        await self.repos.user_tenant.create(
+        await self.repos.user_organization.create(
             user_id=user.id,
-            tenant_id=tenant_id,
+            organization_id=organization_id,
             last_active_at=datetime.now(UTC),
         )
 
         if role_ids:
-            self.repos.role.set_tenant_scope(tenant_id)
+            self.repos.role.set_organization_scope(organization_id)
             valid_roles = list(await self.repos.role.filter_by_ids(role_ids))
             if valid_roles:
                 await self.repos.user.add_roles(user, *[r.id for r in valid_roles])
@@ -225,7 +229,7 @@ class AuthService(BaseService):
         user = await self.repos.user.get_one(user.id)
 
         access_token = create_token(
-            user, settings.auth_access_token_expiry, tenant_id=tenant_id
+            user, settings.auth_access_token_expiry, organization_id=organization_id
         )
         refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False
@@ -251,17 +255,21 @@ class AuthService(BaseService):
                 headers=BEARER_HEADERS,
             )
 
-        membership = await self.repos.user_tenant.get_active_tenant_for_user(user.id)
+        membership = (
+            await self.repos.user_organization.get_active_organization_for_user(user.id)
+        )
         if not membership:
             raise NotAuthenticatedException(
                 error_code=ErrorCode.LOGIN_FAILED,
                 headers=BEARER_HEADERS,
             )
 
-        await self.repos.user_tenant.update_last_active(membership)
+        await self.repos.user_organization.update_last_active(membership)
 
         access_token = create_token(
-            user, settings.auth_access_token_expiry, tenant_id=membership.tenant_id
+            user,
+            settings.auth_access_token_expiry,
+            organization_id=membership.organization_id,
         )
         refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False
@@ -298,14 +306,18 @@ class AuthService(BaseService):
         if not stored_token or not verify_secret(refresh_token, stored_token.token):
             raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
-        membership = await self.repos.user_tenant.get_active_tenant_for_user(user.id)
+        membership = (
+            await self.repos.user_organization.get_active_organization_for_user(user.id)
+        )
         if not membership:
             raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
         await self.repos.refresh_token.delete_by_user(user)
 
         new_access_token = create_token(
-            user, settings.auth_access_token_expiry, tenant_id=membership.tenant_id
+            user,
+            settings.auth_access_token_expiry,
+            organization_id=membership.organization_id,
         )
         new_refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False
@@ -322,21 +334,23 @@ class AuthService(BaseService):
             refresh_token=new_refresh_token,
         )
 
-    async def switch_tenant(self, current_user: Auth, tenant_id: int) -> Token:
+    async def switch_organization(
+        self, current_user: Auth, organization_id: int
+    ) -> Token:
         user = await self.repos.user.get(current_user.id)
         if not user:
             raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
-        membership = await self.repos.user_tenant.get_by_user_and_tenant(
-            current_user.id, tenant_id
+        membership = await self.repos.user_organization.get_by_user_and_organization(
+            current_user.id, organization_id
         )
         if not membership:
-            raise PermissionDeniedException("You are not a member of this tenant")
+            raise PermissionDeniedException("You are not a member of this organization")
 
-        await self.repos.user_tenant.update_last_active(membership)
+        await self.repos.user_organization.update_last_active(membership)
 
         access_token = create_token(
-            user, settings.auth_access_token_expiry, tenant_id=tenant_id
+            user, settings.auth_access_token_expiry, organization_id=organization_id
         )
         new_refresh_token = create_token(
             user, settings.auth_refresh_token_expiry, include_user_claims=False

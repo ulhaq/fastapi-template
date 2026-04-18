@@ -55,7 +55,7 @@ class SubscriptionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    tenant_id: int
+    organization_id: int
     plan_price_id: int | None
     external_subscription_id: str | None
     status: str

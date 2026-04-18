@@ -56,15 +56,15 @@ class ErrorCode(Enum):
     )
     SUBSCRIPTION_ALREADY_ACTIVE = (
         "subscription_already_active",
-        "Tenant already has an active subscription",
+        "Organization already has an active subscription",
     )
     SUBSCRIPTION_NOT_FOUND = (
         "subscription_not_found",
-        "No active subscription found for this tenant",
+        "No active subscription found for this organization",
     )
     TRIAL_ALREADY_USED = (
         "trial_already_used",
-        "A free trial has already been used for this tenant",
+        "A free trial has already been used for this organization",
     )
     PROTECTED_ROLE_MODIFICATION = (
         "protected_role_modification",
@@ -72,7 +72,7 @@ class ErrorCode(Enum):
     )
     LAST_OWNER_REMOVAL = (
         "last_owner_removal",
-        "Cannot remove the last Owner from a tenant",
+        "Cannot remove the last Owner from an organization",
     )
 
     def __init__(self, code: str, description: str):
@@ -81,10 +81,10 @@ class ErrorCode(Enum):
 
 
 class Permission(StrEnum):
-    READ_TENANT = "read:tenant"
-    UPDATE_TENANT = "update:tenant"
-    DELETE_TENANT = "delete:tenant"
-    MANAGE_TENANT_USER = "manage:tenant_user"
+    READ_ORGANIZATION = "read:organization"
+    UPDATE_ORGANIZATION = "update:organization"
+    DELETE_ORGANIZATION = "delete:organization"
+    MANAGE_ORGANIZATION_USER = "manage:organization_user"
     READ_USER = "read:user"
     CREATE_USER = "create:user"
     UPDATE_USER = "update:user"
@@ -102,10 +102,12 @@ class Permission(StrEnum):
 
 
 PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
-    Permission.READ_TENANT: "Allows the user to read tenant accounts.",
-    Permission.UPDATE_TENANT: "Allows the user to update tenant accounts.",
-    Permission.DELETE_TENANT: "Allows the user to delete tenant accounts.",
-    Permission.MANAGE_TENANT_USER: "Allows the user to manage tenants' users.",
+    Permission.READ_ORGANIZATION: "Allows the user to read organization accounts.",
+    Permission.UPDATE_ORGANIZATION: "Allows the user to update organization accounts.",
+    Permission.DELETE_ORGANIZATION: "Allows the user to delete organization accounts.",
+    Permission.MANAGE_ORGANIZATION_USER: (
+        "Allows the user to manage organizations' users."
+    ),
     Permission.READ_USER: "Allows the user to read users.",
     Permission.CREATE_USER: "Allows the user to create new users.",
     Permission.UPDATE_USER: "Allows the user to update users.",
@@ -118,6 +120,8 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.READ_PERMISSION: "Allows the user to read permissions.",
     Permission.MANAGE_ROLE_PERMISSION: "Allows the user to manage roles' permissions.",
     Permission.READ_PLAN: "Allows the user to read billing plans.",
-    Permission.READ_SUBSCRIPTION: "Allows the user to read the tenant's subscription.",
-    Permission.MANAGE_SUBSCRIPTION: "Allows managing the tenant's subscription.",
+    Permission.READ_SUBSCRIPTION: (
+        "Allows the user to read the organization's subscription."
+    ),
+    Permission.MANAGE_SUBSCRIPTION: "Allows managing the organization's subscription.",
 }

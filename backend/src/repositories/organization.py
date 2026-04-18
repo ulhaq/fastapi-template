@@ -3,21 +3,23 @@ from abc import ABC
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.tenant import Tenant
+from src.models.organization import Organization
 from src.repositories.abc import ResourceRepositoryABC
 from src.repositories.base import SQLResourceRepository
 
 
-class TenantRepositoryABC(ResourceRepositoryABC[Tenant], ABC): ...
+class OrganizationRepositoryABC(ResourceRepositoryABC[Organization], ABC): ...
 
 
-class TenantRepository(SQLResourceRepository[Tenant], TenantRepositoryABC):
+class OrganizationRepository(
+    SQLResourceRepository[Organization], OrganizationRepositoryABC
+):
     def __init__(self, db: AsyncSession) -> None:
-        super().__init__(Tenant, db)
+        super().__init__(Organization, db)
 
     async def get_by_external_customer_id(
         self, external_customer_id: str
-    ) -> Tenant | None:
+    ) -> Organization | None:
         stmt = select(self.model).filter(
             self.model.external_customer_id == external_customer_id,
             self.model.deleted_at.is_(None),
@@ -27,10 +29,11 @@ class TenantRepository(SQLResourceRepository[Tenant], TenantRepositoryABC):
 
     async def get_by_external_customer_id_locked(
         self, external_customer_id: str
-    ) -> Tenant | None:
+    ) -> Organization | None:
         """
         Like get_by_external_customer_id but acquires a row lock (SELECT FOR UPDATE).
-        Use in webhook handlers to prevent concurrent processing on the same tenant.
+        Use in webhook handlers to prevent concurrent
+        processing on the same organization.
         """
         stmt = (
             select(self.model)

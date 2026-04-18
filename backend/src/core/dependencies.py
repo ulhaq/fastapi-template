@@ -22,7 +22,7 @@ async def authenticate(
             id=0,
             name="",
             email="",
-            tenant_id=0,
+            organization_id=0,
             permissions=[p.value for p in Permission],
             roles=[],
         )
@@ -32,9 +32,9 @@ async def authenticate(
 
     payload = decode_token(token)
     user_id = int(payload.get("sub", 0))
-    tenant_id = int(payload.get("tid", 0))
+    organization_id = int(payload.get("oid", 0))
 
-    if not tenant_id:
+    if not organization_id:
         raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
     user = await db.scalar(
@@ -44,7 +44,7 @@ async def authenticate(
     if not user:
         raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
-    return Auth.from_user_model(user, tenant_id)
+    return Auth.from_user_model(user, organization_id)
 
 
 def require_permission(permission: Permission) -> Callable:

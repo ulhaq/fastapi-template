@@ -92,7 +92,7 @@ const workspaceItems = computed(() => [
 ])
 
 const adminItems = computed(() => [
-  { to: '/settings/tenants', label: t('nav.tenants'), icon: Building2 },
+  { to: '/settings/organizations', label: t('nav.organizations'), icon: Building2 },
 ])
 
 function isActive(path: string, exact = false): boolean {

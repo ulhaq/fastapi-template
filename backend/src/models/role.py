@@ -7,8 +7,8 @@ from src.core.database import Base
 from src.models.mixins import DeleteTimestampMixin, TimestampMixin
 
 if TYPE_CHECKING:
+    from src.models.organization import Organization
     from src.models.permission import Permission
-    from src.models.tenant import Tenant
     from src.models.user import User
 
 
@@ -21,16 +21,22 @@ class Role(Base, DeleteTimestampMixin, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
-    tenant_id: Mapped[int] = mapped_column(
+    organization_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("tenant.id", name="fk_role_tenant_id_tenant", ondelete="CASCADE"),
+        ForeignKey(
+            "organization.id",
+            name="fk_role_organization_id_organization",
+            ondelete="CASCADE",
+        ),
         nullable=False,
     )
     is_protected: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="0"
     )
 
-    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="roles")
+    organization: Mapped["Organization"] = relationship(
+        "Organization", back_populates="roles"
+    )
     permissions: Mapped[list["Permission"]] = relationship(
         "Permission",
         secondary="role_permission",

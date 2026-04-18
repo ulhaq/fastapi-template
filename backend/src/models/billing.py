@@ -17,7 +17,7 @@ from src.core.database import Base
 from src.models.mixins import DeleteTimestampMixin, TimestampMixin
 
 if TYPE_CHECKING:
-    from src.models.tenant import Tenant
+    from src.models.organization import Organization
 
 # pylint: disable=too-few-public-methods
 
@@ -68,17 +68,17 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
             name="ck_billing_subscription_status",
         ),
         Index(
-            "uq_billing_subscription_active_tenant",
-            "tenant_id",
+            "uq_billing_subscription_active_organization",
+            "organization_id",
             unique=True,
             postgresql_where=text("status != 'canceled' AND deleted_at IS NULL"),
         ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    tenant_id: Mapped[int] = mapped_column(
+    organization_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("tenant.id", ondelete="CASCADE"),
+        ForeignKey("organization.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -110,7 +110,7 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    tenant: Mapped["Tenant"] = relationship()
+    organization: Mapped["Organization"] = relationship()
     plan_price: Mapped["PlanPrice | None"] = relationship(lazy="selectin")
 
 

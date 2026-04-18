@@ -173,7 +173,7 @@ def test_webhook_subscription_deleted(
     )
     assert resp.status_code == 200
 
-    # Subscription is restored to the free plan - tenant is never left with nothing
+    # Subscription is restored to the free plan - organization is never left with nothing
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
@@ -648,23 +648,23 @@ def test_webhook_price_created_unknown_product(
 @pytest.fixture
 async def free_plan_subscription(plan_with_price: dict) -> dict:
     """
-    Set up tenant 1 with an active free-plan subscription and a Stripe customer ID,
-    simulating a user who registered and was assigned the free plan by _setup_new_tenant.
+    Set up organization 1 with an active free-plan subscription and a Stripe customer ID,
+    simulating a user who registered and was assigned the free plan by _setup_new_organization.
     """
     from tests.conftest import TestSessionLocal
     from src.models.billing import PlanPrice, Subscription
-    from src.models.tenant import Tenant
+    from src.models.organization import Organization
     from sqlalchemy import select
 
     async with TestSessionLocal() as session:
-        tenant = await session.get(Tenant, 1)
-        tenant.external_customer_id = "cus_free123"
+        organization = await session.get(Organization, 1)
+        organization.external_customer_id = "cus_free123"
         free_price = (
             await session.execute(select(PlanPrice).where(PlanPrice.amount == 0))
         ).scalar_one()
         free_price_id = free_price.id  # capture before session closes
         # Update the existing free subscription rather than inserting a new row
-        sub = (await session.execute(select(Subscription).where(Subscription.tenant_id == 1))).scalar_one()
+        sub = (await session.execute(select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
         sub.plan_price_id = free_price_id
         sub.status = "active"
         sub.external_subscription_id = None
@@ -732,18 +732,18 @@ async def test_free_plan_user_checkout_upgrades_to_trial(
 
 @pytest.fixture
 async def trialing_subscription(plan_with_price: dict) -> dict:
-    """Set the existing subscription for tenant 1 to trialing state with a Stripe customer."""
+    """Set the existing subscription for organization 1 to trialing state with a Stripe customer."""
     from tests.conftest import TestSessionLocal
     from src.models.billing import Subscription
-    from src.models.tenant import Tenant
+    from src.models.organization import Organization
     from sqlalchemy import select
 
     price_id = plan_with_price["price"]["id"]
     async with TestSessionLocal() as session:
-        tenant = await session.get(Tenant, 1)
-        if tenant and not tenant.external_customer_id:
-            tenant.external_customer_id = "cus_test123"
-        sub = (await session.execute(select(Subscription).where(Subscription.tenant_id == 1))).scalar_one()
+        organization = await session.get(Organization, 1)
+        if organization and not organization.external_customer_id:
+            organization.external_customer_id = "cus_test123"
+        sub = (await session.execute(select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
         sub.plan_price_id = price_id
         sub.external_subscription_id = "sub_trial"
         sub.status = "trialing"

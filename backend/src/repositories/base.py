@@ -311,22 +311,24 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         return stmt
 
 
-class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):  # pylint: disable=invalid-name
-    _tenant_id: int | None = None
+class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):  # pylint: disable=invalid-name
+    _organization_id: int | None = None
 
-    def set_tenant_scope(self, tenant_id: int) -> None:
-        self._tenant_id = tenant_id
+    def set_organization_scope(self, organization_id: int) -> None:
+        self._organization_id = organization_id
 
-    def _apply_tenant_scope(self, stmt: Select) -> Select:
-        if self._tenant_id is not None:
-            return stmt.filter(getattr(self.model, "tenant_id") == self._tenant_id)
+    def _apply_organization_scope(self, stmt: Select) -> Select:
+        if self._organization_id is not None:
+            return stmt.filter(
+                getattr(self.model, "organization_id") == self._organization_id
+            )
         return stmt
 
     async def get_one(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType:
         stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
@@ -341,7 +343,7 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType | None:
         stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
@@ -351,7 +353,7 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
         self, name: str, include_deleted: bool = False
     ) -> ModelType | None:
         stmt = select(self.model).filter(getattr(self.model, "name") == name)
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
@@ -359,7 +361,7 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
 
     async def get_all(self, include_deleted: bool = False) -> Sequence[ModelType]:
         stmt = select(self.model)
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
@@ -369,7 +371,7 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
         self, include_deleted: bool = False, **kwargs: Any
     ) -> Sequence[ModelType]:
         stmt = select(self.model).filter_by(**kwargs)
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
@@ -379,7 +381,7 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
         self, identifiers: list[int], include_deleted: bool = False
     ) -> Sequence[ModelType]:
         stmt = select(self.model).filter(getattr(self.model, "id").in_(identifiers))
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
@@ -387,15 +389,15 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
 
     async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
         stmt = select(exists().where(getattr(self.model, "id") == identifier))
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
         return rs.scalar_one()
 
     async def create(self, **kwargs: Any) -> ModelType:
-        if self._tenant_id is not None:
-            kwargs.setdefault("tenant_id", self._tenant_id)
+        if self._organization_id is not None:
+            kwargs.setdefault("organization_id", self._organization_id)
         return await super().create(**kwargs)
 
     async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -410,7 +412,7 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
         filter_expressions = self._get_filter_expressions(filters)
 
         stmt = select(self.model)
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
 
         if filter_expressions:
             stmt = stmt.filter(or_(*filter_expressions))
@@ -439,7 +441,7 @@ class TenantScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
             func.count()  # pylint: disable=not-callable
         ).select_from(self.model)
 
-        stmt = self._apply_tenant_scope(stmt)
+        stmt = self._apply_organization_scope(stmt)
 
         if filter_expressions:
             stmt = stmt.filter(or_(*filter_expressions))

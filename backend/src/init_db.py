@@ -17,36 +17,36 @@ log = logging.getLogger(__name__)
 alembic_cfg = Config(os.getcwd() + "/alembic.ini")
 
 INIT_AUTH_DATA: dict = {
-    "tenants": [
-        {"name": "Tenant 1"},
-        {"name": "Tenant 2"},
+    "organizations": [
+        {"name": "Organization 1"},
+        {"name": "Organization 2"},
     ],
     "roles": [
         {
             "name": OWNER_ROLE_NAME,
             "description": "Full access to all system features and settings.",
             "permissions": list(Permission),
-            "tenant": 1,
+            "organization": 1,
             "is_protected": True,
         },
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
             "permissions": [Permission.READ_USER, Permission.CREATE_USER],
-            "tenant": 1,
+            "organization": 1,
         },
         {
             "name": OWNER_ROLE_NAME,
             "description": "Full access to all system features and settings.",
             "permissions": list(Permission),
-            "tenant": 2,
+            "organization": 2,
             "is_protected": True,
         },
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
             "permissions": [Permission.READ_USER, Permission.CREATE_USER],
-            "tenant": 2,
+            "organization": 2,
         },
     ],
     "users": [
@@ -54,28 +54,28 @@ INIT_AUTH_DATA: dict = {
             "name": "Admin",
             "email": "admin@example.org",
             "password": "password",
-            "tenant": 1,
+            "organization": 1,
             "roles": [1],
         },
         {
             "name": "Standard",
             "email": "standard@example.org",
             "password": "password",
-            "tenant": 1,
+            "organization": 1,
             "roles": [2],
         },
         {
             "name": "No Roles",
             "email": "no_roles@example.org",
             "password": "password",
-            "tenant": 1,
+            "organization": 1,
             "roles": [],
         },
         {
             "name": "Admin 2",
             "email": "admin2@example.org",
             "password": "password",
-            "tenant": 2,
+            "organization": 2,
             "roles": [3],
         },
     ],
@@ -86,10 +86,10 @@ async def up() -> None:
     upgrade(alembic_cfg, "head")
 
     # async with ASYNC_SESSION_LOCAL() as session:
-    #     tenants = []
-    #     for tenant in INIT_AUTH_DATA["tenants"]:
-    #         tenants.append(Tenant(name=tenant["name"]))
-    #     session.add_all(tenants)
+    #     organizations = []
+    #     for organization in INIT_AUTH_DATA["organizations"]:
+    #         organizations.append(Organization(name=organization["name"]))
+    #     session.add_all(organizations)
 
     #     rs = await session.execute(select(PermissionModel))
     #     permissions = list(rs.scalars().all())
@@ -101,7 +101,7 @@ async def up() -> None:
     #                 name=role["name"],
     #                 description=role["description"],
     #                 is_protected=role.get("is_protected", False),
-    #                 tenant=tenants[role["tenant"] - 1],
+    #                 organization=organizations[role["organization"] - 1],
     #                 permissions=[
     #                     permission
     #                     for permission in permissions
@@ -129,16 +129,16 @@ async def up() -> None:
 
     #     await session.flush()
 
-    #     user_tenants = []
+    #     user_organizations = []
     #     for user_data, user in zip(INIT_AUTH_DATA["users"], users):
-    #         user_tenants.append(
-    #             UserTenant(
+    #         user_organizations.append(
+    #             Userorganization(
     #                 user_id=user.id,
-    #                 tenant_id=tenants[user_data["tenant"] - 1].id,
+    #                 organization_id=organizations[user_data["organization"] - 1].id,
     #                 last_active_at=datetime.now(UTC),
     #             )
     #         )
-    #     session.add_all(user_tenants)
+    #     session.add_all(user_organizations)
 
     #     await session.commit()
 

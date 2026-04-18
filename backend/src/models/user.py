@@ -7,10 +7,10 @@ from src.core.database import Base
 from src.models.mixins import DeleteTimestampMixin, TimestampMixin
 
 if TYPE_CHECKING:
+    from src.models.organization import Organization
     from src.models.password_reset_token import PasswordResetToken
     from src.models.refresh_token import RefreshToken
     from src.models.role import Role
-    from src.models.tenant import Tenant
 
 
 # pylint: disable=too-few-public-methods
@@ -24,22 +24,13 @@ class User(Base, DeleteTimestampMixin, TimestampMixin):
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
 
-    tenants: Mapped[list["Tenant"]] = relationship(
-        "Tenant",
-        secondary="user_tenant",
+    organizations: Mapped[list["Organization"]] = relationship(
+        "Organization",
+        secondary="user_organization",
         back_populates="users",
         lazy="selectin",
         passive_deletes=True,
     )
-    # TODO can be removed?
-    # user_tenants: Mapped[list["UserTenant"]] = relationship(
-    #     "UserTenant",
-    #     lazy="selectin",
-    #     passive_deletes=True,
-    #     cascade="all, delete-orphan",
-    #     foreign_keys="[UserTenant.user_id]",
-    #     overlaps="tenants,users",
-    # )
     roles: Mapped[list["Role"]] = relationship(
         "Role",
         secondary="user_role",

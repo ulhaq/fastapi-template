@@ -8,30 +8,30 @@
       <span class="font-semibold text-sidebar-foreground">{{ $t('app.name') }}</span>
     </div>
 
-    <!-- Tenant Switcher -->
-    <div class="px-3 py-3 border-b border-sidebar-border" v-if="tenants.length > 1">
+    <!-- Organization Switcher -->
+    <div class="px-3 py-3 border-b border-sidebar-border" v-if="organizations.length > 1">
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <button
             class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           >
             <Building2 class="w-4 h-4 shrink-0 text-sidebar-foreground/60" />
-            <span class="flex-1 text-left truncate font-medium">{{ currentTenantName }}</span>
+            <span class="flex-1 text-left truncate font-medium">{{ currentOrganizationName }}</span>
             <ChevronsUpDown class="w-3.5 h-3.5 text-sidebar-foreground/50" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent class="w-52" align="start">
-          <DropdownMenuLabel class="text-xs text-muted-foreground">{{ $t('nav.switchTenant') }}</DropdownMenuLabel>
+          <DropdownMenuLabel class="text-xs text-muted-foreground">{{ $t('nav.switchOrganization') }}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            v-for="tenant in tenants"
-            :key="tenant.id"
-            @click="handleSwitchTenant(tenant.id)"
+            v-for="organization in organizations"
+            :key="organization.id"
+            @click="handleSwitchOrganization(organization.id)"
             class="cursor-pointer"
           >
-            <Check v-if="currentTenantId === tenant.id" class="w-4 h-4 mr-2" />
+            <Check v-if="currentOrganizationId === organization.id" class="w-4 h-4 mr-2" />
             <span v-else class="w-4 h-4 mr-2" />
-            {{ tenant.name }}
+            {{ organization.name }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -93,14 +93,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
-import { useTenancyStore } from '@/stores/tenancy'
+import { useOrganizationStore } from '@/stores/organization'
 import { useSessionStore } from '@/stores/session'
 import { useToast } from '@/composables/useToast'
 import { usePermission } from '@/composables/usePermission'
 
 const authStore = useAuthStore()
 const profileStore = useProfileStore()
-const tenancyStore = useTenancyStore()
+const organizationStore = useOrganizationStore()
 const sessionStore = useSessionStore()
 const route = useRoute()
 const { toast } = useToast()
@@ -108,7 +108,7 @@ const { t } = useI18n()
 const { hasPermission } = usePermission()
 
 const user = computed(() => profileStore.user)
-const tenants = computed(() => tenancyStore.tenants)
+const organizations = computed(() => organizationStore.organizations)
 
 const userInitials = computed(() => {
   if (!user.value?.name) return '?'
@@ -120,20 +120,20 @@ const userInitials = computed(() => {
     .toUpperCase()
 })
 
-const currentTenantId = computed(() => {
+const currentOrganizationId = computed(() => {
   const token = sessionStore.accessToken
   if (!token) return null
   try {
     const payload = JSON.parse(atob(token.split('.')[1]!))
-    return payload.tid as number | null
+    return payload.oid as number | null
   } catch {
     return null
   }
 })
 
-const currentTenantName = computed(() => {
-  const tenant = tenants.value.find((t) => t.id === currentTenantId.value)
-  return tenant?.name ?? t('nav.tenant')
+const currentOrganizationName = computed(() => {
+  const organization = organizations.value.find((o) => o.id === currentOrganizationId.value)
+  return organization?.name ?? t('nav.organization')
 })
 
 const navItems = computed(() => [
@@ -148,13 +148,13 @@ function isActive(path: string): boolean {
   return route.path.startsWith(path)
 }
 
-async function handleSwitchTenant(tenantId: number) {
-  if (tenantId === currentTenantId.value) return
+async function handleSwitchOrganization(organizationId: number) {
+  if (organizationId === currentOrganizationId.value) return
   try {
-    await authStore.switchTenant(tenantId)
+    await authStore.switchOrganization(organizationId)
     window.location.reload()
   } catch {
-    toast({ title: t('nav.failedToSwitchTenant'), variant: 'destructive' })
+    toast({ title: t('nav.failedToSwitchOrganization'), variant: 'destructive' })
   }
 }
 </script>

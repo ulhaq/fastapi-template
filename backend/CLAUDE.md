@@ -38,7 +38,7 @@ The project follows a clean layered architecture: **Routers > Services > Reposit
 
 **Error handling** — Raise `ClientException(ErrorCode.X)` from services; the middleware in `src/core/middlewares.py` converts these to consistent JSON error responses. Error codes are defined in `src/enums.py`.
 
-**Multi-tenancy** — Users and resources belong to a `Tenant`. Tenant isolation is enforced at the repository level via `tenant_id` foreign keys.
+**Multi-tenancy** — Users and resources belong to a `Organization`. Organization isolation is enforced at the repository level via `organization_id` foreign keys.
 
 **Permissions** — Fine-grained RBAC using the `Permission` enum (`src/enums.py`). Users have roles; roles have permissions. Use `require_permission()` on routes to enforce access.
 
@@ -47,7 +47,7 @@ The project follows a clean layered architecture: **Routers > Services > Reposit
 ### Testing
 
 - Tests use **SQLite in-memory** database; no external DB needed
-- `tests/conftest.py` provides: async test client, pre-seeded tenants/users/roles/permissions, and per-test DB teardown
+- `tests/conftest.py` provides: async test client, pre-seeded organizations/users/roles/permissions, and per-test DB teardown
 - `asyncio_mode = auto` (set in `pytest.ini`); all test functions can be `async`
 
 

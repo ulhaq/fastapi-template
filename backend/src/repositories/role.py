@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.permission import Permission
 from src.models.role import Role
 from src.repositories.abc import ResourceRepositoryABC
-from src.repositories.base import TenantScopedRepository
+from src.repositories.base import OrganizationScopedRepository
 
 
 class RoleRepositoryABC(ResourceRepositoryABC[Role], ABC):
@@ -16,7 +16,7 @@ class RoleRepositoryABC(ResourceRepositoryABC[Role], ABC):
     async def remove_permissions(self, role: Role, *permission_ids: int) -> None: ...
 
 
-class RoleRepository(TenantScopedRepository[Role], RoleRepositoryABC):
+class RoleRepository(OrganizationScopedRepository[Role], RoleRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Role, db)
 

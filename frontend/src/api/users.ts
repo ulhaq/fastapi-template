@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { PaginatedResponse, UserOut, UserPatch, UserRoleIn, TenantOut, ChangePasswordIn } from '@/types'
+import type { PaginatedResponse, UserOut, UserPatch, UserRoleIn, OrganizationOut, ChangePasswordIn } from '@/types'
 
 interface ListParams {
   page_number?: number
@@ -17,8 +17,8 @@ export const usersApi = {
     return apiClient.get<UserOut>('/v1/users/me')
   },
 
-  getMyTenants() {
-    return apiClient.get<TenantOut[]>('/v1/tenants')
+  getMyOrganizations() {
+    return apiClient.get<OrganizationOut[]>('/v1/organizations')
   },
 
   get(id: number) {

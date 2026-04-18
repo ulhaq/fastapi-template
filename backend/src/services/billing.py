@@ -82,7 +82,7 @@ class SubscriptionService(BaseService):
         self.provider = provider
         self.current_user = current_user
         super().__init__(repos)
-        self.repos.subscription.set_tenant_scope(current_user.tenant_id)
+        self.repos.subscription.set_organization_scope(current_user.organization_id)
 
     async def start_checkout(self, schema_in: CheckoutIn) -> CheckoutOut:
         price = await self.repos.plan_price.get(schema_in.plan_price_id)
@@ -93,8 +93,8 @@ class SubscriptionService(BaseService):
         if not price.external_price_id:
             raise NotFoundException("Plan price is not synced with billing provider.")
 
-        existing = await self.repos.subscription.get_active_for_tenant_locked(
-            self.current_user.tenant_id
+        existing = await self.repos.subscription.get_active_for_organization_locked(
+            self.current_user.organization_id
         )
         is_active_free = (
             existing is not None
@@ -108,27 +108,29 @@ class SubscriptionService(BaseService):
             and not is_active_free
         ):
             raise AlreadyExistsException(
-                "Tenant already has an active subscription.",
+                "Organization already has an active subscription.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
             )
 
         # Get or create provider customer
-        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-        if not tenant:
-            raise NotFoundException("Tenant not found.")
+        organization = await self.repos.organization.get(
+            self.current_user.organization_id
+        )
+        if not organization:
+            raise NotFoundException("Organization not found.")
 
-        # Acquire a transaction-scoped advisory lock keyed on tenant_id to prevent
+        # Acquire a transaction-scoped advisory lock keyed on organization_id to prevent
         # two concurrent first-time checkouts from creating duplicate Stripe customers.
         # The lock is automatically released when the transaction commits or rolls back.
         await self.repos.subscription.db.execute(
             text("SELECT pg_advisory_xact_lock(:tid)"),
-            {"tid": self.current_user.tenant_id ^ _CHECKOUT_LOCK_NS},
+            {"tid": self.current_user.organization_id ^ _CHECKOUT_LOCK_NS},
         )
 
         # Re-check after acquiring the lock - a concurrent request may have inserted a
         # subscription row between our initial check and the lock acquisition.
-        existing = await self.repos.subscription.get_active_for_tenant_locked(
-            self.current_user.tenant_id
+        existing = await self.repos.subscription.get_active_for_organization_locked(
+            self.current_user.organization_id
         )
         is_active_free = (
             existing is not None
@@ -142,23 +144,23 @@ class SubscriptionService(BaseService):
             and not is_active_free
         ):
             raise AlreadyExistsException(
-                "Tenant already has an active subscription.",
+                "Organization already has an active subscription.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
             )
 
-        external_customer_id = tenant.external_customer_id
+        external_customer_id = organization.external_customer_id
         if not external_customer_id:
             external_customer_id = await self.provider.get_or_create_customer(
-                tenant_id=self.current_user.tenant_id,
-                tenant_name=tenant.name,
+                organization_id=self.current_user.organization_id,
+                organization_name=organization.name,
                 email=self.current_user.email,
             )
-            await self.repos.tenant.update(
-                tenant, external_customer_id=external_customer_id
+            await self.repos.organization.update(
+                organization, external_customer_id=external_customer_id
             )
 
         metadata = {
-            "tenant_id": str(self.current_user.tenant_id),
+            "organization_id": str(self.current_user.organization_id),
             "plan_price_id": str(price.id),
         }
 
@@ -199,32 +201,37 @@ class SubscriptionService(BaseService):
         if not settings.billing_trial_period_days:
             raise ValidationException("Trials are not configured.")
 
-        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-        if not tenant:
-            raise NotFoundException("Tenant not found.")
+        organization = await self.repos.organization.get(
+            self.current_user.organization_id
+        )
+        if not organization:
+            raise NotFoundException("Organization not found.")
 
-        if tenant.trial_used:
+        if organization.trial_used:
             raise ValidationException(
                 "Trial has already been used.",
                 error_code=ErrorCode.TRIAL_ALREADY_USED,
             )
 
-        # Acquire lock to prevent concurrent trial starts from creating duplicate customers.
+        # Acquire lock to prevent concurrent trial
+        # starts from creating duplicate customers.
         await self.repos.subscription.db.execute(
             text("SELECT pg_advisory_xact_lock(:tid)"),
-            {"tid": self.current_user.tenant_id ^ _CHECKOUT_LOCK_NS},
+            {"tid": self.current_user.organization_id ^ _CHECKOUT_LOCK_NS},
         )
 
         # Re-check after acquiring the lock.
-        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-        if not tenant or tenant.trial_used:
+        organization = await self.repos.organization.get(
+            self.current_user.organization_id
+        )
+        if not organization or organization.trial_used:
             raise ValidationException(
                 "Trial has already been used.",
                 error_code=ErrorCode.TRIAL_ALREADY_USED,
             )
 
-        existing = await self.repos.subscription.get_active_for_tenant_locked(
-            self.current_user.tenant_id
+        existing = await self.repos.subscription.get_active_for_organization_locked(
+            self.current_user.organization_id
         )
         if existing and existing.status in ("trialing", "past_due", "paused"):
             raise AlreadyExistsException(
@@ -242,19 +249,19 @@ class SubscriptionService(BaseService):
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
             )
 
-        external_customer_id = tenant.external_customer_id
+        external_customer_id = organization.external_customer_id
         if not external_customer_id:
             external_customer_id = await self.provider.get_or_create_customer(
-                tenant_id=self.current_user.tenant_id,
-                tenant_name=tenant.name,
+                organization_id=self.current_user.organization_id,
+                organization_name=organization.name,
                 email=self.current_user.email,
             )
-            await self.repos.tenant.update(
-                tenant, external_customer_id=external_customer_id
+            await self.repos.organization.update(
+                organization, external_customer_id=external_customer_id
             )
 
         metadata = {
-            "tenant_id": str(self.current_user.tenant_id),
+            "organization_id": str(self.current_user.organization_id),
             "plan_price_id": str(price.id),
         }
         result = await self.provider.create_checkout_session(
@@ -272,19 +279,21 @@ class SubscriptionService(BaseService):
         )
 
     async def get_current_subscription(self) -> SubscriptionOut:
-        sub = await self.repos.subscription.get_active_for_tenant(
-            self.current_user.tenant_id
+        sub = await self.repos.subscription.get_active_for_organization(
+            self.current_user.organization_id
         )
         if not sub:
             raise NotFoundException(
-                "No active subscription found for this tenant.",
+                "No active subscription found for this organization.",
                 error_code=ErrorCode.SUBSCRIPTION_NOT_FOUND,
             )
         result = SubscriptionOut.model_validate(sub)
-        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-        if tenant:
-            result.has_payment_method = tenant.has_payment_method
-            result.trial_used = tenant.trial_used
+        organization = await self.repos.organization.get(
+            self.current_user.organization_id
+        )
+        if organization:
+            result.has_payment_method = organization.has_payment_method
+            result.trial_used = organization.trial_used
         return result
 
     async def cancel_subscription(self) -> SubscriptionOut:
@@ -360,23 +369,25 @@ class SubscriptionService(BaseService):
         # Upgrading from a free plan to a paid plan requires collecting payment details.
         # Route through the checkout flow so the user can enter their credit card.
         if old_amount == 0 and price.amount > 0:
-            tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-            if not tenant:
-                raise NotFoundException("Tenant not found.")
+            organization = await self.repos.organization.get(
+                self.current_user.organization_id
+            )
+            if not organization:
+                raise NotFoundException("Organization not found.")
 
-            external_customer_id = tenant.external_customer_id
+            external_customer_id = organization.external_customer_id
             if not external_customer_id:
                 external_customer_id = await self.provider.get_or_create_customer(
-                    tenant_id=self.current_user.tenant_id,
-                    tenant_name=tenant.name,
+                    organization_id=self.current_user.organization_id,
+                    organization_name=organization.name,
                     email=self.current_user.email,
                 )
-                await self.repos.tenant.update(
-                    tenant, external_customer_id=external_customer_id
+                await self.repos.organization.update(
+                    organization, external_customer_id=external_customer_id
                 )
 
             metadata = {
-                "tenant_id": str(self.current_user.tenant_id),
+                "organization_id": str(self.current_user.organization_id),
                 "plan_price_id": str(price.id),
                 "old_subscription_id": sub.external_subscription_id or "",
             }
@@ -410,23 +421,27 @@ class SubscriptionService(BaseService):
         return SubscriptionOut.model_validate(sub)
 
     async def get_customer_portal_url(self) -> CustomerPortalOut:
-        tenant = await self.repos.tenant.get(self.current_user.tenant_id)
-        if not tenant or not tenant.external_customer_id:
-            raise ValidationException("No billing customer found for this tenant.")
+        organization = await self.repos.organization.get(
+            self.current_user.organization_id
+        )
+        if not organization or not organization.external_customer_id:
+            raise ValidationException(
+                "No billing customer found for this organization."
+            )
 
         result = await self.provider.get_customer_portal_url(
-            external_customer_id=tenant.external_customer_id,
+            external_customer_id=organization.external_customer_id,
             return_url=settings.billing_portal_return_url,
         )
         return CustomerPortalOut(portal_url=result.portal_url)
 
     async def _get_active_subscription(self) -> Subscription:
-        sub = await self.repos.subscription.get_active_for_tenant_locked(
-            self.current_user.tenant_id
+        sub = await self.repos.subscription.get_active_for_organization_locked(
+            self.current_user.organization_id
         )
         if not sub:
             raise NotFoundException(
-                "No active subscription found for this tenant.",
+                "No active subscription found for this organization.",
                 error_code=ErrorCode.SUBSCRIPTION_NOT_FOUND,
             )
         return sub
@@ -511,11 +526,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             await handler(raw)
 
     async def _notify_payment_failed(self, sub: Subscription) -> None:
-        tenant = await self.repos.tenant.get(sub.tenant_id)
-        if not tenant:
+        organization = await self.repos.organization.get(sub.organization_id)
+        if not organization:
             return
 
-        for user in tenant.users:
+        for user in organization.users:
             if not any(
                 p.name == Permission.MANAGE_SUBSCRIPTION
                 for role in user.roles
@@ -541,30 +556,40 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not subscription_id or not customer_id:
             return
 
-        # Try to find existing subscription row by customer or metadata tenant_id
-        tenant = await self.repos.tenant.get_by_external_customer_id_locked(customer_id)
-        if not tenant:
-            tenant_id_str = metadata.get("tenant_id")
-            if tenant_id_str:
+        # Try to find existing subscription row by customer or metadata organization_id
+        organization = await self.repos.organization.get_by_external_customer_id_locked(
+            customer_id
+        )
+        if not organization:
+            organization_id_str = metadata.get("organization_id")
+            if organization_id_str:
                 try:
-                    tenant = await self.repos.tenant.get(int(tenant_id_str))
+                    organization = await self.repos.organization.get(
+                        int(organization_id_str)
+                    )
                 except ValueError:
                     log.warning(
-                        "Invalid tenant_id in checkout metadata, skipping "
+                        "Invalid organization_id in checkout metadata, skipping "
                         "[value=%r sub_id=%s]",
-                        tenant_id_str,
+                        organization_id_str,
                         subscription_id,
                     )
 
-        if not tenant:
+        if not organization:
             return
 
-        # If we fell back to the metadata lookup the tenant has no external_customer_id
-        # yet. Stamp it now so future webhook events can find the tenant by customer ID.
-        if not tenant.external_customer_id:
-            await self.repos.tenant.update(tenant, external_customer_id=customer_id)
+        # If we fell back to the metadata lookup the organization
+        # has no external_customer_id yet.
+        # Stamp it now so future webhook events can
+        # find the organization by customer ID.
+        if not organization.external_customer_id:
+            await self.repos.organization.update(
+                organization, external_customer_id=customer_id
+            )
 
-        sub = await self.repos.subscription.get_active_for_tenant_locked(tenant.id)
+        sub = await self.repos.subscription.get_active_for_organization_locked(
+            organization.id
+        )
         if not sub:
             return
 
@@ -637,7 +662,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
         # Restore to free plan in-place. Updating the existing row (rather than
         # cancel + new row) avoids a unique-constraint conflict - only one
-        # non-canceled subscription per tenant is allowed. If no free plan is
+        # non-canceled subscription per organization is allowed. If no free plan is
         # configured, fall back to marking the row as canceled.
         free_price = await self.repos.plan_price.get_free_price()
         if free_price:
@@ -666,9 +691,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         customer_id: str | None = raw["data"]["object"].get("customer")
         if not customer_id:
             return
-        tenant = await self.repos.tenant.get_by_external_customer_id_locked(customer_id)
-        if tenant:
-            await self.repos.tenant.update(tenant, has_payment_method=True)
+        organization = await self.repos.organization.get_by_external_customer_id_locked(
+            customer_id
+        )
+        if organization:
+            await self.repos.organization.update(organization, has_payment_method=True)
 
     async def _handle_payment_method_detached(self, raw: dict) -> None:
         # payment_method.detached clears the customer field, so we get it from
@@ -679,10 +706,14 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         )
         if not customer_id:
             return
-        tenant = await self.repos.tenant.get_by_external_customer_id_locked(customer_id)
-        if tenant and tenant.has_payment_method:
+        organization = await self.repos.organization.get_by_external_customer_id_locked(
+            customer_id
+        )
+        if organization and organization.has_payment_method:
             has_more = await self.provider.has_payment_method(customer_id)
-            await self.repos.tenant.update(tenant, has_payment_method=has_more)
+            await self.repos.organization.update(
+                organization, has_payment_method=has_more
+            )
 
     async def _get_subscription_from_invoice(self, obj: dict) -> Subscription | None:
         parent = obj.get("parent") or {}
@@ -694,12 +725,14 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             )
         customer_id: str | None = obj.get("customer")
         if customer_id:
-            tenant = await self.repos.tenant.get_by_external_customer_id_locked(
-                customer_id
+            organization = (
+                await self.repos.organization.get_by_external_customer_id_locked(
+                    customer_id
+                )
             )
-            if tenant:
-                return await self.repos.subscription.get_active_for_tenant_locked(
-                    tenant.id
+            if organization:
+                return await self.repos.subscription.get_active_for_organization_locked(
+                    organization.id
                 )
         return None
 
@@ -722,7 +755,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         obj = raw["data"]["object"]
         sub_id: str = obj["id"]
 
-        tenant = None
+        organization = None
         sub = await self.repos.subscription.get_by_external_subscription_id_locked(
             sub_id
         )
@@ -731,12 +764,14 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             # external_subscription_id is not yet set - fall back to customer lookup.
             customer_id: str | None = obj.get("customer")
             if customer_id:
-                tenant = await self.repos.tenant.get_by_external_customer_id_locked(
-                    customer_id
+                organization = (
+                    await self.repos.organization.get_by_external_customer_id_locked(
+                        customer_id
+                    )
                 )
-                if tenant:
-                    sub = await self.repos.subscription.get_active_for_tenant_locked(
-                        tenant.id
+                if organization:
+                    sub = await self.repos.subscription.get_active_for_organization_locked(
+                        organization.id
                     )
                     if not sub:
                         # Edge case: no active subscription exists (e.g. free plan
@@ -744,13 +779,13 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                         # Stripe subscription is tracked locally.
                         try:
                             sub = await self.repos.subscription.create(
-                                tenant_id=tenant.id,
+                                organization_id=organization.id,
                                 plan_price_id=None,
                                 status="incomplete",
                             )
                         except IntegrityError:
-                            sub = await self.repos.subscription.get_active_for_tenant_locked(
-                                tenant.id
+                            sub = await self.repos.subscription.get_active_for_organization_locked(
+                                organization.id
                             )
         if not sub:
             return
@@ -763,8 +798,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             "current_period_end": _ts(_period(obj, "current_period_end")),
             "canceled_at": _ts(obj.get("canceled_at")),
             "cancel_at": _ts(obj.get("cancel_at")),
-            "trial_end": _ts(obj.get("trial_end")),
         }
+        if obj.get("trial_end"):
+            updates["trial_end"] = _ts(obj["trial_end"])
 
         items = obj.get("items", {}).get("data", [])
         if items:
@@ -779,12 +815,14 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         await self.repos.subscription.update(sub, **updates)
 
         if updates.get("status") == "trialing":
-            if tenant is None:
-                tenant = await self.repos.tenant.get_by_external_customer_id_locked(
-                    obj.get("customer", "")
+            if organization is None:
+                organization = (
+                    await self.repos.organization.get_by_external_customer_id_locked(
+                        obj.get("customer", "")
+                    )
                 )
-            if tenant and not tenant.trial_used:
-                await self.repos.tenant.update(tenant, trial_used=True)
+            if organization and not organization.trial_used:
+                await self.repos.organization.update(organization, trial_used=True)
 
     async def _handle_checkout_session_expired(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -792,24 +830,30 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         metadata: dict = obj.get("metadata", {})
 
         sub = None
-        tenant = None
+        organization = None
         if customer_id:
-            tenant = await self.repos.tenant.get_by_external_customer_id_locked(
-                customer_id
+            organization = (
+                await self.repos.organization.get_by_external_customer_id_locked(
+                    customer_id
+                )
             )
-        if not tenant:
-            tenant_id_str = metadata.get("tenant_id")
-            if tenant_id_str:
+        if not organization:
+            organization_id_str = metadata.get("organization_id")
+            if organization_id_str:
                 try:
-                    tenant = await self.repos.tenant.get(int(tenant_id_str))
+                    organization = await self.repos.organization.get(
+                        int(organization_id_str)
+                    )
                 except ValueError:
                     log.warning(
-                        "Invalid tenant_id in checkout session expired metadata "
+                        "Invalid organization_id in checkout session expired metadata "
                         "[value=%r]",
-                        tenant_id_str,
+                        organization_id_str,
                     )
-        if tenant:
-            sub = await self.repos.subscription.get_active_for_tenant_locked(tenant.id)
+        if organization:
+            sub = await self.repos.subscription.get_active_for_organization_locked(
+                organization.id
+            )
 
         if not sub or sub.status != "incomplete":
             return
@@ -839,11 +883,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub:
             return
 
-        tenant = await self.repos.tenant.get(sub.tenant_id)
-        if not tenant:
+        organization = await self.repos.organization.get(sub.organization_id)
+        if not organization:
             return
 
-        for user in tenant.users:
+        for user in organization.users:
             if not any(
                 p.name == Permission.MANAGE_SUBSCRIPTION
                 for role in user.roles
@@ -907,8 +951,6 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             canceled_at=None,
             cancel_at=None,
             cancel_at_period_end=False,
-            # trial_end is intentionally kept: switch_plan uses it to carry over
-            # any remaining days if the user re-subscribes while still in trial.
         )
 
         return free_price
@@ -939,8 +981,8 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 trial_end=datetime.fromtimestamp(trial_end_ts, tz=UTC),
             )
 
-        tenant = await self.repos.tenant.get(sub.tenant_id)
-        if not tenant:
+        organization = await self.repos.organization.get(sub.organization_id)
+        if not organization:
             return
 
         trial_end_date = (
@@ -949,7 +991,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
             else "soon"
         )
 
-        for user in tenant.users:
+        for user in organization.users:
             if not any(
                 p.name == Permission.MANAGE_SUBSCRIPTION
                 for role in user.roles
@@ -965,7 +1007,7 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 data={
                     "trial_end_date": trial_end_date,
                     "billing_url": f"{settings.frontend_url}/settings/billing",
-                    "has_payment_method": tenant.has_payment_method,
+                    "has_payment_method": organization.has_payment_method,
                 },
             )
 
@@ -985,10 +1027,10 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
         if not is_trial_end_pause:
             await self.repos.subscription.update(sub, status="paused")
-            tenant = await self.repos.tenant.get(sub.tenant_id)
-            if not tenant:
+            organization = await self.repos.organization.get(sub.organization_id)
+            if not organization:
                 return
-            for user in tenant.users:
+            for user in organization.users:
                 if not any(
                     p.name == Permission.MANAGE_SUBSCRIPTION
                     for role in user.roles
@@ -1011,11 +1053,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not await self._downgrade_to_free(sub):
             return
 
-        tenant = await self.repos.tenant.get(sub.tenant_id)
-        if not tenant:
+        organization = await self.repos.organization.get(sub.organization_id)
+        if not organization:
             return
 
-        for user in tenant.users:
+        for user in organization.users:
             if not any(
                 p.name == Permission.MANAGE_SUBSCRIPTION
                 for role in user.roles
@@ -1051,11 +1093,11 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub:
             return
 
-        tenant = await self.repos.tenant.get(sub.tenant_id)
-        if not tenant:
+        organization = await self.repos.organization.get(sub.organization_id)
+        if not organization:
             return
 
-        for user in tenant.users:
+        for user in organization.users:
             if not any(
                 p.name == Permission.MANAGE_SUBSCRIPTION
                 for role in user.roles
@@ -1161,9 +1203,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         log.info("Marking %d stale incomplete subscription(s) as canceled", len(stale))
         for sub in stale:
             log.debug(
-                "Canceling stale subscription [id=%s tenant_id=%s]",
+                "Canceling stale subscription [id=%s organization_id=%s]",
                 sub.id,
-                sub.tenant_id,
+                sub.organization_id,
             )
             await self.repos.subscription.update(
                 sub, status="canceled", canceled_at=datetime.now(UTC)

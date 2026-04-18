@@ -3,15 +3,15 @@ from fastapi.testclient import TestClient
 from httpx import Headers
 
 from src.enums import PERMISSION_DESCRIPTIONS, Permission
-from src.models.tenant import Tenant
+from src.models.organization import Organization
 from tests.conftest import TestSessionLocal
 from tests.utils import assert_filtering_of_items_list, assert_pagination, assert_sorting_of_items_list
 
 
-async def _seed_external_customer(tenant_id: int, external_customer_id: str | None) -> None:
+async def _seed_external_customer(organization_id: int, external_customer_id: str | None) -> None:
     async with TestSessionLocal() as session:
-        tenant = await session.get(Tenant, tenant_id)
-        tenant.external_customer_id = external_customer_id
+        organization = await session.get(Organization, organization_id)
+        organization.external_customer_id = external_customer_id
         await session.commit()
 
 
@@ -215,7 +215,7 @@ def test_cannot_delete_last_admin(admin_authenticated: TestClient) -> None:
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == (
-        "Cannot perform this action: tenant must retain at least one "
+        "Cannot perform this action: organization must retain at least one "
         "user with role management access"
     )
 
@@ -300,7 +300,7 @@ def test_cannot_remove_last_owner_via_manage_roles(
 async def test_patch_profile_email_syncs_to_stripe_when_owner(
     admin_authenticated: TestClient, mock_billing_provider
 ) -> None:
-    await _seed_external_customer(tenant_id=1, external_customer_id="cus_test123")
+    await _seed_external_customer(organization_id=1, external_customer_id="cus_test123")
 
     response = admin_authenticated.patch(
         "/v1/users/me", json={"email": "new_owner@example.org"}
@@ -316,7 +316,7 @@ async def test_patch_profile_email_syncs_to_stripe_when_owner(
 async def test_patch_profile_email_does_not_sync_when_not_owner(
     standard_authenticated: TestClient, mock_billing_provider
 ) -> None:
-    await _seed_external_customer(tenant_id=1, external_customer_id="cus_test123")
+    await _seed_external_customer(organization_id=1, external_customer_id="cus_test123")
 
     response = standard_authenticated.patch(
         "/v1/users/me", json={"email": "new_standard@example.org"}
@@ -329,9 +329,9 @@ async def test_patch_profile_email_does_not_sync_when_not_owner(
 async def test_patch_profile_email_no_sync_without_external_customer(
     admin_authenticated: TestClient, mock_billing_provider
 ) -> None:
-    # Clear external_customer_id - simulates a tenant whose Stripe customer
+    # Clear external_customer_id - simulates a organization whose Stripe customer
     # creation failed at registration. No sync should happen in that case.
-    await _seed_external_customer(tenant_id=1, external_customer_id=None)
+    await _seed_external_customer(organization_id=1, external_customer_id=None)
 
     response = admin_authenticated.patch(
         "/v1/users/me", json={"email": "new_owner@example.org"}

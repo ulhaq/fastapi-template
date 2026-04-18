@@ -15,7 +15,7 @@ class RoleBase(BaseModel):
 
 class RoleOut(RoleBase, Timestamp):
     id: int
-    tenant_id: int
+    organization_id: int
     is_protected: bool = False
     permissions: Annotated[list[NameDescriptionOut], AfterValidator(sort_by_id)] = (
         Field(default_factory=list)

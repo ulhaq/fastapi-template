@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from src.billing.types import WebhookPayload
 from src.models.billing import Plan, PlanPrice, Subscription
-from src.models.tenant import Tenant
+from src.models.organization import Organization
 from tests.conftest import TestSessionLocal
 
 
@@ -353,7 +353,7 @@ async def test_switch_plan_no_external_subscription_id(
             await session.execute(_select(PlanPrice).where(PlanPrice.amount == 0))
         ).scalar_one()
         # Update existing subscription to incomplete (no INSERT to avoid unique constraint)
-        sub = (await session.execute(_select(Subscription).where(Subscription.tenant_id == 1))).scalar_one()
+        sub = (await session.execute(_select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
         sub.plan_price_id = free_price.id
         sub.status = "incomplete"
         sub.external_subscription_id = None
@@ -476,9 +476,9 @@ async def test_start_trial_fails_when_already_trialed(
     admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
 ) -> None:
     async with TestSessionLocal() as session:
-        tenant = await session.get(Tenant, 1)
-        if tenant:
-            tenant.trial_used = True
+        organization = await session.get(Organization, 1)
+        if organization:
+            organization.trial_used = True
         await session.commit()
 
     price_id = plan_with_price["price"]["id"]
@@ -519,7 +519,7 @@ async def test_start_trial_fails_when_already_trialing(
     async with TestSessionLocal() as session:
         sub = (
             await session.execute(
-                select(Subscription).where(Subscription.tenant_id == 1)
+                select(Subscription).where(Subscription.organization_id == 1)
             )
         ).scalar_one()
         sub.status = "trialing"
@@ -547,19 +547,19 @@ def test_start_trial_requires_permission(client: TestClient, plan_with_price: di
     assert response.status_code == 403
 
 
-def test_subscription_tenant_isolation(
+def test_subscription_organization_isolation(
     admin_authenticated: TestClient,
-    tenant2_admin_authenticated: TestClient,
+    organization2_admin_authenticated: TestClient,
     plan_with_price: dict,
     mock_billing_provider,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
-    # Activate a paid subscription for tenant 1
+    # Activate a paid subscription for organization 1
     _activate_subscription(admin_authenticated, price_id, mock_billing_provider, "evt_iso")
 
-    # Tenant 2 should still see only its own free subscription, not tenant 1's paid one
-    response = tenant2_admin_authenticated.get("/v1/billing/subscriptions/current")
+    # Organization 2 should still see only its own free subscription, not organization 1's paid one
+    response = organization2_admin_authenticated.get("/v1/billing/subscriptions/current")
     assert response.status_code == 200
     sub = response.json()
-    assert sub["plan_price"]["amount"] == 0  # tenant 2 is on free, not tenant 1's paid plan
+    assert sub["plan_price"]["amount"] == 0  # organization 2 is on free, not organization 1's paid plan

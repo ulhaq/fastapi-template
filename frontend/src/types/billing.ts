@@ -25,7 +25,7 @@ export interface PlanOut {
 
 export interface SubscriptionOut {
   id: number
-  tenant_id: number
+  organization_id: number
   plan_price_id: number | null
   external_subscription_id: string | null
   status: 'incomplete' | 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'

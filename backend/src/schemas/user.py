@@ -39,8 +39,8 @@ class EmailIn(BaseModel):
     email: Annotated[EmailStr, StringConstraints(to_lower=True)]
 
 
-class SwitchTenantIn(BaseModel):
-    tenant_id: int
+class SwitchOrganizationIn(BaseModel):
+    organization_id: int
 
 
 class ResetPasswordIn(BaseModel):
