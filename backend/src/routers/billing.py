@@ -106,7 +106,7 @@ async def switch_plan(
     service: Annotated[SubscriptionService, Depends()],
     _: Annotated[Auth, Depends(require_owner())],
     switch_in: SwitchPlanIn,
-) -> SubscriptionOut | CheckoutOut:
+) -> SubscriptionOut:
     return await service.switch_plan(switch_in)
 
 

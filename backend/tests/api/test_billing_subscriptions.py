@@ -380,17 +380,16 @@ def test_switch_plan_requires_permission(client) -> None:
     assert response.status_code == 403
 
 
-def test_switch_from_free_to_paid_no_trial(
+def test_switch_from_free_to_paid_is_rejected(
     admin_authenticated, plan_with_price: dict, mock_billing_provider
 ) -> None:
-    """Switching from free to paid via switch-plan passes no trial days - trial is separate."""
+    """switch-plan is for paid→paid only; free→paid must go through /checkout."""
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
         json={"plan_price_id": plan_with_price["price"]["id"]},
     )
-    assert response.status_code == 200
-    call_kwargs = mock_billing_provider.create_checkout_session.call_args.kwargs
-    assert call_kwargs.get("trial_period_days") is None
+    assert response.status_code == 422
+    mock_billing_provider.create_checkout_session.assert_not_called()
 
 
 def test_start_trial_returns_checkout_url(

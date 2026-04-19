@@ -45,7 +45,10 @@ def _ts(ts: int | None) -> datetime | None:
     return datetime.fromtimestamp(ts, tz=UTC) if ts else None
 
 
-def _period(obj: dict, field: str) -> int | None:
+def _get_period_field(obj: dict, field: str) -> int | None:
+    """
+    Extract a period timestamp field, falling back to the first subscription item.
+    """
     val = obj.get(field)
     if val:
         return val
@@ -328,16 +331,12 @@ class SubscriptionService(BaseService):
         )
         return SubscriptionOut.model_validate(sub)
 
-    async def switch_plan(
-        self, schema_in: SwitchPlanIn
-    ) -> SubscriptionOut | CheckoutOut:
+    async def switch_plan(self, schema_in: SwitchPlanIn) -> SubscriptionOut:
         sub = await self._get_active_subscription()
-        # Allow active free-plan subscriptions (external_subscription_id is None
-        # by design). Only block incomplete checkouts that were never completed.
-        if not sub.external_subscription_id and sub.status != "active":
+        if not sub.external_subscription_id:
             raise ValidationException(
-                "Your previous checkout is still pending. "
-                "Please cancel it before switching plans."
+                "Cannot switch plans from the free tier. "
+                "Use checkout to subscribe to a paid plan."
             )
 
         price = await self.repos.plan_price.get(schema_in.plan_price_id)
@@ -356,56 +355,10 @@ class SubscriptionService(BaseService):
         if sub.plan_price_id == price.id:
             raise ValidationException("Subscription is already on this plan.")
 
-        old_amount = sub.plan_price.amount if sub.plan_price else 0
-
-        # Upgrading from a free plan to a paid plan requires collecting payment details.
-        # Route through the checkout flow so the user can enter their credit card.
-        if old_amount == 0 and price.amount > 0:
-            organization = await self.repos.organization.get(
-                self.current_user.organization_id
-            )
-            if not organization:
-                raise NotFoundException("Organization not found.")
-
-            external_customer_id = organization.external_customer_id
-            if not external_customer_id:
-                external_customer_id = await self.provider.get_or_create_customer(
-                    organization_id=self.current_user.organization_id,
-                    organization_name=organization.name,
-                    email=self.current_user.email,
-                )
-                await self.repos.organization.update(
-                    organization, external_customer_id=external_customer_id
-                )
-
-            metadata = {
-                "organization_id": str(self.current_user.organization_id),
-                "plan_price_id": str(price.id),
-                "old_subscription_id": sub.external_subscription_id or "",
-            }
-            result = await self.provider.create_checkout_session(
-                external_customer_id=external_customer_id,
-                external_price_id=price.external_price_id,
-                amount=price.amount,
-                success_url=settings.billing_success_url,
-                cancel_url=settings.billing_cancel_url,
-                metadata=metadata,
-                trial_period_days=None,
-            )
-            return CheckoutOut(
-                checkout_url=result.checkout_url,
-                external_session_id=result.external_session_id,
-            )
-
-        skip_proration = price.amount == 0
-        if not sub.external_subscription_id:
-            raise ValidationException(
-                "Subscription is not yet linked to the billing provider."
-            )
         ext_sub = await self.provider.switch_subscription_price(
             sub.external_subscription_id,
             price.external_price_id,
-            skip_proration=skip_proration,
+            skip_proration=False,
             new_amount=price.amount,
         )
         sub = await self.repos.subscription.update(
@@ -645,8 +598,8 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
 
         updates: dict = {
             "status": obj.get("status", sub.status),
-            "current_period_start": _ts(_period(obj, "current_period_start")),
-            "current_period_end": _ts(_period(obj, "current_period_end")),
+            "current_period_start": _ts(_get_period_field(obj, "current_period_start")),
+            "current_period_end": _ts(_get_period_field(obj, "current_period_end")),
             "canceled_at": _ts(obj.get("canceled_at")),
             "cancel_at": _ts(obj.get("cancel_at")),
             "trial_end": _ts(obj.get("trial_end")),
@@ -817,8 +770,8 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
             "external_subscription_id": sub_id,
             "status": obj.get("status", sub.status),
             "cancel_at_period_end": obj.get("cancel_at_period_end", False),
-            "current_period_start": _ts(_period(obj, "current_period_start")),
-            "current_period_end": _ts(_period(obj, "current_period_end")),
+            "current_period_start": _ts(_get_period_field(obj, "current_period_start")),
+            "current_period_end": _ts(_get_period_field(obj, "current_period_end")),
             "canceled_at": _ts(obj.get("canceled_at")),
             "cancel_at": _ts(obj.get("cancel_at")),
         }
