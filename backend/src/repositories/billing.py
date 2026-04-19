@@ -190,6 +190,20 @@ class SubscriptionRepository(OrganizationScopedRepository[Subscription]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
+    async def bulk_cancel_stale_incomplete(self, older_than: datetime) -> int:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.status == "incomplete",
+                self.model.external_subscription_id.is_(None),
+                self.model.created_at < older_than,
+                self.model.deleted_at.is_(None),
+            )
+            .values(status="canceled", canceled_at=datetime.now(UTC))
+        )
+        rs = await self.db.execute(stmt)
+        return rs.rowcount  # type: ignore[attr-defined]
+
 
 class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
     def __init__(self, db: AsyncSession) -> None:

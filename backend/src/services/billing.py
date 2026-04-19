@@ -20,6 +20,7 @@ from src.core.exceptions import (
 from src.core.security import Auth
 from src.enums import ErrorCode, Permission
 from src.models.billing import PlanPrice, Subscription
+from src.models.organization import Organization
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.billing import (
     CheckoutIn,
@@ -37,7 +38,7 @@ log = logging.getLogger(__name__)
 
 # pylint: disable=too-many-arguments,too-many-positional-arguments
 
-_CHECKOUT_LOCK_NS = 0x62696C6C  # "bill" in ASCII d- namespaces checkout advisory locks
+_CHECKOUT_LOCK_NS = 0x62696C6C  # "bill" in ASCII - namespaces checkout advisory locks
 
 
 def _ts(ts: int | None) -> datetime | None:
@@ -50,6 +51,15 @@ def _period(obj: dict, field: str) -> int | None:
         return val
     items = obj.get("items", {}).get("data", [])
     return items[0].get(field) if items else None
+
+
+def _is_active_free_sub(sub: Subscription | None) -> bool:
+    return (
+        sub is not None
+        and sub.status == "active"
+        and sub.plan_price is not None
+        and sub.plan_price.amount == 0
+    )
 
 
 class PlanService(BaseService):
@@ -96,16 +106,10 @@ class SubscriptionService(BaseService):
         existing = await self.repos.subscription.get_active_for_organization_locked(
             self.current_user.organization_id
         )
-        is_active_free = (
-            existing is not None
-            and existing.status == "active"
-            and existing.plan_price is not None
-            and existing.plan_price.amount == 0
-        )
         if (
             existing
             and existing.status in ("active", "trialing", "past_due", "paused")
-            and not is_active_free
+            and not _is_active_free_sub(existing)
         ):
             raise AlreadyExistsException(
                 "Organization already has an active subscription.",
@@ -122,26 +126,17 @@ class SubscriptionService(BaseService):
         # Acquire a transaction-scoped advisory lock keyed on organization_id to prevent
         # two concurrent first-time checkouts from creating duplicate Stripe customers.
         # The lock is automatically released when the transaction commits or rolls back.
-        await self.repos.subscription.db.execute(
-            text("SELECT pg_advisory_xact_lock(:tid)"),
-            {"tid": self.current_user.organization_id ^ _CHECKOUT_LOCK_NS},
-        )
+        await self._acquire_checkout_lock(self.current_user.organization_id)
 
         # Re-check after acquiring the lock - a concurrent request may have inserted a
         # subscription row between our initial check and the lock acquisition.
         existing = await self.repos.subscription.get_active_for_organization_locked(
             self.current_user.organization_id
         )
-        is_active_free = (
-            existing is not None
-            and existing.status == "active"
-            and existing.plan_price is not None
-            and existing.plan_price.amount == 0
-        )
         if (
             existing
             and existing.status in ("active", "trialing", "past_due", "paused")
-            and not is_active_free
+            and not _is_active_free_sub(existing)
         ):
             raise AlreadyExistsException(
                 "Organization already has an active subscription.",
@@ -215,10 +210,7 @@ class SubscriptionService(BaseService):
 
         # Acquire lock to prevent concurrent trial
         # starts from creating duplicate customers.
-        await self.repos.subscription.db.execute(
-            text("SELECT pg_advisory_xact_lock(:tid)"),
-            {"tid": self.current_user.organization_id ^ _CHECKOUT_LOCK_NS},
-        )
+        await self._acquire_checkout_lock(self.current_user.organization_id)
 
         # Re-check after acquiring the lock.
         organization = await self.repos.organization.get(
@@ -406,7 +398,10 @@ class SubscriptionService(BaseService):
             )
 
         skip_proration = price.amount == 0
-        assert sub.external_subscription_id is not None  # guarded above
+        if not sub.external_subscription_id:
+            raise ValidationException(
+                "Subscription is not yet linked to the billing provider."
+            )
         ext_sub = await self.provider.switch_subscription_price(
             sub.external_subscription_id,
             price.external_price_id,
@@ -435,6 +430,12 @@ class SubscriptionService(BaseService):
         )
         return CustomerPortalOut(portal_url=result.portal_url)
 
+    async def _acquire_checkout_lock(self, organization_id: int) -> None:
+        await self.repos.subscription.db.execute(
+            text("SELECT pg_advisory_xact_lock(:tid)"),
+            {"tid": organization_id ^ _CHECKOUT_LOCK_NS},
+        )
+
     async def _get_active_subscription(self) -> Subscription:
         sub = await self.repos.subscription.get_active_for_organization_locked(
             self.current_user.organization_id
@@ -447,14 +448,14 @@ class SubscriptionService(BaseService):
         return sub
 
 
-class WebhookService:  # pylint: disable=too-few-public-methods
+class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         repos: Annotated[RepositoryManager, Depends()],
         provider: BillingProviderDep,
     ) -> None:
-        self.repos = repos
         self.provider = provider
+        super().__init__(repos)
 
     async def process_webhook(self, payload: bytes, sig_header: str) -> bool:
         webhook = self.provider.construct_webhook_event(payload, sig_header)
@@ -525,41 +526,19 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if handler:
             await handler(raw)
 
-    async def _notify_payment_failed(self, sub: Subscription) -> None:
-        organization = await self.repos.organization.get(sub.organization_id)
-        if not organization:
-            return
-
-        for user in organization.users:
-            if not any(
-                p.name == Permission.MANAGE_SUBSCRIPTION
-                for role in user.roles
-                for p in role.permissions
-            ):
-                continue
-
-            await asyncio.to_thread(
-                send_email,
-                address=user.email,
-                user_name=user.name,
-                subject=f"Payment failed for your {settings.app_name} account",
-                email_template="payment-failed",
-                data={"billing_url": f"{settings.frontend_url}/settings/billing"},
-            )
-
-    async def _handle_checkout_completed(self, raw: dict) -> None:
-        obj = raw["data"]["object"]
-        subscription_id: str | None = obj.get("subscription")
+    async def _get_organization_from_checkout_event(
+        self, obj: dict
+    ) -> Organization | None:
         customer_id: str | None = obj.get("customer")
         metadata: dict = obj.get("metadata", {})
 
-        if not subscription_id or not customer_id:
-            return
-
-        # Try to find existing subscription row by customer or metadata organization_id
-        organization = await self.repos.organization.get_by_external_customer_id_locked(
-            customer_id
-        )
+        organization = None
+        if customer_id:
+            organization = (
+                await self.repos.organization.get_by_external_customer_id_locked(
+                    customer_id
+                )
+            )
         if not organization:
             organization_id_str = metadata.get("organization_id")
             if organization_id_str:
@@ -569,12 +548,56 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                     )
                 except ValueError:
                     log.warning(
-                        "Invalid organization_id in checkout metadata, skipping "
-                        "[value=%r sub_id=%s]",
+                        "Invalid organization_id in checkout metadata [value=%r]",
                         organization_id_str,
-                        subscription_id,
                     )
+        return organization
 
+    async def _notify_subscription_managers(
+        self,
+        organization_id: int,
+        subject: str,
+        email_template: str,
+        data: dict,
+    ) -> None:
+        organization = await self.repos.organization.get(organization_id)
+        if not organization:
+            return
+        for user in organization.users:
+            if not any(
+                p.name == Permission.MANAGE_SUBSCRIPTION
+                for role in user.roles
+                for p in role.permissions
+            ):
+                continue
+            await asyncio.to_thread(
+                send_email,
+                address=user.email,
+                user_name=user.name,
+                subject=subject,
+                email_template=email_template,
+                data=data,
+            )
+
+    async def _notify_payment_failed(self, sub: Subscription) -> None:
+        await self._notify_subscription_managers(
+            sub.organization_id,
+            f"Payment failed for your {settings.app_name} account",
+            "payment-failed",
+            {"billing_url": f"{settings.frontend_url}/settings/billing"},
+        )
+
+    async def _handle_checkout_completed(self, raw: dict) -> None:
+        obj = raw["data"]["object"]
+        subscription_id: str | None = obj.get("subscription")
+        metadata: dict = obj.get("metadata", {})
+
+        customer_id: str | None = obj.get("customer")
+        if not subscription_id or not customer_id:
+            return
+
+        # Try to find existing subscription row by customer or metadata organization_id
+        organization = await self._get_organization_from_checkout_event(obj)
         if not organization:
             return
 
@@ -826,30 +849,9 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
     async def _handle_checkout_session_expired(self, raw: dict) -> None:
         obj = raw["data"]["object"]
-        customer_id: str | None = obj.get("customer")
-        metadata: dict = obj.get("metadata", {})
 
+        organization = await self._get_organization_from_checkout_event(obj)
         sub = None
-        organization = None
-        if customer_id:
-            organization = (
-                await self.repos.organization.get_by_external_customer_id_locked(
-                    customer_id
-                )
-            )
-        if not organization:
-            organization_id_str = metadata.get("organization_id")
-            if organization_id_str:
-                try:
-                    organization = await self.repos.organization.get(
-                        int(organization_id_str)
-                    )
-                except ValueError:
-                    log.warning(
-                        "Invalid organization_id in checkout session expired metadata "
-                        "[value=%r]",
-                        organization_id_str,
-                    )
         if organization:
             sub = await self.repos.subscription.get_active_for_organization_locked(
                 organization.id
@@ -883,26 +885,12 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub:
             return
 
-        organization = await self.repos.organization.get(sub.organization_id)
-        if not organization:
-            return
-
-        for user in organization.users:
-            if not any(
-                p.name == Permission.MANAGE_SUBSCRIPTION
-                for role in user.roles
-                for p in role.permissions
-            ):
-                continue
-            await asyncio.to_thread(
-                send_email,
-                address=user.email,
-                user_name=user.name,
-                subject=f"Complete your {settings.app_name} payment "
-                "- authentication required",
-                email_template="payment-action-required",
-                data={"billing_url": f"{settings.frontend_url}/settings/billing"},
-            )
+        await self._notify_subscription_managers(
+            sub.organization_id,
+            f"Complete your {settings.app_name} payment - authentication required",
+            "payment-action-required",
+            {"billing_url": f"{settings.frontend_url}/settings/billing"},
+        )
 
     async def _downgrade_to_free(self, sub: Subscription) -> PlanPrice | None:
         """
@@ -981,35 +969,25 @@ class WebhookService:  # pylint: disable=too-few-public-methods
                 trial_end=datetime.fromtimestamp(trial_end_ts, tz=UTC),
             )
 
-        organization = await self.repos.organization.get(sub.organization_id)
-        if not organization:
-            return
-
         trial_end_date = (
             datetime.fromtimestamp(trial_end_ts, tz=UTC).strftime("%B %d, %Y")
             if trial_end_ts
             else "soon"
         )
 
-        for user in organization.users:
-            if not any(
-                p.name == Permission.MANAGE_SUBSCRIPTION
-                for role in user.roles
-                for p in role.permissions
-            ):
-                continue
-            await asyncio.to_thread(
-                send_email,
-                address=user.email,
-                user_name=user.name,
-                subject=f"Your {settings.app_name} trial ends on {trial_end_date}",
-                email_template="trial-ending",
-                data={
-                    "trial_end_date": trial_end_date,
-                    "billing_url": f"{settings.frontend_url}/settings/billing",
-                    "has_payment_method": organization.has_payment_method,
-                },
-            )
+        organization = await self.repos.organization.get(sub.organization_id)
+        has_payment_method = organization.has_payment_method if organization else False
+
+        await self._notify_subscription_managers(
+            sub.organization_id,
+            f"Your {settings.app_name} trial ends on {trial_end_date}",
+            "trial-ending",
+            {
+                "trial_end_date": trial_end_date,
+                "billing_url": f"{settings.frontend_url}/settings/billing",
+                "has_payment_method": has_payment_method,
+            },
+        )
 
     async def _handle_subscription_paused(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -1027,24 +1005,12 @@ class WebhookService:  # pylint: disable=too-few-public-methods
 
         if not is_trial_end_pause:
             await self.repos.subscription.update(sub, status="paused")
-            organization = await self.repos.organization.get(sub.organization_id)
-            if not organization:
-                return
-            for user in organization.users:
-                if not any(
-                    p.name == Permission.MANAGE_SUBSCRIPTION
-                    for role in user.roles
-                    for p in role.permissions
-                ):
-                    continue
-                await asyncio.to_thread(
-                    send_email,
-                    address=user.email,
-                    user_name=user.name,
-                    subject=f"Your {settings.app_name} subscription has been paused",
-                    email_template="subscription-paused",
-                    data={"billing_url": f"{settings.frontend_url}/settings/billing"},
-                )
+            await self._notify_subscription_managers(
+                sub.organization_id,
+                f"Your {settings.app_name} subscription has been paused",
+                "subscription-paused",
+                {"billing_url": f"{settings.frontend_url}/settings/billing"},
+            )
             return
 
         # Trial ended without payment method - downgrade to free locally and
@@ -1053,25 +1019,12 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not await self._downgrade_to_free(sub):
             return
 
-        organization = await self.repos.organization.get(sub.organization_id)
-        if not organization:
-            return
-
-        for user in organization.users:
-            if not any(
-                p.name == Permission.MANAGE_SUBSCRIPTION
-                for role in user.roles
-                for p in role.permissions
-            ):
-                continue
-            await asyncio.to_thread(
-                send_email,
-                address=user.email,
-                user_name=user.name,
-                subject=f"Your {settings.app_name} trial has ended",
-                email_template="trial-ended",
-                data={"billing_url": f"{settings.frontend_url}/settings/billing"},
-            )
+        await self._notify_subscription_managers(
+            sub.organization_id,
+            f"Your {settings.app_name} trial has ended",
+            "trial-ended",
+            {"billing_url": f"{settings.frontend_url}/settings/billing"},
+        )
 
     async def _handle_subscription_resumed(self, raw: dict) -> None:
         await self._handle_subscription_updated(raw)
@@ -1093,25 +1046,12 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if not sub:
             return
 
-        organization = await self.repos.organization.get(sub.organization_id)
-        if not organization:
-            return
-
-        for user in organization.users:
-            if not any(
-                p.name == Permission.MANAGE_SUBSCRIPTION
-                for role in user.roles
-                for p in role.permissions
-            ):
-                continue
-            await asyncio.to_thread(
-                send_email,
-                address=user.email,
-                user_name=user.name,
-                subject=f"Your {settings.app_name} subscription has been resumed",
-                email_template="subscription-resumed",
-                data={"billing_url": f"{settings.frontend_url}/settings/billing"},
-            )
+        await self._notify_subscription_managers(
+            sub.organization_id,
+            f"Your {settings.app_name} subscription has been resumed",
+            "subscription-resumed",
+            {"billing_url": f"{settings.frontend_url}/settings/billing"},
+        )
 
     async def _handle_product_created(self, raw: dict) -> None:
         obj = raw["data"]["object"]
@@ -1184,9 +1124,14 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         if "active" in obj:
             await self.repos.plan_price.update(price, is_active=obj["active"])
 
+
+class BillingMaintenanceService(BaseService):
+    def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
+        super().__init__(repos)
+
     async def cleanup_stale_checkouts(self, max_age_hours: int = 48) -> int:
         """
-        Marks stale incomplete subscriptions as canceled.
+        Bulk-cancels stale incomplete subscriptions in a single UPDATE.
 
         Targets rows that have no external_subscription_id (checkout was never
         completed) and are older than max_age_hours. This handles the case where
@@ -1197,25 +1142,12 @@ class WebhookService:  # pylint: disable=too-few-public-methods
         Intended to be called from a scheduled job, e.g. daily with max_age_hours=48.
         """
         threshold = datetime.now(UTC) - timedelta(hours=max_age_hours)
-        stale = await self.repos.subscription.get_stale_incomplete_subscriptions(
-            threshold
-        )
-        log.info("Marking %d stale incomplete subscription(s) as canceled", len(stale))
-        for sub in stale:
-            log.debug(
-                "Canceling stale subscription [id=%s organization_id=%s]",
-                sub.id,
-                sub.organization_id,
-            )
-            await self.repos.subscription.update(
-                sub, status="canceled", canceled_at=datetime.now(UTC)
-            )
-        return len(stale)
+        count = await self.repos.subscription.bulk_cancel_stale_incomplete(threshold)
+        log.info("Marked %d stale incomplete subscription(s) as canceled", count)
+        return count
 
 
-async def run_stale_checkout_cleanup_loop(
-    session_factory: Any, billing_provider: Any
-) -> None:
+async def run_stale_checkout_cleanup_loop(session_factory: Any) -> None:
     """
     Background loop that calls cleanup_stale_checkouts once every 24 hours.
     Intended to be launched as an asyncio task from the application lifespan.
@@ -1225,9 +1157,7 @@ async def run_stale_checkout_cleanup_loop(
         try:
             async with session_factory() as session:
                 async with session.begin():
-                    service = WebhookService.__new__(WebhookService)
-                    service.repos = RepositoryManager(session)
-                    service.provider = billing_provider
+                    service = BillingMaintenanceService(RepositoryManager(session))
                     count = await service.cleanup_stale_checkouts()
                     log.info(
                         "Stale checkout cleanup: %d subscription(s) canceled",

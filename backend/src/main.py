@@ -18,7 +18,6 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import IntegrityError
 
-from src.billing.dependencies import get_billing_provider
 from src.core.config import settings
 from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.exceptions import ClientException
@@ -47,7 +46,7 @@ if not settings.app_debug and not settings.auth_enabled:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # pylint: disable=redefined-outer-name,unused-argument
     cleanup_task = asyncio.create_task(
-        run_stale_checkout_cleanup_loop(ASYNC_SESSION_LOCAL, get_billing_provider())
+        run_stale_checkout_cleanup_loop(ASYNC_SESSION_LOCAL)
     )
     yield
     cleanup_task.cancel()

@@ -233,7 +233,7 @@ def test_portal_url_returned(
     assert rs["portal_url"] == "https://billing.stripe.com/portal/test"
     mock_billing_provider.get_customer_portal_url.assert_called_once_with(
         external_customer_id="cus_test123",
-        return_url="http://localhost:5173/billing",
+        return_url="http://localhost:5173/settings/billing",
     )
 
 
