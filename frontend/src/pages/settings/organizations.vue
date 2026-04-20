@@ -34,7 +34,7 @@ meta:
         <TableCell class="text-muted-foreground text-xs">{{ formatDate(item.created_at) }}</TableCell>
       </template>
       <template #actions="{ item }">
-        <DropdownMenu v-if="hasAnyOrgAction">
+        <DropdownMenu v-if="hasAnyOrgAction(item)">
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
               <MoreHorizontal class="w-4 h-4" />
@@ -46,23 +46,25 @@ meta:
                 <Users class="w-4 h-4 mr-2" />{{ $t('organizations.viewMembers') }}
               </DropdownMenuItem>
             </PermissionGuard>
-            <PermissionGuard permission="update:organization">
-              <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
-                <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
-              </DropdownMenuItem>
-            </PermissionGuard>
-            <template v-if="isOwner">
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="openTransferOwnership(item)" class="cursor-pointer">
-                <ArrowRightLeft class="w-4 h-4 mr-2" />{{ $t('organizations.transferOwnership') }}
-              </DropdownMenuItem>
+            <template v-if="isActiveOrg(item.id)">
+              <PermissionGuard permission="update:organization">
+                <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
+                  <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
+                </DropdownMenuItem>
+              </PermissionGuard>
+              <template v-if="isOwner">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="openTransferOwnership(item)" class="cursor-pointer">
+                  <ArrowRightLeft class="w-4 h-4 mr-2" />{{ $t('organizations.transferOwnership') }}
+                </DropdownMenuItem>
+              </template>
+              <PermissionGuard permission="delete:organization">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
+                  <Trash2 class="w-4 h-4 mr-2" />{{ $t('common.delete') }}
+                </DropdownMenuItem>
+              </PermissionGuard>
             </template>
-            <PermissionGuard permission="delete:organization">
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
-                <Trash2 class="w-4 h-4 mr-2" />{{ $t('common.delete') }}
-              </DropdownMenuItem>
-            </PermissionGuard>
           </DropdownMenuContent>
         </DropdownMenu>
       </template>
@@ -95,6 +97,7 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useProfileStore } from '@/stores/profile'
+import { useSessionStore } from '@/stores/session'
 import { usePermission } from '@/composables/usePermission'
 import type { OrganizationOut, PaginatedResponse } from '@/types'
 
@@ -103,15 +106,24 @@ const { toast } = useToast()
 const { confirm } = useConfirm()
 const { handleError } = useErrorHandler()
 const profile = useProfileStore()
+const session = useSessionStore()
 const { hasPermission } = usePermission()
 
 const isOwner = computed(() =>
   profile.user?.roles.some((r: any) => r.is_protected && r.name === 'Owner') ?? false
 )
 
-const hasAnyOrgAction = computed(() =>
-  hasPermission('read:user') || hasPermission('update:organization') || isOwner.value || hasPermission('delete:organization')
-)
+function isActiveOrg(orgId: number): boolean {
+  return session.activeOrganizationId === orgId
+}
+
+function hasAnyOrgAction(item: OrganizationOut): boolean {
+  const active = isActiveOrg(item.id)
+  return hasPermission('read:user')
+    || (active && hasPermission('update:organization'))
+    || (active && isOwner.value)
+    || (active && hasPermission('delete:organization'))
+}
 
 const columns = [
   { key: 'name', label: t('organizations.columns.name'), sortable: true },

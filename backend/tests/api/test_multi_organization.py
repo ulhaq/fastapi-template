@@ -390,3 +390,51 @@ def test_roles_shown_are_scoped_to_active_organization(
     token_o2 = switch_rs.json()["access_token"]
     me_o2 = client.get("/v1/users/me", headers=_auth_headers(token_o2)).json()
     assert me_o2["roles"] == []
+
+
+# ---------------------------------------------------------------------------
+# Cross-organization mutation isolation
+# ---------------------------------------------------------------------------
+
+
+def test_cannot_update_organization_you_are_not_active_in(
+    admin_authenticated: TestClient,
+    organization2_admin_authenticated: TestClient,
+) -> None:
+    # Add admin (user 1) to Organization 2 as a member (no roles there)
+    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
+
+    # admin is active in Organization 1 — cannot update Organization 2
+    response = admin_authenticated.patch(
+        "/v1/organizations/2", json={"name": "Hijacked"}
+    )
+    assert response.status_code == 403
+
+
+def test_cannot_delete_organization_you_are_not_active_in(
+    admin_authenticated: TestClient,
+    organization2_admin_authenticated: TestClient,
+) -> None:
+    # Add admin (user 1) to Organization 2 as a member (no roles there)
+    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
+
+    # admin is active in Organization 1 — cannot delete Organization 2
+    response = admin_authenticated.delete("/v1/organizations/2")
+    assert response.status_code == 403
+
+
+def test_cannot_transfer_ownership_of_organization_you_are_not_active_in(
+    client: TestClient,
+    organization2_admin_authenticated: TestClient,
+) -> None:
+    # Add admin (user 1) to Organization 2 as a member (no roles there)
+    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
+
+    # Login as admin (active in Organization 1) and try to transfer ownership of Org 2
+    token = _login(client, "admin@example.org")
+    response = client.post(
+        "/v1/organizations/2/transfer-ownership",
+        json={"user_id": 4},
+        headers=_auth_headers(token),
+    )
+    assert response.status_code == 403

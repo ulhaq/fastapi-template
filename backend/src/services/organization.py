@@ -154,6 +154,11 @@ class OrganizationService(
     async def patch_organization(
         self, identifier: int, schema_in: OrganizationPatch
     ) -> OrganizationOut:
+        if identifier != self.current_user.organization_id:
+            raise PermissionDeniedException(
+                "You can only update your active organization"
+            )
+
         async def validate() -> None:
             if schema_in.name:
                 existing_org = await self.repo.get_one_by_name(schema_in.name)
@@ -172,6 +177,11 @@ class OrganizationService(
     async def delete_organization(
         self, identifier: int, force_delete: bool = False
     ) -> None:
+        if identifier != self.current_user.organization_id:
+            raise PermissionDeniedException(
+                "You can only delete your active organization"
+            )
+
         subscription = await self.repos.subscription.get_active_for_organization(
             identifier
         )
@@ -320,6 +330,11 @@ class OrganizationService(
     async def transfer_ownership(
         self, organization_id: int, schema_in: TransferOwnershipIn
     ) -> None:
+        if organization_id != self.current_user.organization_id:
+            raise PermissionDeniedException(
+                "You can only transfer ownership of your active organization"
+            )
+
         if schema_in.user_id == self.current_user.id:
             raise PermissionDeniedException("Cannot transfer ownership to yourself")
 
