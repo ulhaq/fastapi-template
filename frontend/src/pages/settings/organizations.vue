@@ -1,6 +1,5 @@
 <route lang="yaml">
 meta:
-  permission: read:organization
   breadcrumb: nav.organizations
 </route>
 
@@ -27,19 +26,26 @@ meta:
     >
       <template #row="{ item }">
         <TableCell class="font-medium">{{ item.name }}</TableCell>
+        <TableCell>
+          <Badge :variant="getOrgRole(item.id) === $t('organizations.roleOwner') ? 'default' : 'secondary'" class="text-xs">
+            {{ getOrgRole(item.id) }}
+          </Badge>
+        </TableCell>
         <TableCell class="text-muted-foreground text-xs">{{ formatDate(item.created_at) }}</TableCell>
       </template>
       <template #actions="{ item }">
-        <DropdownMenu>
+        <DropdownMenu v-if="hasAnyOrgAction">
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
               <MoreHorizontal class="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem @click="openUsers(item)" class="cursor-pointer">
-              <Users class="w-4 h-4 mr-2" />{{ $t('organizations.viewMembers') }}
-            </DropdownMenuItem>
+            <PermissionGuard permission="read:user">
+              <DropdownMenuItem @click="openUsers(item)" class="cursor-pointer">
+                <Users class="w-4 h-4 mr-2" />{{ $t('organizations.viewMembers') }}
+              </DropdownMenuItem>
+            </PermissionGuard>
             <PermissionGuard permission="update:organization">
               <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
                 <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
@@ -73,6 +79,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, MoreHorizontal, Pencil, Trash2, Users, ArrowRightLeft } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -88,25 +95,44 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useProfileStore } from '@/stores/profile'
-import type { OrganizationOut } from '@/types'
+import { usePermission } from '@/composables/usePermission'
+import type { OrganizationOut, PaginatedResponse } from '@/types'
 
 const { t } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const { handleError } = useErrorHandler()
 const profile = useProfileStore()
+const { hasPermission } = usePermission()
 
 const isOwner = computed(() =>
   profile.user?.roles.some((r: any) => r.is_protected && r.name === 'Owner') ?? false
 )
 
+const hasAnyOrgAction = computed(() =>
+  hasPermission('read:user') || hasPermission('update:organization') || isOwner.value || hasPermission('delete:organization')
+)
+
 const columns = [
   { key: 'name', label: t('organizations.columns.name'), sortable: true },
+  { key: 'role', label: t('organizations.columns.role') },
   { key: 'created_at', label: t('organizations.columns.created'), sortable: true },
 ]
 
+function getOrgRole(orgId: number): string {
+  const isOrgOwner = profile.user?.roles.some(
+    (r: any) => r.organization_id === orgId && r.is_protected && r.name === 'Owner'
+  ) ?? false
+  return isOrgOwner ? t('organizations.roleOwner') : t('organizations.roleMember')
+}
+
+async function fetchOrganizations() {
+  const { data } = await usersApi.getMyOrganizations()
+  return { data: { items: data, total: data.length, page_number: 1, page_size: data.length } as PaginatedResponse<OrganizationOut> }
+}
+
 const { items, total, isLoading, setSort, refresh } =
-  useDataTable<OrganizationOut>({ fetcher: usersApi.getMyOrganizations, defaultPageSize: 1000 })
+  useDataTable<OrganizationOut>({ fetcher: fetchOrganizations, defaultPageSize: 1000 })
 
 const showForm = ref(false)
 const showUsers = ref(false)

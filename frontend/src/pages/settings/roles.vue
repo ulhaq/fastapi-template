@@ -72,11 +72,12 @@ meta:
                   <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
                 </DropdownMenuItem>
               </PermissionGuard>
-              <PermissionGuard permission="manage:role_permission">
-                <DropdownMenuItem @click="openPermissions(item, false)" class="cursor-pointer">
-                  <Key class="w-4 h-4 mr-2" />{{ $t('roles.managePermissions') }}
-                </DropdownMenuItem>
-              </PermissionGuard>
+              <DropdownMenuItem v-if="hasPermission('manage:role_permission')" @click="openPermissions(item, false)" class="cursor-pointer">
+                <Key class="w-4 h-4 mr-2" />{{ $t('roles.managePermissions') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem v-else-if="hasPermission('read:permission')" @click="openPermissions(item, true)" class="cursor-pointer">
+                <Key class="w-4 h-4 mr-2" />{{ $t('roles.viewPermissions') }}
+              </DropdownMenuItem>
               <PermissionGuard permission="delete:role">
                 <DropdownMenuSeparator />
                 <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
@@ -97,6 +98,7 @@ meta:
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePermission } from '@/composables/usePermission'
 import { Plus, MoreHorizontal, Pencil, Trash2, Key } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -116,6 +118,7 @@ import type { RoleOut } from '@/types'
 const { t } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
+const { hasPermission } = usePermission()
 
 const columns = [
   { key: 'name', label: t('roles.columns.name'), sortable: true },

@@ -25,7 +25,7 @@ meta:
         {{ item.label }}
       </RouterLink>
 
-      <div class="pt-4 space-y-0.5">
+      <div v-if="workspaceItems.length" class="pt-4 space-y-0.5">
         <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-1.5">
           {{ $t('settings.workspace') }}
         </p>
@@ -43,7 +43,7 @@ meta:
         </RouterLink>
       </div>
 
-      <div class="pt-4 space-y-0.5">
+      <div v-if="adminItems.length" class="pt-4 space-y-0.5">
         <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-1.5">
           {{ $t('settings.administration') }}
         </p>
@@ -86,8 +86,8 @@ const accountItems = computed(() => [
 ])
 
 const workspaceItems = computed(() => [
-  { to: '/settings/users', label: t('nav.users'), icon: Users },
-  { to: '/settings/roles', label: t('nav.roles'), icon: Shield },
+  ...(hasPermission('read:user') ? [{ to: '/settings/users', label: t('nav.users'), icon: Users }] : []),
+  ...(hasPermission('read:role') ? [{ to: '/settings/roles', label: t('nav.roles'), icon: Shield }] : []),
   ...(hasPermission('read:subscription') ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }] : []),
 ])
 

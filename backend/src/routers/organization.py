@@ -54,7 +54,6 @@ async def patch_an_organization(
 @router.get("/{identifier}", status_code=status.HTTP_200_OK)
 async def retrieve_an_organization(
     service: Annotated[OrganizationService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.READ_ORGANIZATION))],
     identifier: Annotated[int, Path()],
 ) -> OrganizationOut:
     return await service.get_organization(identifier)

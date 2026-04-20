@@ -21,7 +21,6 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 _PERMISSIONS = [
-    Permission.READ_ORGANIZATION,
     Permission.UPDATE_ORGANIZATION,
     Permission.DELETE_ORGANIZATION,
     Permission.MANAGE_ORGANIZATION_USER,

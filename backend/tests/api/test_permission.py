@@ -16,12 +16,12 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert rs["page_number"] == 1
     assert rs["page_size"] == 100
-    assert rs["total"] == 18
+    assert rs["total"] == 17
 
-    assert len(rs["items"]) == 18
+    assert len(rs["items"]) == 17
     assert rs["items"][0]["id"] == 1
-    assert rs["items"][0]["name"] == "read:organization"
-    assert rs["items"][0]["description"] == "Allows the user to read organization accounts."
+    assert rs["items"][0]["name"] == "update:organization"
+    assert rs["items"][0]["description"] == "Allows the user to update organization accounts."
     assert rs["items"][0]["created_at"]
     assert rs["items"][0]["updated_at"]
 
@@ -29,9 +29,9 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 10, 18),
-        pytest.param(2, 10, 8, 18),
-        pytest.param(3, 10, 0, 18),
+        pytest.param(1, 10, 10, 17),
+        pytest.param(2, 10, 7, 17),
+        pytest.param(3, 10, 0, 17),
     ],
 )
 def test_paginate_permissions(
@@ -122,8 +122,8 @@ def test_retrieve_a_permission(admin_authenticated: TestClient) -> None:
     rs = response.json()
 
     assert rs["id"] == 1
-    assert rs["name"] == "read:organization"
-    assert rs["description"] == "Allows the user to read organization accounts."
+    assert rs["name"] == "update:organization"
+    assert rs["description"] == "Allows the user to update organization accounts."
     assert rs["created_at"]
     assert rs["updated_at"]
 

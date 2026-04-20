@@ -55,6 +55,7 @@ import { usersApi } from '@/api/users'
 import { rolesApi } from '@/api/roles'
 import { permissionsApi } from '@/api/permissions'
 import { usePermission } from '@/composables/usePermission'
+import type { OrganizationOut } from '@/types'
 
 const { hasPermission } = usePermission()
 
@@ -66,8 +67,7 @@ onMounted(async () => {
   if (hasPermission('read:user')) requests.push(usersApi.list({ page_size: 10 }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  if (hasPermission('read:organization')) requests.push(usersApi.getMyOrganizations())
-  else requests.push(Promise.resolve({ data: { total: '-' } }))
+  requests.push(usersApi.getMyOrganizations())
 
   if (hasPermission('read:role')) requests.push(rolesApi.list({ page_size: 10 }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
@@ -79,7 +79,7 @@ onMounted(async () => {
 
   stats.value = {
     users: users.status === 'fulfilled' ? (users.value as { data: { total: number } }).data.total : '-',
-    organizations: organizations.status === 'fulfilled' ? organizations.value.data.length : '-',
+    organizations: organizations.status === 'fulfilled' ? (organizations.value as { data: OrganizationOut[] }).data.length : '-',
     roles: roles.status === 'fulfilled' ? (roles.value as { data: { total: number } }).data.total : '-',
     permissions: permissions.status === 'fulfilled' ? (permissions.value as { data: { total: number } }).data.total : '-',
   }

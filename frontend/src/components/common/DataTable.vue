@@ -14,11 +14,13 @@
               v-for="col in columns"
               :key="col.key"
               :class="[col.class, col.sortable && 'cursor-pointer select-none hover:text-foreground']"
-              @click="col.sortable ? $emit('sort', col.key) : undefined"
+              @click="col.sortable ? handleSort(col.key) : undefined"
             >
               <div class="flex items-center gap-1">
                 {{ col.label }}
-                <ArrowUpDown v-if="col.sortable" class="w-3.5 h-3.5 text-muted-foreground/60" />
+                <ArrowUp v-if="col.sortable && sortField === col.key && !sortDesc" class="w-3.5 h-3.5" />
+                <ArrowDown v-else-if="col.sortable && sortField === col.key && sortDesc" class="w-3.5 h-3.5" />
+                <ArrowUpDown v-else-if="col.sortable" class="w-3.5 h-3.5 text-muted-foreground/60" />
               </div>
             </TableHead>
             <TableHead v-if="$slots.actions" class="w-20 text-right">{{ $t('common.actions') }}</TableHead>
@@ -75,8 +77,9 @@
 </template>
 
 <script setup lang="ts" generic="T">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowUpDown } from 'lucide-vue-next'
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next'
 import {
   Table,
   TableBody,
@@ -118,9 +121,27 @@ withDefaults(
   },
 )
 
-defineEmits<{
-  sort: [field: string]
+const emit = defineEmits<{
+  sort: [field: string, desc: boolean]
   'update:page': [page: number]
   'update:pageSize': [size: number]
 }>()
+
+const sortField = ref<string | null>(null)
+const sortDesc = ref(false)
+
+function handleSort(key: string) {
+  if (sortField.value === key && sortDesc.value) {
+    sortField.value = null
+    sortDesc.value = false
+    emit('sort', '', false)
+  } else if (sortField.value === key) {
+    sortDesc.value = true
+    emit('sort', key, true)
+  } else {
+    sortField.value = key
+    sortDesc.value = false
+    emit('sort', key, false)
+  }
+}
 </script>

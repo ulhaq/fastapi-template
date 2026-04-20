@@ -151,6 +151,40 @@ class UserService(
 
         return self._user_out(await self.repo.update(user, password=hashed_pw))
 
+    async def patch_user(self, identifier: int, schema_in: UserPatch) -> UserOut:
+        user = await self.get(identifier)
+
+        async def validate() -> None:
+            if schema_in.email:
+                existing = await self.repo.get_by_email(schema_in.email)
+                if existing and existing.email != user.email:
+                    raise AlreadyExistsException(
+                        f"User already exists. [email={schema_in.email}]",
+                        error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+                    )
+
+        updated = await super().patch(identifier, schema_in, validate)
+
+        if schema_in.email:
+            organization_roles = [
+                r
+                for r in updated.roles
+                if r.organization_id == self.current_user.organization_id
+            ]
+            is_owner = any(
+                r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles
+            )
+            if is_owner:
+                organization = await self.repos.organization.get(
+                    self.current_user.organization_id
+                )
+                if organization and organization.external_customer_id:
+                    await self.provider.update_customer(
+                        organization.external_customer_id, email=schema_in.email
+                    )
+
+        return self._user_out(updated)
+
     async def get_user(self, identifier: int, include_deleted: bool = False) -> UserOut:
         return self._user_out(
             await super().get(identifier, include_deleted=include_deleted)

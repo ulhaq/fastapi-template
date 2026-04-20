@@ -27,7 +27,7 @@ meta:
       :loading="isLoading"
       :empty-title="$t('users.noUsersFound')"
       :empty-description="$t('users.createFirstUser')"
-      @sort="handleSort"
+      @sort="setSort"
       @update:page="goToPage"
       @update:page-size="setPageSize"
     >
@@ -177,9 +177,6 @@ function clearSearch() {
   setFilter('name', [], 'ico')
 }
 
-function handleSort(field: string) {
-  setSort(field)
-}
 
 const showForm = ref(false)
 const showRoles = ref(false)

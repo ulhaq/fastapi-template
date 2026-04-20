@@ -199,8 +199,11 @@ export default {
     viewMembers: "Se medlemmer",
     columns: {
       name: "Navn",
+      role: "Rolle",
       created: "Oprettet",
     },
+    roleOwner: "Ejer",
+    roleMember: "Medlem",
     deleteTitle: "Slet organisation?",
     deleteDescription:
       '"{name}" og alle dens data vil blive fjernet permanent.',
@@ -279,6 +282,7 @@ export default {
     trialEndedTitle: "Din prøveperiode er slut",
     trialEndedDescription: "Dit {plan}-abonnement er sat på pause. Tilføj en betalingsmetode for at genoptage adgangen.",
     manageBilling: "Administrer fakturering",
+    manageBillingTooltip: "Opdater din betalingsmetode, download fakturaer og administrer faktureringsoplysninger.",
     cancelSubscription: "Annuller abonnement",
     resumeSubscription: "Genoptag abonnement",
     renewsOn: "Fornyes den {date}",

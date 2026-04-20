@@ -67,7 +67,7 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
   }
 
   function setSort(field: string, desc = false) {
-    currentSort.value = desc ? `-${field}` : field
+    currentSort.value = field ? (desc ? `-${field}` : field) : undefined
     pagination.page = 1
     fetchData()
   }

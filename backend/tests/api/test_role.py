@@ -226,11 +226,11 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     assert rs["created_at"]
     assert rs["updated_at"]
 
-    read_organization_id = next(p["id"] for p in all_perms if p["name"] == "read:organization")
+    update_organization_id = next(p["id"] for p in all_perms if p["name"] == "update:organization")
     response = admin_authenticated.post(
         "/v1/roles/2/permissions",
         json={
-            "permission_ids": [read_organization_id],
+            "permission_ids": [update_organization_id],
         },
     )
     assert response.status_code == 200
@@ -239,10 +239,10 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     assert rs["name"] == "standard"
 
     assert len(rs["permissions"]) == 1
-    assert rs["permissions"][0]["name"] == "read:organization"
+    assert rs["permissions"][0]["name"] == "update:organization"
     assert (
         rs["permissions"][0]["description"]
-        == "Allows the user to read organization accounts."
+        == "Allows the user to update organization accounts."
     )
 
     assert rs["created_at"]

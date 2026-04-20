@@ -81,7 +81,6 @@ class ErrorCode(Enum):
 
 
 class Permission(StrEnum):
-    READ_ORGANIZATION = "read:organization"
     UPDATE_ORGANIZATION = "update:organization"
     DELETE_ORGANIZATION = "delete:organization"
     MANAGE_ORGANIZATION_USER = "manage:organization_user"
@@ -102,7 +101,6 @@ class Permission(StrEnum):
 
 
 PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
-    Permission.READ_ORGANIZATION: "Allows the user to read organization accounts.",
     Permission.UPDATE_ORGANIZATION: "Allows the user to update organization accounts.",
     Permission.DELETE_ORGANIZATION: "Allows the user to delete organization accounts.",
     Permission.MANAGE_ORGANIZATION_USER: (

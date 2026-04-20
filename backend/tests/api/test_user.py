@@ -227,6 +227,40 @@ def test_cannot_delete_a_user_while_unauthorized(
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
+def test_patch_a_user(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/users/2", json={"name": "Standard Patched", "email": "patched@example.org"})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 2
+    assert rs["name"] == "Standard Patched"
+    assert rs["email"] == "patched@example.org"
+    assert rs["created_at"]
+    assert rs["updated_at"]
+
+
+def test_patch_a_user_with_partial_body(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/users/2", json={"name": "Only Name"})
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 2
+    assert rs["name"] == "Only Name"
+    assert rs["email"] == "standard@example.org"
+
+
+def test_cannot_patch_a_user_with_duplicate_email(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.patch("/v1/users/2", json={"email": "admin@example.org"})
+    assert response.status_code == 409
+    rs = response.json()
+    assert "already exists" in rs["msg"]
+
+
+def test_cannot_patch_a_user_while_unauthorized(standard_authenticated: TestClient) -> None:
+    response = standard_authenticated.patch("/v1/users/1", json={"name": "Hacked"})
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["msg"] == "You are not authorized to perform this action"
+
+
 def test_cannot_remove_last_owner_via_manage_roles(
     admin_authenticated: TestClient, client: TestClient
 ) -> None:

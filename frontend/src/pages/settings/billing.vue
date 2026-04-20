@@ -57,11 +57,18 @@ meta:
         </div>
 
         <PermissionGuard v-if="subscription.trial_end" permission="manage:subscription">
-          <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
-            <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
-            <ExternalLink v-else class="w-4 h-4 mr-2" />
-            {{ $t('subscription.manageBilling') }}
-          </Button>
+          <TooltipProvider :delay-duration="200">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
+                  <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
+                  <ExternalLink v-else class="w-4 h-4 mr-2" />
+                  {{ $t('subscription.manageBilling') }}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ $t('subscription.manageBillingTooltip') }}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </PermissionGuard>
 
       </div>
@@ -276,11 +283,18 @@ meta:
             </Button>
           </PermissionGuard>
           <PermissionGuard permission="manage:subscription">
-            <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
-              <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
-              <ExternalLink v-else class="w-4 h-4 mr-2" />
-              {{ $t('subscription.manageBilling') }}
-            </Button>
+            <TooltipProvider :delay-duration="200">
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
+                    <Loader2 v-if="isPortalLoading" class="w-4 h-4 mr-2 animate-spin" />
+                    <ExternalLink v-else class="w-4 h-4 mr-2" />
+                    {{ $t('subscription.manageBilling') }}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{{ $t('subscription.manageBillingTooltip') }}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </PermissionGuard>
         </div>
       </div>
@@ -383,6 +397,7 @@ import { Loader2, ExternalLink, ShieldCheck } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
 import { billingApi } from '@/api/billing'
