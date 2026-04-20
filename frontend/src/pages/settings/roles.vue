@@ -122,7 +122,7 @@ const { hasPermission } = usePermission()
 
 const columns = [
   { key: 'name', label: t('roles.columns.name'), sortable: true },
-  { key: 'description', label: t('roles.columns.description') },
+  { key: 'description', label: t('roles.columns.description'), sortable: true },
   { key: 'permissions', label: t('roles.columns.permissions') },
   { key: 'created_at', label: t('roles.columns.created'), sortable: true },
 ]

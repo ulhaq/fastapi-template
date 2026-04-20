@@ -95,7 +95,6 @@ class Permission(StrEnum):
     MANAGE_USER_ROLE = "manage:user_role"
     READ_PERMISSION = "read:permission"
     MANAGE_ROLE_PERMISSION = "manage:role_permission"
-    READ_PLAN = "read:plan"
     READ_SUBSCRIPTION = "read:subscription"
     MANAGE_SUBSCRIPTION = "manage:subscription"
 
@@ -117,7 +116,6 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.MANAGE_USER_ROLE: "Allows the user to manage users' roles.",
     Permission.READ_PERMISSION: "Allows the user to read permissions.",
     Permission.MANAGE_ROLE_PERMISSION: "Allows the user to manage roles' permissions.",
-    Permission.READ_PLAN: "Allows the user to read billing plans.",
     Permission.READ_SUBSCRIPTION: (
         "Allows the user to read the organization's subscription."
     ),

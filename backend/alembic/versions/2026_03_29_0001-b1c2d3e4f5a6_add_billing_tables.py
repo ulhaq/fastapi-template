@@ -21,7 +21,6 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 _NEW_PERMISSIONS = [
-    Permission.READ_PLAN,
     Permission.READ_SUBSCRIPTION,
     Permission.MANAGE_SUBSCRIPTION,
 ]

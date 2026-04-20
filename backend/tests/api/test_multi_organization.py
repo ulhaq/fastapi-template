@@ -151,7 +151,7 @@ def test_cannot_remove_nonmember_from_organization(
 def test_cannot_remove_owner_from_organization(
     admin_authenticated: TestClient,
 ) -> None:
-    # user 1 is the Owner — owner removal is blocked before the last-admin check
+    # user 1 is the Owner - owner removal is blocked before the last-admin check
     response = admin_authenticated.delete("/v1/organizations/1/users/1")
     assert response.status_code == 403
     rs = response.json()

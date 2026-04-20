@@ -42,7 +42,7 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
 
   // Require active subscription before accessing the app.
   // Allow billing-related routes so the user can complete checkout.
-  // Only redirect to billing if the user has permission to view it — otherwise
+  // Only redirect to billing if the user has permission to view it - otherwise
   // they would loop between '/' and '/settings/billing' indefinitely.
   const billingPaths = ['/settings/billing', '/billing/success', '/billing/cancel']
   const isBillingRoute = billingPaths.some((p) => to.path.startsWith(p))

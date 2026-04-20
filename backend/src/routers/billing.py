@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 
-from src.core.dependencies import require_owner, require_permission
+from src.core.dependencies import authenticate, require_owner, require_permission
 from src.core.limiter import limiter
 from src.core.security import Auth
 from src.enums import Permission
@@ -28,18 +28,13 @@ webhook_router = APIRouter(prefix="/billing")
 
 
 @plan_router.get("", status_code=status.HTTP_200_OK)
-async def list_plans(
-    service: Annotated[PlanService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.READ_PLAN))],
-) -> list[PlanOut]:
+async def list_plans(service: Annotated[PlanService, Depends()]) -> list[PlanOut]:
     return await service.get_all_plans()
 
 
 @plan_router.get("/{plan_id}", status_code=status.HTTP_200_OK)
 async def retrieve_a_plan(
-    service: Annotated[PlanService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.READ_PLAN))],
-    plan_id: Annotated[int, Path()],
+    service: Annotated[PlanService, Depends()], plan_id: Annotated[int, Path()]
 ) -> PlanOut:
     return await service.get_plan(plan_id)
 

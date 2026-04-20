@@ -467,7 +467,7 @@ def test_cannot_remove_owner_role_via_manage_roles(
 
 
 def test_cannot_delete_owner(admin_authenticated: TestClient) -> None:
-    # Deleting the owner is blocked — either by the last-admin guard (admin check fires
+    # Deleting the owner is blocked - either by the last-admin guard (admin check fires
     # first if no other admin exists) or by the owner guard if another admin is present.
     response = admin_authenticated.delete("/v1/users/1")
     assert response.status_code == 403

@@ -2,7 +2,7 @@
 
 Vue 3 + TypeScript admin dashboard. Vite build, Pinia state management, file-based routing via `unplugin-vue-router`, Tailwind + Reka UI components.
 
-## Commands
+## Commands (`cd frontend` first)
 
 ```bash
 npm run dev       # dev server on :5173 (proxies /v1 → localhost:8000)
@@ -25,7 +25,7 @@ src/
 ├── composables/  # useDataTable, useErrorHandler, usePermission, useConfirm
 ├── layouts/      # DashboardLayout, AuthLayout
 ├── locales/      # i18n strings (en, da)
-├── pages/        # File-based routes — each .vue file = a route
+├── pages/        # File-based routes - each .vue file = a route
 ├── plugins/      # i18n setup
 ├── router/       # Router config + navigation guards
 ├── stores/       # auth.ts (user, token, permissions, organizations), ui.ts (sidebar)
@@ -34,7 +34,7 @@ src/
 
 ## Routing
 
-Routes are auto-generated from `src/pages/**/*.vue` by `unplugin-vue-router`. No manual route definitions — adding a file creates a route.
+Routes are auto-generated from `src/pages/**/*.vue` by `unplugin-vue-router`. No manual route definitions - adding a file creates a route.
 
 Route metadata is declared with YAML frontmatter in each page file:
 
@@ -43,7 +43,7 @@ Route metadata is declared with YAML frontmatter in each page file:
 meta:
   layout: dashboard        # 'dashboard' | 'auth'
   requiresAuth: true
-  permission: users:read   # optional — guards the route
+  permission: users:read   # optional - guards the route
   breadcrumb: nav.users
 </route>
 ```
@@ -52,20 +52,20 @@ The router guard in `src/router/index.ts` enforces `requiresAuth`, `guestOnly`, 
 
 ## State Management
 
-**`stores/auth.ts`** — Auth + authorization:
+**`stores/auth.ts`** - Auth + authorization:
 - `user`, `accessToken`, `permissions[]`, `organizations[]`
-- `initialize()` — silent refresh from httponly cookie (called once on app load)
+- `initialize()` - silent refresh from httponly cookie (called once on app load)
 - `login()` / `logout()` / `switchOrganization()`
-- `hasPermission(name)` — checks flattened permissions from user roles
+- `hasPermission(name)` - checks flattened permissions from user roles
 
-**`stores/ui.ts`** — UI state:
-- `sidebarOpen` — mobile sidebar toggle
+**`stores/ui.ts`** - UI state:
+- `sidebarOpen` - mobile sidebar toggle
 
 ## API Layer
 
-`src/api/client.ts` — Axios instance with:
+`src/api/client.ts` - Axios instance with:
 - Request interceptor: attaches `Authorization: Bearer <token>`
-- Response interceptor: on 401, queues concurrent requests, refreshes token, retries — or clears session and redirects to login on failure
+- Response interceptor: on 401, queues concurrent requests, refreshes token, retries - or clears session and redirects to login on failure
 - `withCredentials: true` for httponly refresh token cookie
 
 API modules (`api/auth.ts`, `api/users.ts`, etc.) export plain functions that call the shared client. Add new endpoints in the relevant domain module.
@@ -73,14 +73,14 @@ API modules (`api/auth.ts`, `api/users.ts`, etc.) export plain functions that ca
 ## Components
 
 ### UI Components (`components/ui/`)
-Headless Reka UI + Radix Vue primitives styled with Tailwind. Do not modify these unless fixing a bug — treat as a library.
+Headless Reka UI + Radix Vue primitives styled with Tailwind. Do not modify these unless fixing a bug - treat as a library.
 
 ### Common Components
-- **`DataTable`** — generic paginated table. Use with `useDataTable` composable for fetch/sort/filter/pagination logic
-- **`PageHeader`** — standard page title + action slot
-- **`ConfirmDialog`** — global confirmation modal, triggered via `useConfirm()`
-- **`PermissionGuard`** — wraps content that requires a permission: `<PermissionGuard permission="users:write">`
-- **`EmptyState`** — empty list state with title + description
+- **`DataTable`** - generic paginated table. Use with `useDataTable` composable for fetch/sort/filter/pagination logic
+- **`PageHeader`** - standard page title + action slot
+- **`ConfirmDialog`** - global confirmation modal, triggered via `useConfirm()`
+- **`PermissionGuard`** - wraps content that requires a permission: `<PermissionGuard permission="users:write">`
+- **`EmptyState`** - empty list state with title + description
 
 ### Writing Components
 - Use `<script setup lang="ts">` exclusively
@@ -132,5 +132,5 @@ Tailwind CSS with a CSS variable-based theme (HSL tokens defined in `src/assets/
 - **Composables/utilities**: camelCase, `use` prefix for composables
 - **API modules**: camelCase with `Api` suffix (e.g., `usersApi`)
 - Path alias `@` maps to `src/`
-- Auto-imported: Vue reactivity APIs, vue-router composables, Pinia helpers — no explicit imports needed for these
-- Auto-registered: all components in `src/components/` — no explicit imports needed
+- Auto-imported: Vue reactivity APIs, vue-router composables, Pinia helpers - no explicit imports needed for these
+- Auto-registered: all components in `src/components/` - no explicit imports needed
