@@ -45,6 +45,12 @@ meta:
                 <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
               </DropdownMenuItem>
             </PermissionGuard>
+            <template v-if="isOwner">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="openTransferOwnership(item)" class="cursor-pointer">
+                <ArrowRightLeft class="w-4 h-4 mr-2" />{{ $t('organizations.transferOwnership') }}
+              </DropdownMenuItem>
+            </template>
             <PermissionGuard permission="delete:organization">
               <DropdownMenuSeparator />
               <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
@@ -58,13 +64,14 @@ meta:
 
     <OrganizationForm v-model:open="showForm" :organization="selectedOrganization" @saved="refresh" />
     <OrganizationUsersDialog v-model:open="showUsers" :organization="selectedOrganization" />
+    <TransferOwnershipDialog v-model:open="showTransfer" :organization="selectedOrganization" @saved="handleOwnershipTransferred" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, MoreHorizontal, Pencil, Trash2, Users } from 'lucide-vue-next'
+import { Plus, MoreHorizontal, Pencil, Trash2, Users, ArrowRightLeft } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { TableCell } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -73,16 +80,25 @@ import DataTable from '@/components/common/DataTable.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
 import OrganizationForm from '@/components/organizations/OrganizationForm.vue'
 import OrganizationUsersDialog from '@/components/organizations/OrganizationUsersDialog.vue'
+import TransferOwnershipDialog from '@/components/organizations/TransferOwnershipDialog.vue'
 import { organizationsApi } from '@/api/organizations'
 import { usersApi } from '@/api/users'
 import { useDataTable } from '@/composables/useDataTable'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useProfileStore } from '@/stores/profile'
 import type { OrganizationOut } from '@/types'
 
 const { t } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
+const { handleError } = useErrorHandler()
+const profile = useProfileStore()
+
+const isOwner = computed(() =>
+  profile.user?.roles.some((r: any) => r.is_protected && r.name === 'Owner') ?? false
+)
 
 const columns = [
   { key: 'name', label: t('organizations.columns.name'), sortable: true },
@@ -94,11 +110,18 @@ const { items, total, isLoading, setSort, refresh } =
 
 const showForm = ref(false)
 const showUsers = ref(false)
+const showTransfer = ref(false)
 const selectedOrganization = ref<OrganizationOut | null>(null)
 
 function openCreate() { selectedOrganization.value = null; showForm.value = true }
 function openEdit(organization: OrganizationOut) { selectedOrganization.value = organization; showForm.value = true }
 function openUsers(organization: OrganizationOut) { selectedOrganization.value = organization; showUsers.value = true }
+function openTransferOwnership(organization: OrganizationOut) { selectedOrganization.value = organization; showTransfer.value = true }
+
+async function handleOwnershipTransferred() {
+  await profile.fetchMe()
+  refresh()
+}
 
 async function handleDelete(organization: OrganizationOut) {
   const ok = await confirm(
@@ -111,8 +134,8 @@ async function handleDelete(organization: OrganizationOut) {
     await organizationsApi.delete(organization.id)
     toast({ title: t('organizations.deleted') })
     refresh()
-  } catch {
-    toast({ title: t('organizations.deleteFailed'), variant: 'destructive' })
+  } catch (err) {
+    handleError(err)
   }
 }
 

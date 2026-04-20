@@ -58,7 +58,14 @@ class AuthService(BaseService):
         existing = await self.repos.user.get_by_email(email_in.email)
 
         if existing is not None:
-            has_owner_role = any(r.name == OWNER_ROLE_NAME for r in existing.roles)
+            active_memberships = await self.repos.user_organization.get_all_for_user(
+                existing.id
+            )
+            active_org_ids = {m.organization_id for m in active_memberships}
+            has_owner_role = any(
+                r.name == OWNER_ROLE_NAME and r.organization_id in active_org_ids
+                for r in existing.roles
+            )
             if has_owner_role:
                 raise AlreadyExistsException(
                     f"Account already exists. [email={email_in.email}]",
@@ -201,6 +208,13 @@ class AuthService(BaseService):
 
         await self.repos.email_verification_token.delete_by_email(email)
 
+        organization = await self.repos.organization.get(organization_id)
+        if not organization or organization.deleted_at is not None:
+            raise NotFoundException(
+                "Organization not found or has been deleted. "
+                f"[organization_id={organization_id}]"
+            )
+
         if await self.repos.user.get_by_email(email):
             raise AlreadyExistsException(
                 f"Account already exists. [email={email}]",
@@ -222,7 +236,11 @@ class AuthService(BaseService):
 
         if role_ids:
             self.repos.role.set_organization_scope(organization_id)
-            valid_roles = list(await self.repos.role.filter_by_ids(role_ids))
+            valid_roles = [
+                r
+                for r in await self.repos.role.filter_by_ids(role_ids)
+                if not (r.is_protected and r.name == OWNER_ROLE_NAME)
+            ]
             if valid_roles:
                 await self.repos.user.add_roles(user, *[r.id for r in valid_roles])
 

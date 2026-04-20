@@ -33,4 +33,8 @@ export const organizationsApi = {
   removeUser(organizationId: number, userId: number) {
     return apiClient.delete(`/v1/organizations/${organizationId}/users/${userId}`)
   },
+
+  transferOwnership(organizationId: number, userId: number) {
+    return apiClient.post(`/v1/organizations/${organizationId}/transfer-ownership`, { user_id: userId })
+  },
 }

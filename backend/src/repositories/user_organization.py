@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.organization import Organization
 from src.models.user_organization import UserOrganization
 from src.repositories.base import SQLResourceRepository
 
@@ -25,7 +26,11 @@ class UserOrganizationRepository(SQLResourceRepository[UserOrganization]):
     async def get_all_for_user(self, user_id: int) -> Sequence[UserOrganization]:
         stmt = (
             select(UserOrganization)
-            .where(UserOrganization.user_id == user_id)
+            .join(Organization, Organization.id == UserOrganization.organization_id)
+            .where(
+                UserOrganization.user_id == user_id,
+                Organization.deleted_at.is_(None),
+            )
             .order_by(
                 UserOrganization.last_active_at.desc().nulls_last(),
                 UserOrganization.created_at.asc(),

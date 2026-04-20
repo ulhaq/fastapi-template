@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, status
 
-from src.core.dependencies import require_permission
+from src.core.dependencies import require_owner, require_permission
 from src.core.security import Auth
 from src.enums import Permission
 from src.routers.query_options import (
@@ -16,6 +16,7 @@ from src.schemas.organization import (
     OrganizationBase,
     OrganizationOut,
     OrganizationPatch,
+    TransferOwnershipIn,
 )
 from src.schemas.user import UserOut
 from src.services.organization import OrganizationService
@@ -94,6 +95,18 @@ async def remove_user_from_organization(
     user_id: Annotated[int, Path()],
 ) -> None:
     await service.remove_user_from_organization(organization_id, user_id)
+
+
+@router.post(
+    "/{organization_id}/transfer-ownership", status_code=status.HTTP_204_NO_CONTENT
+)
+async def transfer_organization_ownership(
+    service: Annotated[OrganizationService, Depends()],
+    _: Annotated[Auth, Depends(require_owner())],
+    organization_id: Annotated[int, Path()],
+    schema_in: TransferOwnershipIn,
+) -> None:
+    await service.transfer_ownership(organization_id, schema_in)
 
 
 @router.get("/{organization_id}/users", status_code=status.HTTP_200_OK)

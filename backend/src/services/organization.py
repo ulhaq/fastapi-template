@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from src.billing.dependencies import BillingProviderDep
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
@@ -11,7 +12,7 @@ from src.core.exceptions import (
     PermissionDeniedException,
 )
 from src.core.security import Auth
-from src.enums import OWNER_ROLE_NAME, Permission
+from src.enums import OWNER_ROLE_NAME, ErrorCode, Permission
 from src.models.organization import Organization
 from src.models.user import User
 from src.repositories.organization import OrganizationRepository
@@ -21,6 +22,7 @@ from src.schemas.organization import (
     OrganizationBase,
     OrganizationOut,
     OrganizationPatch,
+    TransferOwnershipIn,
 )
 from src.schemas.user import UserOut
 from src.services.base import ResourceService
@@ -74,9 +76,11 @@ class OrganizationService(
         self,
         repos: Annotated[RepositoryManager, Depends()],
         current_user: Annotated[Auth, Depends(authenticate)],
+        provider: BillingProviderDep,
     ) -> None:
         self.repo = repos.organization
         self.current_user = current_user
+        self.provider = provider
         super().__init__(repos)
 
     async def get(self, identifier: int, include_deleted: bool = False) -> Organization:
@@ -158,6 +162,15 @@ class OrganizationService(
     async def delete_organization(
         self, identifier: int, force_delete: bool = False
     ) -> None:
+        subscription = await self.repos.subscription.get_active_for_organization(
+            identifier
+        )
+        if subscription and subscription.external_subscription_id:
+            raise PermissionDeniedException(
+                "Cannot delete an organization with an active subscription."
+                " Cancel the subscription first.",
+                error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
+            )
         await super().delete(identifier, force_delete=force_delete)
 
     async def add_user_to_organization(
@@ -209,6 +222,13 @@ class OrganizationService(
             organization_roles = [
                 r for r in user.roles if r.organization_id == organization_id
             ]
+            if any(
+                r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles
+            ):
+                raise PermissionDeniedException(
+                    "The organization owner cannot be removed. Transfer ownership first.",
+                    error_code=ErrorCode.PROTECTED_ROLE_MODIFICATION,
+                )
             user_permissions = {
                 p.name for role in organization_roles for p in role.permissions
             }
@@ -267,3 +287,33 @@ class OrganizationService(
             page_size=page_query_params.page_size,
             total=total,
         )
+
+    async def transfer_ownership(
+        self, organization_id: int, schema_in: TransferOwnershipIn
+    ) -> None:
+        if schema_in.user_id == self.current_user.id:
+            raise PermissionDeniedException("Cannot transfer ownership to yourself")
+
+        organization = await self.get(organization_id)
+
+        membership = await self.repos.user_organization.get_by_user_and_organization(
+            schema_in.user_id, organization_id
+        )
+        if not membership:
+            raise NotFoundException("Target user is not a member of this organization")
+
+        self.repos.role.set_organization_scope(organization_id)
+        owner_role = await self.repos.role.get_one_by_name(OWNER_ROLE_NAME)
+        if not owner_role:
+            raise NotFoundException("Owner role not found")
+
+        current_owner = await self.repos.user.get_one(self.current_user.id)
+        new_owner = await self.repos.user.get_one(schema_in.user_id)
+
+        await self.repos.user.remove_roles(current_owner, owner_role.id)
+        await self.repos.user.add_roles(new_owner, owner_role.id)
+
+        if organization.external_customer_id:
+            await self.provider.update_customer(
+                organization.external_customer_id, email=new_owner.email
+            )

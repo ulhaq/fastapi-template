@@ -2,8 +2,8 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ $t('roles.permissionDialog.title') }}</DialogTitle>
-        <DialogDescription>{{ $t('roles.permissionDialog.description', { name: role?.name }) }}</DialogDescription>
+        <DialogTitle>{{ readonly ? $t('roles.viewPermissions') : $t('roles.permissionDialog.title') }}</DialogTitle>
+        <DialogDescription>{{ readonly ? $t('roles.permissionDialog.viewDescription', { name: role?.name }) : $t('roles.permissionDialog.description', { name: role?.name }) }}</DialogDescription>
       </DialogHeader>
 
       <div v-if="loadingPerms" class="py-4 space-y-2">
@@ -17,12 +17,13 @@
           <div
             v-for="perm in group"
             :key="perm.id"
-            class="flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer"
-            @click="togglePerm(perm.id)"
+            :class="['flex items-center gap-3 px-2 py-1.5 rounded-md', readonly ? '' : 'hover:bg-muted cursor-pointer']"
+            @click="!readonly && togglePerm(perm.id)"
           >
             <Checkbox
               :model-value="selectedIds.includes(perm.id)"
-              @click.stop="togglePerm(perm.id)"
+              :disabled="readonly"
+              @click.stop="!readonly && togglePerm(perm.id)"
             />
             <div>
               <p class="text-sm font-medium">{{ perm.name }}</p>
@@ -33,11 +34,14 @@
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="$emit('update:open', false)" :disabled="isLoading">{{ $t('common.cancel') }}</Button>
-        <Button @click="onSave" :disabled="isLoading">
-          <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
-          {{ $t('common.save') }}
-        </Button>
+        <Button v-if="readonly" @click="$emit('update:open', false)">{{ $t('common.close') }}</Button>
+        <template v-else>
+          <Button variant="outline" @click="$emit('update:open', false)" :disabled="isLoading">{{ $t('common.cancel') }}</Button>
+          <Button @click="onSave" :disabled="isLoading">
+            <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
+            {{ $t('common.save') }}
+          </Button>
+        </template>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -56,7 +60,7 @@ import { rolesApi } from '@/api/roles'
 import type { RoleOut, PermissionOut } from '@/types'
 import { useToast } from '@/composables/useToast'
 
-const props = defineProps<{ open: boolean; role?: RoleOut | null }>()
+const props = defineProps<{ open: boolean; role?: RoleOut | null; readonly?: boolean }>()
 const emit = defineEmits<{ 'update:open': [boolean]; saved: [] }>()
 
 const { toast } = useToast()

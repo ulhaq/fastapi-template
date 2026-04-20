@@ -156,6 +156,7 @@ declare module 'vue' {
     TooltipContent: typeof import('./components/ui/tooltip/TooltipContent.vue')['default']
     TooltipProvider: typeof import('./components/ui/tooltip/TooltipProvider.vue')['default']
     TooltipTrigger: typeof import('./components/ui/tooltip/TooltipTrigger.vue')['default']
+    TransferOwnershipDialog: typeof import('./components/organizations/TransferOwnershipDialog.vue')['default']
     TrialBanner: typeof import('./components/layout/TrialBanner.vue')['default']
     UserForm: typeof import('./components/users/UserForm.vue')['default']
     UserRoleDialog: typeof import('./components/users/UserRoleDialog.vue')['default']

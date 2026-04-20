@@ -148,13 +148,14 @@ def test_cannot_remove_nonmember_from_organization(
     assert response.status_code == 404
 
 
-def test_cannot_remove_last_admin_from_organization(
+def test_cannot_remove_owner_from_organization(
     admin_authenticated: TestClient,
 ) -> None:
-    # user 1 is the only user with MANAGE_USER_ROLE in Organization 1
+    # user 1 is the Owner — owner removal is blocked before the last-admin check
     response = admin_authenticated.delete("/v1/organizations/1/users/1")
     assert response.status_code == 403
-    assert "role management access" in response.json()["msg"]
+    rs = response.json()
+    assert rs["error_code"] == "protected_role_modification"
 
 
 def test_cannot_remove_user_without_permission(

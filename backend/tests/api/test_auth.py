@@ -92,7 +92,9 @@ def test_registered_user_has_owner_role_with_all_permissions(
     token_data = _do_complete(mocker, client, password="password1")
     access_token = token_data["access_token"]
 
-    response = client.get("/v1/users/me", headers={"Authorization": f"Bearer {access_token}"})
+    response = client.get(
+        "/v1/users/me", headers={"Authorization": f"Bearer {access_token}"}
+    )
     assert response.status_code == 200
     rs = response.json()
     assert len(rs["roles"]) == 1
@@ -538,7 +540,7 @@ def test_invited_user_is_added_to_organization_with_roles(
     mock_send = mocker.patch("src.services.user.send_email")
     admin_authenticated.post(
         "/v1/users/invite",
-        json={"email": "invited@example.org", "role_ids": [1]},
+        json={"email": "invited@example.org", "role_ids": [2]},
     )
     token = mock_send.call_args.kwargs["data"]["invite_url"].split("token=")[1]
 
@@ -552,13 +554,17 @@ def test_invited_user_is_added_to_organization_with_roles(
     ).json()
     assert profile["email"] == "invited@example.org"
     role_names = {r["name"] for r in profile["roles"]}
-    assert "Owner" in role_names
+    assert "standard" in role_names
 
 
 def test_cannot_complete_invite_with_invalid_token(client: TestClient) -> None:
     response = client.post(
         "/v1/auth/complete-invite",
-        json={"invite_token": "notavalidtoken", "name": "User", "password": "password1"},
+        json={
+            "invite_token": "notavalidtoken",
+            "name": "User",
+            "password": "password1",
+        },
     )
     assert response.status_code == 401
     assert response.json()["error_code"] == "signature_invalid"

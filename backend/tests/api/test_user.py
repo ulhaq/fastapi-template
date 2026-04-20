@@ -140,62 +140,27 @@ def test_retrieve_a_user(admin_authenticated: TestClient) -> None:
 
 
 def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
+    # Assign the standard role to user 3 (who currently has no roles)
     response = admin_authenticated.post(
-        "/v1/users/2/roles",
-        json={
-            "role_ids": [1, 2],
-        },
+        "/v1/users/3/roles",
+        json={"role_ids": [2]},
     )
     assert response.status_code == 200
     rs = response.json()
-    assert rs["id"] == 2
-    assert rs["name"] == "Standard"
-    assert rs["email"] == "standard@example.org"
-
-    assert len(rs["roles"]) == 2
-    assert rs["roles"][0]["id"] == 1
-    assert rs["roles"][0]["name"] == "Owner"
-    assert (
-        rs["roles"][0]["description"]
-        == "Full access to all system features and settings."
-    )
-
-    assert len(rs["roles"][0]["permissions"]) == len(Permission)
-
-    assert rs["roles"][1]["id"] == 2
-    assert rs["roles"][1]["name"] == "standard"
-    assert rs["roles"][1]["description"] == "Access to manage and view own resources."
-
-    assert len(rs["roles"][1]["permissions"]) == 2
-    standard_perm_names = {p["name"] for p in rs["roles"][1]["permissions"]}
-    assert standard_perm_names == {"read:user", "create:user"}
-
-    assert rs["created_at"]
-    assert rs["updated_at"]
-
-    response = admin_authenticated.post(
-        "/v1/users/2/roles",
-        json={
-            "role_ids": [2],
-        },
-    )
-    assert response.status_code == 200
-    rs = response.json()
-    assert rs["id"] == 2
-    assert rs["name"] == "Standard"
-    assert rs["email"] == "standard@example.org"
-
+    assert rs["id"] == 3
     assert len(rs["roles"]) == 1
     assert rs["roles"][0]["id"] == 2
     assert rs["roles"][0]["name"] == "standard"
-    assert rs["roles"][0]["description"] == "Access to manage and view own resources."
 
-    assert len(rs["roles"][0]["permissions"]) == 2
-    standard_perm_names = {p["name"] for p in rs["roles"][0]["permissions"]}
-    assert standard_perm_names == {"read:user", "create:user"}
-
-    assert rs["created_at"]
-    assert rs["updated_at"]
+    # Remove all roles from user 3
+    response = admin_authenticated.post(
+        "/v1/users/3/roles",
+        json={"role_ids": []},
+    )
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["id"] == 3
+    assert len(rs["roles"]) == 0
 
 
 def test_delete_a_user(admin_authenticated: TestClient) -> None:
@@ -203,14 +168,17 @@ def test_delete_a_user(admin_authenticated: TestClient) -> None:
     assert response.status_code == 204
 
 
-def test_can_delete_admin_when_another_exists(admin_authenticated: TestClient) -> None:
-    admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [1]})
+def test_can_delete_non_owner_user(admin_authenticated: TestClient) -> None:
+    # Assign an extra role to user 2 to confirm non-owner users can be deleted freely
+    admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [2]})
 
     response = admin_authenticated.delete("/v1/users/2")
     assert response.status_code == 204
 
 
 def test_cannot_delete_last_admin(admin_authenticated: TestClient) -> None:
+    # User 1 is the Owner (and the only user with role management access).
+    # The last-admin guard fires first.
     response = admin_authenticated.delete("/v1/users/1")
     assert response.status_code == 403
     rs = response.json()
@@ -290,11 +258,11 @@ def test_cannot_remove_last_owner_via_manage_roles(
 
     client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
 
-    # Try to remove Owner from user 1 (the last and only Owner) > should fail
+    # Try to remove Owner from user 1 (the only Owner) > should fail
     response = client.post("/v1/users/1/roles", json={"role_ids": []})
     assert response.status_code == 403
     rs = response.json()
-    assert rs["error_code"] == "last_owner_removal"
+    assert rs["error_code"] == "protected_role_modification"
 
 
 async def test_patch_profile_email_syncs_to_stripe_when_owner(
@@ -421,3 +389,51 @@ def test_cannot_get_users_while_unauthorized(client: TestClient) -> None:
     )
     assert response.status_code == 403
     assert response.json()["msg"] == "You are not authorized to perform this action"
+
+
+def test_cannot_assign_owner_role_via_manage_roles(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.post("/v1/users/3/roles", json={"role_ids": [1]})
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["error_code"] == "protected_role_modification"
+
+
+def test_cannot_remove_owner_role_via_manage_roles(
+    admin_authenticated: TestClient, client: TestClient
+) -> None:
+    # Give user 2 a role with MANAGE_USER_ROLE so they can call manage_roles
+    rs = admin_authenticated.get("/v1/permissions?page_size=50").json()
+    manage_role_perm_id = next(
+        p["id"] for p in rs["items"] if p["name"] == "manage:user_role"
+    )
+    rs = admin_authenticated.post(
+        "/v1/roles", json={"name": "Manager", "description": "Role manager"}
+    ).json()
+    manager_role_id = rs["id"]
+    admin_authenticated.post(
+        f"/v1/roles/{manager_role_id}/permissions",
+        json={"permission_ids": [manage_role_perm_id]},
+    )
+    admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [manager_role_id]})
+
+    # Login as user 2 and try to strip user 1's Owner role
+    rs = client.post(
+        "/v1/auth/token",
+        data={"username": "standard@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()
+    client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
+
+    response = client.post("/v1/users/1/roles", json={"role_ids": []})
+    assert response.status_code == 403
+    rs = response.json()
+    assert rs["error_code"] == "protected_role_modification"
+
+
+def test_cannot_delete_owner(admin_authenticated: TestClient) -> None:
+    # Deleting the owner is blocked — either by the last-admin guard (admin check fires
+    # first if no other admin exists) or by the owner guard if another admin is present.
+    response = admin_authenticated.delete("/v1/users/1")
+    assert response.status_code == 403

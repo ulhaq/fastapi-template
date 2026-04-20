@@ -17,3 +17,7 @@ class OrganizationOut(OrganizationBase, Timestamp):
 
 class OrganizationPatch(BaseModel):
     name: Annotated[str | None, Field(min_length=1, max_length=255)] = None
+
+
+class TransferOwnershipIn(BaseModel):
+    user_id: int

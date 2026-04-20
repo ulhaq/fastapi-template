@@ -54,36 +54,43 @@ meta:
         <TableCell class="text-muted-foreground text-xs">{{ formatDate(item.created_at) }}</TableCell>
       </template>
       <template #actions="{ item }">
-        <DropdownMenu v-if="!item.is_protected">
+        <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
               <MoreHorizontal class="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <PermissionGuard permission="update:role">
-              <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
-                <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
+            <template v-if="item.is_protected">
+              <DropdownMenuItem @click="openPermissions(item, true)" class="cursor-pointer">
+                <Key class="w-4 h-4 mr-2" />{{ $t('roles.viewPermissions') }}
               </DropdownMenuItem>
-            </PermissionGuard>
-            <PermissionGuard permission="manage:role_permission">
-              <DropdownMenuItem @click="openPermissions(item)" class="cursor-pointer">
-                <Key class="w-4 h-4 mr-2" />{{ $t('roles.managePermissions') }}
-              </DropdownMenuItem>
-            </PermissionGuard>
-            <PermissionGuard permission="delete:role">
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
-                <Trash2 class="w-4 h-4 mr-2" />{{ $t('common.delete') }}
-              </DropdownMenuItem>
-            </PermissionGuard>
+            </template>
+            <template v-else>
+              <PermissionGuard permission="update:role">
+                <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
+                  <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
+                </DropdownMenuItem>
+              </PermissionGuard>
+              <PermissionGuard permission="manage:role_permission">
+                <DropdownMenuItem @click="openPermissions(item, false)" class="cursor-pointer">
+                  <Key class="w-4 h-4 mr-2" />{{ $t('roles.managePermissions') }}
+                </DropdownMenuItem>
+              </PermissionGuard>
+              <PermissionGuard permission="delete:role">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
+                  <Trash2 class="w-4 h-4 mr-2" />{{ $t('common.delete') }}
+                </DropdownMenuItem>
+              </PermissionGuard>
+            </template>
           </DropdownMenuContent>
         </DropdownMenu>
       </template>
     </DataTable>
 
     <RoleForm v-model:open="showForm" :role="selectedRole" @saved="refresh" />
-    <RolePermissionDialog v-model:open="showPerms" :role="selectedRole" @saved="refresh" />
+    <RolePermissionDialog v-model:open="showPerms" :role="selectedRole" :readonly="permsReadonly" @saved="refresh" />
   </div>
 </template>
 
@@ -122,11 +129,12 @@ const { items, total, isLoading, totalPages, pagination, goToPage, setPageSize, 
 
 const showForm = ref(false)
 const showPerms = ref(false)
+const permsReadonly = ref(false)
 const selectedRole = ref<RoleOut | null>(null)
 
 function openCreate() { selectedRole.value = null; showForm.value = true }
 function openEdit(role: RoleOut) { selectedRole.value = role; showForm.value = true }
-function openPermissions(role: RoleOut) { selectedRole.value = role; showPerms.value = true }
+function openPermissions(role: RoleOut, readonly: boolean) { selectedRole.value = role; permsReadonly.value = readonly; showPerms.value = true }
 
 async function handleDelete(role: RoleOut) {
   const ok = await confirm(

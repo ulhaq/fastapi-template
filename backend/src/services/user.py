@@ -63,32 +63,6 @@ class UserService(
             }
         )
 
-    async def _assert_not_last_owner(self, user: User, new_roles: list) -> None:
-        organization_roles = [
-            r
-            for r in user.roles
-            if r.organization_id == self.current_user.organization_id
-        ]
-        owner_role = next(
-            (
-                r
-                for r in organization_roles
-                if r.is_protected and r.name == OWNER_ROLE_NAME
-            ),
-            None,
-        )
-        if owner_role is None:
-            return
-        if any(r.id == owner_role.id for r in new_roles):
-            return
-        if not await self.repo.has_other_user_with_role(
-            owner_role.id, exclude_user_id=user.id
-        ):
-            raise PermissionDeniedException(
-                "Cannot remove the last Owner from a organization",
-                error_code=ErrorCode.LAST_OWNER_REMOVAL,
-            )
-
     async def _assert_not_last_admin(self, user: User) -> None:
         organization_roles = [
             r
@@ -185,6 +159,15 @@ class UserService(
     async def invite_user(
         self, invite_in: InviteUserIn, schedule_task: Callable
     ) -> None:
+        if invite_in.role_ids:
+            self.repos.role.set_organization_scope(self.current_user.organization_id)
+            roles = list(await self.repos.role.filter_by_ids(invite_in.role_ids))
+            if any(r.is_protected and r.name == OWNER_ROLE_NAME for r in roles):
+                raise PermissionDeniedException(
+                    "The Owner role cannot be assigned via invitation.",
+                    error_code=ErrorCode.PROTECTED_ROLE_MODIFICATION,
+                )
+
         existing = await self.repo.get_by_email(invite_in.email)
         if existing:
             membership = (
@@ -238,7 +221,18 @@ class UserService(
     async def delete_user(self, identifier: int) -> None:
         user = await self.get(identifier)
         await self._assert_not_last_admin(user)
-        await self._assert_not_last_owner(user, [])
+        organization_roles = [
+            r
+            for r in user.roles
+            if r.organization_id == self.current_user.organization_id
+        ]
+        if any(
+            r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles
+        ):
+            raise PermissionDeniedException(
+                "The organization owner cannot be deleted. Transfer ownership first.",
+                error_code=ErrorCode.PROTECTED_ROLE_MODIFICATION,
+            )
         await self.repo.delete(user)
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
@@ -275,7 +269,19 @@ class UserService(
         if user_has_manage_permission and not new_roles_have_manage_permission:
             await self._assert_not_last_admin(user)
 
-        await self._assert_not_last_owner(user, new_roles)
+        owner_role_in_current = any(
+            r.is_protected and r.name == OWNER_ROLE_NAME
+            for r in organization_user_roles
+        )
+        owner_role_in_new = any(
+            r.is_protected and r.name == OWNER_ROLE_NAME for r in new_roles
+        )
+        if owner_role_in_current != owner_role_in_new:
+            raise PermissionDeniedException(
+                "The Owner role cannot be assigned or removed."
+                " Use ownership transfer instead.",
+                error_code=ErrorCode.PROTECTED_ROLE_MODIFICATION,
+            )
 
         current_roles = {role.id for role in organization_user_roles}
         schema_in_role_ids = set(schema_in.role_ids)
