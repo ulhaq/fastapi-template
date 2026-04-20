@@ -55,44 +55,12 @@ class AuthService(BaseService):
     async def register_organization(
         self, email_in: EmailIn, schedule_task: Callable
     ) -> RegisterOut:
-        existing = await self.repos.user.get_by_email(email_in.email)
+        if await self.repos.user.get_by_email(email_in.email):
+            raise AlreadyExistsException(
+                f"Account already exists. [email={email_in.email}]",
+                error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
+            )
 
-        if existing is not None:
-            active_memberships = await self.repos.user_organization.get_all_for_user(
-                existing.id
-            )
-            active_org_ids = {m.organization_id for m in active_memberships}
-            has_owner_role = any(
-                r.name == OWNER_ROLE_NAME and r.organization_id in active_org_ids
-                for r in existing.roles
-            )
-            if has_owner_role:
-                raise AlreadyExistsException(
-                    f"Account already exists. [email={email_in.email}]",
-                    error_code=ErrorCode.EMAIL_ALREADY_EXISTS,
-                )
-
-            # Existing non-owner user - create a new organization for them immediately
-            organization = await self.repos.organization.create(
-                name=f"{existing.name}'s Organization"
-            )
-            await self.repos.user_organization.create(
-                user_id=existing.id,
-                organization_id=organization.id,
-                last_active_at=datetime.now(UTC),
-            )
-            await _setup_new_organization(self.repos, organization, existing)
-            schedule_task(
-                send_email,
-                address=email_in.email,
-                user_name=existing.name,
-                subject=f"New workspace on {settings.app_name}",
-                email_template="welcome",
-                data={"login_url": f"{settings.frontend_url}/login"},
-            )
-            return RegisterOut(message="New workspace created. Please log in.")
-
-        # New user - send email verification
         token = sign(data=email_in.email, salt="email-verification")
         await self.repos.email_verification_token.delete_by_email(email_in.email)
         await self.repos.email_verification_token.create(
@@ -145,11 +113,21 @@ class AuthService(BaseService):
             )
 
         hashed_pw = hash_secret(schema_in.password)
-        user = await self.repos.user.create(
-            name=schema_in.name,
-            email=email,
-            password=hashed_pw,
-        )
+
+        # Restore soft-deleted user (orphaned when their org was deleted) rather than
+        # creating a duplicate row that would violate the email unique constraint.
+        deleted_user = await self.repos.user.get_by_email(email, include_deleted=True)
+        if deleted_user:
+            user = await self.repos.user.restore(deleted_user)
+            user = await self.repos.user.update(
+                user, name=schema_in.name, password=hashed_pw
+            )
+        else:
+            user = await self.repos.user.create(
+                name=schema_in.name,
+                email=email,
+                password=hashed_pw,
+            )
 
         organization = await self.repos.organization.create(
             name=f"{schema_in.name}'s Organization"

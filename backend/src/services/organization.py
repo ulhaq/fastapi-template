@@ -171,6 +171,25 @@ class OrganizationService(
                 " Cancel the subscription first.",
                 error_code=ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
             )
+
+        # Load members before deletion so the DB cascade hasn't removed the rows yet
+        memberships = (
+            await self.repos.user_organization.get_all_members_of_organization(
+                identifier
+            )
+        )
+        for membership in memberships:
+            user = await self.repos.user.get(membership.user_id)
+            if not user:
+                continue
+            # get_all_for_user filters soft-deleted orgs, so this gives remaining active orgs
+            other = await self.repos.user_organization.get_all_for_user(
+                membership.user_id
+            )
+            if not any(m.organization_id != identifier for m in other):
+                await self.repos.refresh_token.delete_by_user(user)
+                await self.repos.user.delete(user)
+
         await super().delete(identifier, force_delete=force_delete)
 
     async def add_user_to_organization(

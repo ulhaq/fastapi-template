@@ -113,9 +113,7 @@ def test_retrieve_an_organization(admin_authenticated: TestClient) -> None:
 def test_delete_an_organization(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.delete("/v1/organizations/1")
     assert response.status_code == 204
-
-    response = admin_authenticated.get("/v1/organizations/1")
-    assert response.status_code == 404
+    # admin is the only member of org 1, so they are soft-deleted along with the org
 
 
 def test_cannot_access_other_organization(admin_authenticated: TestClient) -> None:

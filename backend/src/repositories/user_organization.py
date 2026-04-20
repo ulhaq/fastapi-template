@@ -51,6 +51,15 @@ class UserOrganizationRepository(SQLResourceRepository[UserOrganization]):
         rows = await self.get_all_for_user(user_id)
         return rows[0] if rows else None
 
+    async def get_all_members_of_organization(
+        self, organization_id: int
+    ) -> Sequence[UserOrganization]:
+        stmt = select(UserOrganization).where(
+            UserOrganization.organization_id == organization_id
+        )
+        rs = await self.db.execute(stmt)
+        return rs.scalars().all()
+
     async def update_last_active(
         self, membership: UserOrganization
     ) -> UserOrganization:

@@ -315,23 +315,15 @@ def test_owner_cannot_register_a_new_account(
     assert rs["msg"] == "Account already exists. [email=admin@example.org]"
 
 
-def test_non_owner_user_can_register_new_organization(
+def test_existing_user_cannot_register_again(
     client: TestClient,
 ) -> None:
     response = client.post(
         "/v1/auth/register",
         json={"email": "standard@example.org"},
     )
-    assert response.status_code == 202
-    assert response.json()["message"] == "New workspace created. Please log in."
-
-    # Verify original password still works (not overwritten)
-    token_response = client.post(
-        "/v1/auth/token",
-        data={"username": "standard@example.org", "password": "password"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-    assert token_response.status_code == 200
+    assert response.status_code == 409
+    assert response.json()["error_code"] == "email_already_exists"
 
 
 def test_cannot_get_access_token_with_wrong_credentials(client: TestClient) -> None:
