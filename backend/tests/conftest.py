@@ -8,7 +8,7 @@ from httpx import Headers
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, AsyncSession
-from sqlalchemy import StaticPool
+from sqlalchemy import StaticPool, text as _text
 
 from src.billing import (
     BillingProviderABC,
@@ -166,7 +166,6 @@ def mock_pg_advisory_lock(mocker):  # type: ignore[no-untyped-def]
     concurrent duplicate customer creation. SQLite does not support it, so
     we replace the one text() call in the billing service with SELECT 1.
     """
-    from sqlalchemy import text as _text
 
     def _patched_text(clause: str):  # type: ignore[no-untyped-def]
         if "pg_advisory_xact_lock" in clause:

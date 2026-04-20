@@ -180,10 +180,7 @@ class SubscriptionService(BaseService):
         # abandoned; since no row is changed here, that handler is a no-op for
         # free-plan users (status stays "active", not "incomplete").
 
-        return CheckoutOut(
-            checkout_url=result.checkout_url,
-            external_session_id=result.external_session_id,
-        )
+        return CheckoutOut(checkout_url=result.checkout_url)
 
     async def start_trial(self, schema_in: StartTrialIn) -> CheckoutOut:
         price = await self.repos.plan_price.get(schema_in.plan_price_id)
@@ -268,10 +265,7 @@ class SubscriptionService(BaseService):
             metadata=metadata,
             trial_period_days=settings.billing_trial_period_days,
         )
-        return CheckoutOut(
-            checkout_url=result.checkout_url,
-            external_session_id=result.external_session_id,
-        )
+        return CheckoutOut(checkout_url=result.checkout_url)
 
     async def get_current_subscription(self) -> SubscriptionOut:
         sub = await self.repos.subscription.get_active_for_organization(

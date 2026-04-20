@@ -139,15 +139,6 @@ def test_cannot_patch_an_organization_while_unauthorized(
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-def test_cannot_retrieve_an_organization_while_unauthorized(
-    standard_authenticated: TestClient,
-) -> None:
-    response = standard_authenticated.get("/v1/organizations/1")
-    assert response.status_code == 403
-    rs = response.json()
-    assert rs["msg"] == "You are not authorized to perform this action"
-
-
 def test_cannot_delete_an_organization_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:

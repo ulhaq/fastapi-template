@@ -1,12 +1,12 @@
 from datetime import UTC, datetime
 import pytest
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from fastapi.testclient import TestClient
 from src.billing.types import WebhookPayload
 from src.core.exceptions import BillingProviderException, BillingWebhookException
-from src.billing.types import ExternalSubscription
-from src.models.billing import PlanPrice
+from src.models.billing import PlanPrice, Subscription
+from src.models.organization import Organization
 from tests.conftest import TestSessionLocal
 
 
@@ -122,7 +122,6 @@ def test_webhook_checkout_completed_updates_subscription(
 
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
-    assert sub["external_subscription_id"] == "sub_activated_123"
 
 
 def test_webhook_subscription_deleted(
@@ -177,7 +176,6 @@ def test_webhook_subscription_deleted(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
-    assert sub["external_subscription_id"] is None
 
 
 def test_webhook_payment_failed_does_not_downgrade(
@@ -369,7 +367,6 @@ def test_webhook_subscription_created(
 
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "trialing"
-    assert sub["external_subscription_id"] == "sub_created_123"
     assert sub["current_period_start"] is not None
     assert sub["current_period_end"] is not None
 
@@ -415,8 +412,6 @@ def test_webhook_checkout_session_expired(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
-    assert sub["plan_price"]["amount"] == 0
-    assert sub["external_subscription_id"] is None
 
 
 def test_webhook_payment_action_required_sets_incomplete(
@@ -488,7 +483,6 @@ def test_webhook_marked_uncollectible_downgrades_to_free_plan(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
-    assert sub["external_subscription_id"] is None
     mock_billing_provider.delete_subscription.assert_called_once_with("sub_muc")
     mock_billing_provider.switch_subscription_price.assert_not_called()
 
@@ -611,12 +605,10 @@ def test_webhook_price_created(
 
     plan = admin_authenticated.get(f"/v1/billing/plans/{plan_id}").json()
     new_price = next(
-        (p for p in plan["prices"] if p["external_price_id"] == "price_stripe_new"),
+        (p for p in plan["prices"] if p["amount"] == 4999 and p["interval"] == "year"),
         None,
     )
     assert new_price is not None
-    assert new_price["amount"] == 4999
-    assert new_price["interval"] == "year"
 
 
 def test_webhook_price_created_unknown_product(
@@ -651,11 +643,6 @@ async def free_plan_subscription(plan_with_price: dict) -> dict:
     Set up organization 1 with an active free-plan subscription and a Stripe customer ID,
     simulating a user who registered and was assigned the free plan by _setup_new_organization.
     """
-    from tests.conftest import TestSessionLocal
-    from src.models.billing import PlanPrice, Subscription
-    from src.models.organization import Organization
-    from sqlalchemy import select
-
     async with TestSessionLocal() as session:
         organization = await session.get(Organization, 1)
         organization.external_customer_id = "cus_free123"
@@ -664,7 +651,11 @@ async def free_plan_subscription(plan_with_price: dict) -> dict:
         ).scalar_one()
         free_price_id = free_price.id  # capture before session closes
         # Update the existing free subscription rather than inserting a new row
-        sub = (await session.execute(select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
+        sub = (
+            await session.execute(
+                select(Subscription).where(Subscription.organization_id == 1)
+            )
+        ).scalar_one()
         sub.plan_price_id = free_price_id
         sub.status = "active"
         sub.external_subscription_id = None
@@ -690,7 +681,6 @@ async def test_free_plan_user_checkout_upgrades_to_trial(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
-    assert sub["external_subscription_id"] is None
 
     # Start checkout - should succeed for active free-plan users
     resp = admin_authenticated.post(
@@ -726,24 +716,22 @@ async def test_free_plan_user_checkout_upgrades_to_trial(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "trialing"
     assert sub["plan_price"]["amount"] == 999  # paid plan
-    assert sub["external_subscription_id"] == "sub_from_free123"
     assert sub["trial_end"] is not None
 
 
 @pytest.fixture
 async def trialing_subscription(plan_with_price: dict) -> dict:
     """Set the existing subscription for organization 1 to trialing state with a Stripe customer."""
-    from tests.conftest import TestSessionLocal
-    from src.models.billing import Subscription
-    from src.models.organization import Organization
-    from sqlalchemy import select
-
     price_id = plan_with_price["price"]["id"]
     async with TestSessionLocal() as session:
         organization = await session.get(Organization, 1)
         if organization and not organization.external_customer_id:
             organization.external_customer_id = "cus_test123"
-        sub = (await session.execute(select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
+        sub = (
+            await session.execute(
+                select(Subscription).where(Subscription.organization_id == 1)
+            )
+        ).scalar_one()
         sub.plan_price_id = price_id
         sub.external_subscription_id = "sub_trial"
         sub.status = "trialing"
@@ -824,7 +812,7 @@ def test_webhook_price_updated(
     assert resp.status_code == 200
 
     plan = admin_authenticated.get(f"/v1/billing/plans/{plan_id}").json()
-    price = next(p for p in plan["prices"] if p["external_price_id"] == "price_test123")
+    price = next(p for p in plan["prices"] if p["id"] == plan_with_price["price"]["id"])
     assert price["is_active"] is False
 
 
@@ -850,7 +838,6 @@ def test_webhook_uncollectible_downgrades_to_free_plan(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
-    assert sub["external_subscription_id"] is None
     mock_billing_provider.delete_subscription.assert_called_once_with("sub_trial")
     mock_billing_provider.switch_subscription_price.assert_not_called()
 
@@ -885,7 +872,6 @@ def test_webhook_uncollectible_falls_back_gracefully_on_provider_error(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "trialing"
     assert sub["plan_price"]["amount"] == 999
-    assert sub["external_subscription_id"] == "sub_trial"
 
 
 @pytest.fixture
@@ -935,7 +921,6 @@ def test_webhook_subscription_paused_trial_end_downgrades_to_free(
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
-    assert sub["external_subscription_id"] is None
 
 
 def test_webhook_subscription_paused_manual_stays_paused(

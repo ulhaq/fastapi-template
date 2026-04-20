@@ -21,7 +21,6 @@ def test_start_checkout_returns_url(
     assert response.status_code == 200
     rs = response.json()
     assert rs["checkout_url"] == "https://checkout.stripe.com/test_session"
-    assert rs["external_session_id"] == "cs_test123"
 
 
 def test_start_checkout_calls_provider_with_correct_price(
@@ -347,13 +346,11 @@ async def test_switch_plan_no_external_subscription_id(
     # plan while a checkout is in progress should be rejected.
     price_id = plan_with_price["price"]["id"]
     async with TestSessionLocal() as session:
-        from sqlalchemy import select as _select
-
         free_price = (
-            await session.execute(_select(PlanPrice).where(PlanPrice.amount == 0))
+            await session.execute(select(PlanPrice).where(PlanPrice.amount == 0))
         ).scalar_one()
         # Update existing subscription to incomplete (no INSERT to avoid unique constraint)
-        sub = (await session.execute(_select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
+        sub = (await session.execute(select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
         sub.plan_price_id = free_price.id
         sub.status = "incomplete"
         sub.external_subscription_id = None
@@ -403,7 +400,6 @@ def test_start_trial_returns_checkout_url(
     assert response.status_code == 200
     rs = response.json()
     assert rs["checkout_url"] == "https://checkout.stripe.com/test_session"
-    assert rs["external_session_id"] == "cs_test123"
 
 
 def test_start_trial_creates_stripe_customer_and_checkout_session(

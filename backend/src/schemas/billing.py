@@ -26,7 +26,6 @@ class PlanPriceOut(BaseModel):
     currency: str
     interval: str
     interval_count: int
-    external_price_id: str | None
     is_active: bool
 
     @computed_field  # type: ignore[prop-decorator]
@@ -44,7 +43,6 @@ class PlanOut(BaseModel):
     id: int
     name: str
     description: str | None
-    external_product_id: str | None
     is_active: bool
     prices: list[PlanPriceOut]
     created_at: datetime
@@ -57,7 +55,6 @@ class SubscriptionOut(BaseModel):
     id: int
     organization_id: int
     plan_price_id: int | None
-    external_subscription_id: str | None
     status: str
     current_period_start: datetime | None
     current_period_end: datetime | None
@@ -74,7 +71,6 @@ class SubscriptionOut(BaseModel):
 
 class CheckoutOut(BaseModel):
     checkout_url: str
-    external_session_id: str
 
 
 class CustomerPortalOut(BaseModel):
