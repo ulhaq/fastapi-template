@@ -15,6 +15,10 @@ class OrganizationOut(OrganizationBase, Timestamp):
     id: int
 
 
+class MyOrganizationOut(OrganizationOut):
+    is_owner: bool = False
+
+
 class OrganizationPatch(BaseModel):
     name: Annotated[str | None, Field(min_length=1, max_length=255)] = None
 

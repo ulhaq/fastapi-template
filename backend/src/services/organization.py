@@ -19,6 +19,7 @@ from src.repositories.organization import OrganizationRepository
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.organization import (
+    MyOrganizationOut,
     OrganizationBase,
     OrganizationOut,
     OrganizationPatch,
@@ -105,15 +106,24 @@ class OrganizationService(
             include_deleted=include_deleted,
         )
 
-    async def get_all_organizations(self) -> list[OrganizationOut]:
+    async def get_all_organizations(self) -> list[MyOrganizationOut]:
         memberships = await self.repos.user_organization.get_all_for_user(
             self.current_user.id
         )
         organization_ids = [m.organization_id for m in memberships]
         organizations = await self.repos.organization.filter_by_ids(organization_ids)
         organization_map = {o.id: o for o in organizations}
+        user = await self.repos.user.get(self.current_user.id)
+        owner_org_ids = {
+            r.organization_id
+            for r in (user.roles if user else [])
+            if r.is_protected and r.name == OWNER_ROLE_NAME
+        }
         return [
-            OrganizationOut.model_validate(organization_map[oid])
+            MyOrganizationOut(
+                **OrganizationOut.model_validate(organization_map[oid]).model_dump(),
+                is_owner=oid in owner_org_ids,
+            )
             for oid in organization_ids
             if oid in organization_map
         ]

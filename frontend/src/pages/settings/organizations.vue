@@ -27,8 +27,8 @@ meta:
       <template #row="{ item }">
         <TableCell class="font-medium">{{ item.name }}</TableCell>
         <TableCell>
-          <Badge :variant="getOrgRole(item.id) === $t('organizations.roleOwner') ? 'default' : 'secondary'" class="text-xs">
-            {{ getOrgRole(item.id) }}
+          <Badge :variant="item.is_owner ? 'default' : 'secondary'" class="text-xs">
+            {{ getOrgRole(item) }}
           </Badge>
         </TableCell>
         <TableCell class="text-muted-foreground text-xs">{{ formatDate(item.created_at) }}</TableCell>
@@ -119,11 +119,8 @@ const columns = [
   { key: 'created_at', label: t('organizations.columns.created'), sortable: true },
 ]
 
-function getOrgRole(orgId: number): string {
-  const isOrgOwner = profile.user?.roles.some(
-    (r: any) => r.organization_id === orgId && r.is_protected && r.name === 'Owner'
-  ) ?? false
-  return isOrgOwner ? t('organizations.roleOwner') : t('organizations.roleMember')
+function getOrgRole(item: OrganizationOut): string {
+  return item.is_owner ? t('organizations.roleOwner') : t('organizations.roleMember')
 }
 
 async function fetchOrganizations() {

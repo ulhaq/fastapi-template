@@ -13,6 +13,7 @@ from src.routers.query_options import (
 )
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.organization import (
+    MyOrganizationOut,
     OrganizationBase,
     OrganizationOut,
     OrganizationPatch,
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/organizations")
 @router.get("", status_code=status.HTTP_200_OK)
 async def get_all_organizations(
     service: Annotated[OrganizationService, Depends()],
-) -> list[OrganizationOut]:
+) -> list[MyOrganizationOut]:
     return await service.get_all_organizations()
 
 

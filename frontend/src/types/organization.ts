@@ -8,6 +8,7 @@ export interface OrganizationPatch {
 
 export interface OrganizationOut extends OrganizationBase {
   id: number
+  is_owner?: boolean
   created_at: string
   updated_at: string
 }
