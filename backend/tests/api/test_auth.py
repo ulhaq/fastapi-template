@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
 from src.core.limiter import limiter
-from src.enums import Permission
+from src.enums import ADMIN_ROLE_NAME, MEMBER_ROLE_NAME, DEFAULT_ROLES, Permission
 
 
 def _do_register(client: TestClient, email: str = "new_user@example.org") -> None:
@@ -100,6 +100,38 @@ def test_registered_user_has_owner_role_with_all_permissions(
     assert len(rs["roles"]) == 1
     assert rs["roles"][0]["name"] == "Owner"
     assert len(rs["roles"][0]["permissions"]) == len(list(Permission))
+
+
+def test_registration_creates_default_roles(
+    mocker: MockerFixture, client: TestClient
+) -> None:
+    token_data = _do_complete(mocker, client, password="password1")
+    access_token = token_data["access_token"]
+
+    response = client.get(
+        "/v1/roles", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200
+    roles = {r["name"]: r for r in response.json()["items"]}
+
+    assert set(roles) == {"Owner", ADMIN_ROLE_NAME, MEMBER_ROLE_NAME}
+
+    assert roles["Owner"]["is_protected"] is True
+    assert len(roles["Owner"]["permissions"]) == len(list(Permission))
+
+    _, _, admin_permissions = next(r for r in DEFAULT_ROLES if r[0] == ADMIN_ROLE_NAME)
+    assert roles[ADMIN_ROLE_NAME]["is_protected"] is False
+    assert {p["name"] for p in roles[ADMIN_ROLE_NAME]["permissions"]} == set(
+        admin_permissions
+    )
+
+    _, _, member_permissions = next(
+        r for r in DEFAULT_ROLES if r[0] == MEMBER_ROLE_NAME
+    )
+    assert roles[MEMBER_ROLE_NAME]["is_protected"] is False
+    assert {p["name"] for p in roles[MEMBER_ROLE_NAME]["permissions"]} == set(
+        member_permissions
+    )
 
 
 def test_cannot_verify_email_with_invalid_token(client: TestClient) -> None:

@@ -1,6 +1,8 @@
 from enum import Enum, StrEnum
 
 OWNER_ROLE_NAME = "Owner"
+ADMIN_ROLE_NAME = "Admin"
+MEMBER_ROLE_NAME = "Member"
 
 
 class ComparisonOperator(Enum):
@@ -97,6 +99,40 @@ class Permission(StrEnum):
     MANAGE_ROLE_PERMISSION = "manage:role_permission"
     READ_SUBSCRIPTION = "read:subscription"
     MANAGE_SUBSCRIPTION = "manage:subscription"
+
+
+DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
+    (
+        ADMIN_ROLE_NAME,
+        "Access to manage users, roles, and organization settings.",
+        [
+            Permission.UPDATE_ORGANIZATION,
+            Permission.MANAGE_ORGANIZATION_USER,
+            Permission.READ_USER,
+            Permission.CREATE_USER,
+            Permission.UPDATE_USER,
+            Permission.DELETE_USER,
+            Permission.READ_ROLE,
+            Permission.CREATE_ROLE,
+            Permission.UPDATE_ROLE,
+            Permission.DELETE_ROLE,
+            Permission.MANAGE_USER_ROLE,
+            Permission.READ_PERMISSION,
+            Permission.MANAGE_ROLE_PERMISSION,
+            Permission.READ_SUBSCRIPTION,
+        ],
+    ),
+    (
+        MEMBER_ROLE_NAME,
+        "Read-only access to users, roles, and subscription.",
+        [
+            Permission.READ_USER,
+            Permission.READ_ROLE,
+            Permission.READ_PERMISSION,
+            Permission.READ_SUBSCRIPTION,
+        ],
+    ),
+]
 
 
 PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
