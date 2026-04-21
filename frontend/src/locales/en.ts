@@ -254,6 +254,10 @@ export default {
     passwordUpdated: "Password updated",
     incorrectCurrentPassword: "Incorrect current password",
     failedToUpdatePassword: "Failed to update password.",
+    general: "General",
+    dangerZone: "Danger zone",
+    deleteOrganization: "Delete organization",
+    deleteOrganizationDescription: "Permanently deletes your organization and all its data. All members will lose access. This action cannot be undone.",
   },
   subscription: {
     title: "Subscription",

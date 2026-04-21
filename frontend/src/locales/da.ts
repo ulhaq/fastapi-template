@@ -256,6 +256,10 @@ export default {
     passwordUpdated: "Adgangskode opdateret",
     incorrectCurrentPassword: "Forkert nuværende adgangskode",
     failedToUpdatePassword: "Kunne ikke opdatere adgangskode.",
+    general: "Generelt",
+    dangerZone: "Farezonen",
+    deleteOrganization: "Slet organisation",
+    deleteOrganizationDescription: "Sletter permanent din organisation og alle dens data. Alle medlemmer mister adgang. Denne handling kan ikke fortrydes.",
   },
   subscription: {
     title: "Abonnement",
