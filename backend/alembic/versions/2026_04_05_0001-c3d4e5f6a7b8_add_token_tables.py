@@ -1,4 +1,4 @@
-"""add_email_verification_token
+"""add_token_tables
 
 Revision ID: c3d4e5f6a7b8
 Revises: b1c2d3e4f5a6
@@ -20,6 +20,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    op.create_table(
+        "invite_token",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("email", sa.String(), nullable=False),
+        sa.Column("token", sa.String(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(),
+            nullable=False,
+            default=datetime.now(UTC),
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("email"),
+        sa.UniqueConstraint("token"),
+    )
+    op.create_index(
+        op.f("ix_invite_token_email"),
+        "invite_token",
+        ["email"],
+        unique=True,
+    )
     op.create_table(
         "email_verification_token",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -49,3 +70,5 @@ def downgrade() -> None:
         table_name="email_verification_token",
     )
     op.drop_table("email_verification_token")
+    op.drop_index(op.f("ix_invite_token_email"), table_name="invite_token")
+    op.drop_table("invite_token")

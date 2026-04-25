@@ -404,7 +404,7 @@ def test_cannot_update_organization_you_are_not_active_in(
     # Add admin (user 1) to Organization 2 as a member (no roles there)
     organization2_admin_authenticated.post("/v1/organizations/2/users/1")
 
-    # admin is active in Organization 1 — cannot update Organization 2
+    # admin is active in Organization 1 - cannot update Organization 2
     response = admin_authenticated.patch(
         "/v1/organizations/2", json={"name": "Hijacked"}
     )
@@ -418,7 +418,7 @@ def test_cannot_delete_organization_you_are_not_active_in(
     # Add admin (user 1) to Organization 2 as a member (no roles there)
     organization2_admin_authenticated.post("/v1/organizations/2/users/1")
 
-    # admin is active in Organization 1 — cannot delete Organization 2
+    # admin is active in Organization 1 - cannot delete Organization 2
     response = admin_authenticated.delete("/v1/organizations/2")
     assert response.status_code == 403
 

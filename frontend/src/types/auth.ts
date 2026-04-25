@@ -52,8 +52,13 @@ export interface CompleteRegistrationIn {
 
 export interface CompleteInviteIn {
   invite_token: string
-  name: string
-  password: string
+  name?: string
+  password?: string
+}
+
+export interface InviteStatusResponse {
+  email: string
+  user_exists: boolean
 }
 
 export interface JwtPayload {

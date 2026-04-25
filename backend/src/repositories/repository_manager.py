@@ -13,6 +13,7 @@ from src.repositories.billing import (
     WebhookEventRepository,
 )
 from src.repositories.email_verification_token import EmailVerificationTokenRepository
+from src.repositories.invite_token import InviteTokenRepository
 from src.repositories.organization import OrganizationRepository
 from src.repositories.permission import PermissionRepository
 from src.repositories.refresh_token import RefreshTokenRepository
@@ -37,6 +38,7 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         self._subscription: SubscriptionRepository | None = None
         self._webhook_event: WebhookEventRepository | None = None
         self._email_verification_token: EmailVerificationTokenRepository | None = None
+        self._invite_token: InviteTokenRepository | None = None
 
     @property
     def organization(self) -> OrganizationRepository:
@@ -103,6 +105,12 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         if self._email_verification_token is None:
             self._email_verification_token = EmailVerificationTokenRepository(self.db)
         return self._email_verification_token
+
+    @property
+    def invite_token(self) -> InviteTokenRepository:
+        if self._invite_token is None:
+            self._invite_token = InviteTokenRepository(self.db)
+        return self._invite_token
 
     @asynccontextmanager
     async def savepoint(self) -> AsyncGenerator[None]:

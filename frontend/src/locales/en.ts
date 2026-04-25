@@ -91,6 +91,10 @@ export default {
       invalidLink: "This invitation link is invalid or has expired.",
       contactAdmin: "Please ask your admin to send a new invitation.",
       accept: "Accept invitation",
+      acceptAs: "Accept invitation as {email}",
+      wrongAccount: "You are logged in as {email}.",
+      logoutFirst: "Log out first to accept this invitation.",
+      logout: "Log out",
     },
   },
   dashboard: {

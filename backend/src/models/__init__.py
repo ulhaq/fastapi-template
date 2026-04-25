@@ -1,5 +1,6 @@
 from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
 from src.models.email_verification_token import EmailVerificationToken
+from src.models.invite_token import InviteToken
 from src.models.organization import Organization
 from src.models.password_reset_token import PasswordResetToken
 from src.models.permission import Permission
@@ -16,6 +17,7 @@ __all__ = [
     "User",
     "UserOrganization",
     "EmailVerificationToken",
+    "InviteToken",
     "PasswordResetToken",
     "Plan",
     "PlanPrice",

@@ -226,8 +226,8 @@ class UserService(
             salt="invite",
         )
 
-        await self.repos.email_verification_token.delete_by_email(invite_in.email)
-        await self.repos.email_verification_token.create(
+        await self.repos.invite_token.delete_by_email(invite_in.email)
+        await self.repos.invite_token.create(
             email=invite_in.email, token=hash_secret(token)
         )
 

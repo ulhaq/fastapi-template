@@ -11,6 +11,8 @@ from src.schemas.user import (
     CompleteInviteIn,
     CompleteRegistrationIn,
     EmailIn,
+    InviteStatusIn,
+    InviteStatusOut,
     RegisterOut,
     ResetPasswordIn,
     SetupTokenOut,
@@ -134,15 +136,26 @@ async def reset_password(
     await service.reset_password(reset_password_in)
 
 
+@router.post("/invite-status", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
+async def get_invite_status(
+    request: Request,  # pylint: disable=unused-argument
+    service: Annotated[AuthService, Depends()],
+    schema_in: InviteStatusIn,
+) -> InviteStatusOut:
+    return await service.invite_status(schema_in.token)
+
+
 @router.post("/complete-invite", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def complete_invite(
     request: Request,  # pylint: disable=unused-argument
     response: Response,
+    bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
     schema_in: CompleteInviteIn,
 ) -> Token:
-    token = await service.complete_invite(schema_in)
+    token = await service.complete_invite(schema_in, bg_tasks.add_task)
     _set_refresh_token_cookie(response, token.refresh_token)
     return token
 

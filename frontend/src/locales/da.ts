@@ -92,6 +92,10 @@ export default {
       invalidLink: "Dette invitationslink er ugyldigt eller udløbet.",
       contactAdmin: "Bed venligst din administrator om at sende en ny invitation.",
       accept: "Accepter invitation",
+      acceptAs: "Accepter invitation som {email}",
+      wrongAccount: "Du er logget ind som {email}.",
+      logoutFirst: "Log ud for at acceptere denne invitation.",
+      logout: "Log ud",
     },
   },
   dashboard: {

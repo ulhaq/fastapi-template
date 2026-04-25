@@ -7,6 +7,7 @@ import type {
   VerifyEmailOut,
   CompleteRegistrationIn,
   CompleteInviteIn,
+  InviteStatusResponse,
   ResetPasswordRequestIn,
   ResetPasswordIn,
   SwitchOrganizationIn,
@@ -52,6 +53,10 @@ export const authApi = {
 
   switchOrganization(data: SwitchOrganizationIn) {
     return apiClient.post<Token>('/v1/auth/switch-organization', data)
+  },
+
+  inviteStatus(token: string) {
+    return apiClient.post<InviteStatusResponse>('/v1/auth/invite-status', { token })
   },
 
   completeInvite(data: CompleteInviteIn) {

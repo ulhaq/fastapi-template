@@ -118,7 +118,7 @@ watch(
     loadingRoles.value = true
     try {
       const { data } = await rolesApi.list({ page_size: 100 })
-      availableRoles.value = data.items
+      availableRoles.value = data.items.filter((r) => !(r.is_protected && r.name === 'Owner'))
     } finally {
       loadingRoles.value = false
     }

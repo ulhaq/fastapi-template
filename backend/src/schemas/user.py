@@ -89,5 +89,14 @@ class InviteUserIn(BaseModel):
 
 class CompleteInviteIn(BaseModel):
     invite_token: str
-    name: Annotated[str, Field(min_length=1)]
-    password: Annotated[str, Field(min_length=8)]
+    name: Annotated[str, Field(min_length=1)] | None = None
+    password: Annotated[str, Field(min_length=8)] | None = None
+
+
+class InviteStatusIn(BaseModel):
+    token: str
+
+
+class InviteStatusOut(BaseModel):
+    email: str
+    user_exists: bool
