@@ -1,9 +1,13 @@
 import pytest
+from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 from httpx import Headers
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.enums import PERMISSION_DESCRIPTIONS, Permission
 from src.models.organization import Organization
+from src.models.user import User
 from tests.conftest import TestSessionLocal
 from tests.utils import assert_filtering_of_items_list, assert_pagination, assert_sorting_of_items_list
 
@@ -163,30 +167,6 @@ def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     assert len(rs["roles"]) == 0
 
 
-def test_delete_a_user(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.delete("/v1/users/2")
-    assert response.status_code == 204
-
-
-def test_can_delete_non_owner_user(admin_authenticated: TestClient) -> None:
-    # Assign an extra role to user 2 to confirm non-owner users can be deleted freely
-    admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [2]})
-
-    response = admin_authenticated.delete("/v1/users/2")
-    assert response.status_code == 204
-
-
-def test_cannot_delete_last_admin(admin_authenticated: TestClient) -> None:
-    # User 1 is the Owner (and the only user with role management access).
-    # The last-admin guard fires first.
-    response = admin_authenticated.delete("/v1/users/1")
-    assert response.status_code == 403
-    rs = response.json()
-    assert rs["msg"] == (
-        "Cannot perform this action: organization must retain at least one "
-        "user with role management access"
-    )
-
 
 def test_cannot_manage_own_roles(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.post(
@@ -217,14 +197,6 @@ def test_cannot_invite_a_user_while_unauthorized(client: TestClient) -> None:
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
 
-
-def test_cannot_delete_a_user_while_unauthorized(
-    standard_authenticated: TestClient,
-) -> None:
-    response = standard_authenticated.delete("/v1/users/1")
-    assert response.status_code == 403
-    rs = response.json()
-    assert rs["msg"] == "You are not authorized to perform this action"
 
 
 def test_patch_a_user(admin_authenticated: TestClient) -> None:
@@ -466,8 +438,40 @@ def test_cannot_remove_owner_role_via_manage_roles(
     assert rs["error_code"] == "protected_role_modification"
 
 
-def test_cannot_delete_owner(admin_authenticated: TestClient) -> None:
-    # Deleting the owner is blocked - either by the last-admin guard (admin check fires
-    # first if no other admin exists) or by the owner guard if another admin is present.
-    response = admin_authenticated.delete("/v1/users/1")
-    assert response.status_code == 403
+
+def test_deleted_role_excluded_from_user_roles(admin_authenticated: TestClient) -> None:
+    # Standard user (id=2) starts with the "standard" role
+    response = admin_authenticated.get("/v1/users/2")
+    assert response.status_code == 200
+    assert len(response.json()["roles"]) == 1
+    assert response.json()["roles"][0]["name"] == "standard"
+
+    # Admin soft-deletes the role
+    response = admin_authenticated.delete("/v1/roles/2")
+    assert response.status_code == 204
+
+    # The soft-deleted role must not appear in the user's roles
+    response = admin_authenticated.get("/v1/users/2")
+    assert response.status_code == 200
+    assert response.json()["roles"] == []
+
+
+
+async def test_deleted_user_excluded_from_organization_users() -> None:
+    # Soft-delete the standard user (id=2) directly
+    async with TestSessionLocal() as session:
+        user = await session.get(User, 2)
+        user.deleted_at = datetime.now(UTC)
+        await session.commit()
+
+    # Load org 1 via the relationship and verify the soft-deleted user is excluded
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(Organization)
+            .where(Organization.id == 1)
+            .options(selectinload(Organization.users))
+        )
+        org = result.scalar_one()
+        user_ids = {u.id for u in org.users}
+        assert 1 in user_ids       # admin still present
+        assert 2 not in user_ids   # soft-deleted user excluded

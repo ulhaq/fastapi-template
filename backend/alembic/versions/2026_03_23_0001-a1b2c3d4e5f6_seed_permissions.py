@@ -27,7 +27,6 @@ _PERMISSIONS = [
     Permission.READ_USER,
     Permission.CREATE_USER,
     Permission.UPDATE_USER,
-    Permission.DELETE_USER,
     Permission.READ_ROLE,
     Permission.CREATE_ROLE,
     Permission.UPDATE_ROLE,

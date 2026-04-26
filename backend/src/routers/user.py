@@ -94,12 +94,14 @@ async def get_a_user(
 
 
 @router.delete("/{identifier}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_a_user(
+async def remove_user_from_organization(
     service: Annotated[UserService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.DELETE_USER))],
+    _: Annotated[
+        Auth, Depends(require_permission(Permission.MANAGE_ORGANIZATION_USER))
+    ],
     identifier: Annotated[int, Path()],
 ) -> None:
-    await service.delete_user(identifier)
+    await service.remove_user(identifier)
 
 
 @router.post("/{identifier}/roles", status_code=status.HTTP_200_OK)

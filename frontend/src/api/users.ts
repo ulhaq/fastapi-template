@@ -37,7 +37,7 @@ export const usersApi = {
     return apiClient.put<UserOut>('/v1/users/me/change-password', data)
   },
 
-  delete(id: number) {
+  removeFromOrganization(id: number) {
     return apiClient.delete(`/v1/users/${id}`)
   },
 

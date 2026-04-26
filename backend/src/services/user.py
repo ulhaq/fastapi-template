@@ -252,22 +252,33 @@ class UserService(
             },
         )
 
-    async def delete_user(self, identifier: int) -> None:
+    async def remove_user(self, identifier: int) -> None:
+        org_id = self.current_user.organization_id
         user = await self.get(identifier)
-        await self._assert_not_last_admin(user)
-        organization_roles = [
-            r
-            for r in user.roles
-            if r.organization_id == self.current_user.organization_id
-        ]
-        if any(
-            r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles
-        ):
+
+        organization_roles = [r for r in user.roles if r.organization_id == org_id]
+        if any(r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles):
             raise PermissionDeniedException(
-                "The organization owner cannot be deleted. Transfer ownership first.",
+                "The organization owner cannot be removed. Transfer ownership first.",
                 error_code=ErrorCode.PROTECTED_ROLE_MODIFICATION,
             )
-        await self.repo.delete(user)
+
+        await self._assert_not_last_admin(user)
+
+        membership = await self.repos.user_organization.get_by_user_and_organization(
+            identifier, org_id
+        )
+        if membership:
+            active = await self.repos.user_organization.get_active_organization_for_user(
+                identifier
+            )
+            if active and active.organization_id == org_id:
+                await self.repos.refresh_token.delete_by_user(user)
+            await self.repos.user_organization.force_delete(membership)
+
+        remaining = await self.repos.user_organization.get_all_for_user(identifier)
+        if not remaining:
+            await self.repo.delete(user)
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
         if self.current_user.id == identifier:

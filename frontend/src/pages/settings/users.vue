@@ -205,7 +205,7 @@ async function handleDelete(user: UserOut) {
   )
   if (!ok) return
   try {
-    await usersApi.delete(user.id)
+    await usersApi.removeFromOrganization(user.id)
     toast({ title: t('users.deleted') })
     refresh()
   } catch {

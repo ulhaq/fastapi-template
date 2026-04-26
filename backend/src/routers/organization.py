@@ -69,33 +69,6 @@ async def delete_an_organization(
     await service.delete_organization(identifier)
 
 
-@router.post(
-    "/{organization_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT
-)
-async def add_user_to_organization(
-    service: Annotated[OrganizationService, Depends()],
-    _: Annotated[
-        Auth, Depends(require_permission(Permission.MANAGE_ORGANIZATION_USER))
-    ],
-    organization_id: Annotated[int, Path()],
-    user_id: Annotated[int, Path()],
-) -> None:
-    await service.add_user_to_organization(organization_id, user_id)
-
-
-@router.delete(
-    "/{organization_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT
-)
-async def remove_user_from_organization(
-    service: Annotated[OrganizationService, Depends()],
-    _: Annotated[
-        Auth, Depends(require_permission(Permission.MANAGE_ORGANIZATION_USER))
-    ],
-    organization_id: Annotated[int, Path()],
-    user_id: Annotated[int, Path()],
-) -> None:
-    await service.remove_user_from_organization(organization_id, user_id)
-
 
 @router.post(
     "/{organization_id}/transfer-ownership", status_code=status.HTTP_204_NO_CONTENT

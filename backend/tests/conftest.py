@@ -249,6 +249,14 @@ def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
     app.dependency_overrides.pop(get_billing_provider, None)
 
 
+@pytest.fixture
+async def admin_in_org2() -> None:
+    """Add user 1 (admin@example.org) to Organization 2 directly in the DB."""
+    async with TestSessionLocal() as session:
+        session.add(UserOrganization(user_id=1, organization_id=2))
+        await session.commit()
+
+
 @pytest.fixture(name="client")
 def _client() -> Generator[TestClient, None, None]:
     with TestClient(app) as c:

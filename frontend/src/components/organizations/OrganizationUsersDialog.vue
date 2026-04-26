@@ -54,6 +54,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
 import { organizationsApi } from '@/api/organizations'
+import { usersApi } from '@/api/users'
 import type { OrganizationOut, UserOut } from '@/types'
 import { useToast } from '@/composables/useToast'
 
@@ -79,7 +80,7 @@ watch(() => props.open, async (open) => {
 async function removeUser(userId: number) {
   if (!props.organization) return
   try {
-    await organizationsApi.removeUser(props.organization.id, userId)
+    await usersApi.removeFromOrganization(userId)
     users.value = users.value.filter((u) => u.id !== userId)
     toast({ title: t('organizations.usersDialog.userRemoved') })
   } catch {

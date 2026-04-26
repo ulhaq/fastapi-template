@@ -1,8 +1,12 @@
 import json
+from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 import pytest
+from sqlalchemy import select
 
 from src.enums import PERMISSION_DESCRIPTIONS, Permission
+from src.models.permission import Permission as PermissionModel
+from tests.conftest import TestSessionLocal
 from tests.utils import (
     assert_filtering_of_items_list,
     assert_pagination,
@@ -355,3 +359,29 @@ def test_cannot_manage_a_role_while_unauthorized(
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
+
+
+async def test_deleted_permission_excluded_from_role_permissions(
+    admin_authenticated: TestClient,
+) -> None:
+    # Role 2 "standard" starts with exactly read:user and create:user
+    response = admin_authenticated.get("/v1/roles/2")
+    assert response.status_code == 200
+    perm_names = {p["name"] for p in response.json()["permissions"]}
+    assert perm_names == {Permission.READ_USER.value, Permission.CREATE_USER.value}
+
+    # Soft-delete create:user directly via DB (no API endpoint exists for this)
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(PermissionModel).where(PermissionModel.name == Permission.CREATE_USER.value)
+        )
+        permission = result.scalar_one()
+        permission.deleted_at = datetime.now(UTC)
+        await session.commit()
+
+    # The soft-deleted permission must not appear in the role's permissions
+    response = admin_authenticated.get("/v1/roles/2")
+    assert response.status_code == 200
+    perm_names = {p["name"] for p in response.json()["permissions"]}
+    assert perm_names == {Permission.READ_USER.value}
+    assert Permission.CREATE_USER.value not in perm_names

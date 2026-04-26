@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.models.mixins import DeleteTimestampMixin, TimestampMixin
+from src.models.permission import Permission, RolePermission
 
 if TYPE_CHECKING:
     from src.models.organization import Organization
-    from src.models.permission import Permission
     from src.models.user import User
 
 
@@ -37,9 +37,10 @@ class Role(Base, DeleteTimestampMixin, TimestampMixin):
     organization: Mapped["Organization"] = relationship(
         "Organization", back_populates="roles"
     )
-    permissions: Mapped[list["Permission"]] = relationship(
-        "Permission",
+    permissions: Mapped[list[Permission]] = relationship(
+        Permission,
         secondary="role_permission",
+        secondaryjoin=and_(RolePermission.permission_id == Permission.id, Permission.deleted_at.is_(None)),
         back_populates="roles",
         lazy="joined",
         passive_deletes=True,

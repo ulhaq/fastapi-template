@@ -27,6 +27,7 @@ def test_cannot_delete_other_organization(organization2_admin_authenticated: Tes
 def test_cannot_delete_other_organization_user(
     organization2_admin_authenticated: TestClient,
 ) -> None:
+    # org2 admin's active org is 2; user 1 is not in org 2, so 404
     response = organization2_admin_authenticated.delete("/v1/users/1")
     assert response.status_code == 404
 

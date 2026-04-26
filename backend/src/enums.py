@@ -89,7 +89,6 @@ class Permission(StrEnum):
     READ_USER = "read:user"
     CREATE_USER = "create:user"
     UPDATE_USER = "update:user"
-    DELETE_USER = "delete:user"
     READ_ROLE = "read:role"
     CREATE_ROLE = "create:role"
     UPDATE_ROLE = "update:role"
@@ -111,7 +110,6 @@ DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
             Permission.READ_USER,
             Permission.CREATE_USER,
             Permission.UPDATE_USER,
-            Permission.DELETE_USER,
             Permission.READ_ROLE,
             Permission.CREATE_ROLE,
             Permission.UPDATE_ROLE,
@@ -144,7 +142,6 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.READ_USER: "Allows the user to read users.",
     Permission.CREATE_USER: "Allows the user to create new users.",
     Permission.UPDATE_USER: "Allows the user to update users.",
-    Permission.DELETE_USER: "Allows the user to delete users.",
     Permission.READ_ROLE: "Allows the user to read roles.",
     Permission.CREATE_ROLE: "Allows the user to create new roles.",
     Permission.UPDATE_ROLE: "Allows the user to update roles.",

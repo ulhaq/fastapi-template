@@ -151,7 +151,7 @@ def test_cannot_delete_an_organization_while_unauthorized(
 def test_cannot_remove_owner_from_organization(admin_authenticated: TestClient) -> None:
     # User 1 is the Owner of org 1
     # removing the owner is blocked
-    response = admin_authenticated.delete("/v1/organizations/1/users/1")
+    response = admin_authenticated.delete("/v1/users/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["error_code"] == "protected_role_modification"

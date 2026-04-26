@@ -1,8 +1,7 @@
 """Tests for multi-organization user membership features:
 - POST /auth/switch-organization
 - GET  /organizations
-- POST /organizations/{organization_id}/users/{user_id}
-- DELETE /organizations/{organization_id}/users/{user_id}
+- DELETE /users/{user_id}
 - GET  /organizations/{organization_id}/users
 - Login auto-selects most-recently-active organization
 """
@@ -45,12 +44,8 @@ def test_get_my_organizations_returns_own_organization(admin_authenticated: Test
 
 def test_get_my_organizations_after_joining_second_organization(
     admin_authenticated: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # admin2 (Organization 2) adds admin (user 1) to Organization 2
-    response = organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-    assert response.status_code == 204
-
     response = admin_authenticated.get("/v1/organizations")
     assert response.status_code == 200
     organizations = response.json()
@@ -65,56 +60,7 @@ def test_get_my_organizations_unauthenticated(client: TestClient) -> None:
 
 
 # ---------------------------------------------------------------------------
-# POST /organizations/{organization_id}/users/{user_id}
-# ---------------------------------------------------------------------------
-
-
-def test_add_user_to_organization(
-    organization2_admin_authenticated: TestClient,
-) -> None:
-    # admin2 (active in Organization 2) adds user 1 (admin@example.org) to Organization 2
-    response = organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-    assert response.status_code == 204
-
-
-def test_cannot_add_user_to_organization_you_are_not_active_in(
-    admin_authenticated: TestClient,
-) -> None:
-    # admin is active in Organization 1; they cannot add users to Organization 2
-    response = admin_authenticated.post("/v1/organizations/2/users/4")
-    assert response.status_code == 403
-
-
-def test_cannot_add_nonexistent_user_to_organization(
-    organization2_admin_authenticated: TestClient,
-) -> None:
-    response = organization2_admin_authenticated.post("/v1/organizations/2/users/9999")
-    assert response.status_code == 404
-
-
-def test_cannot_add_user_already_in_organization(
-    admin_authenticated: TestClient,
-) -> None:
-    # user 2 (standard) is already in Organization 1
-    response = admin_authenticated.post("/v1/organizations/1/users/2")
-    assert response.status_code == 409
-
-
-def test_cannot_add_user_to_organization_without_permission(
-    standard_authenticated: TestClient,
-) -> None:
-    # standard user lacks MANAGE_ORGANIZATION_USER permission
-    response = standard_authenticated.post("/v1/organizations/1/users/4")
-    assert response.status_code == 403
-
-
-def test_cannot_add_user_to_organization_unauthenticated(client: TestClient) -> None:
-    response = client.post("/v1/organizations/1/users/2")
-    assert response.status_code == 401
-
-
-# ---------------------------------------------------------------------------
-# DELETE /organizations/{organization_id}/users/{user_id}
+# DELETE /users/{user_id}
 # ---------------------------------------------------------------------------
 
 
@@ -122,7 +68,7 @@ def test_remove_user_from_organization(
     admin_authenticated: TestClient,
 ) -> None:
     # admin removes user 3 (no_roles) from Organization 1
-    response = admin_authenticated.delete("/v1/organizations/1/users/3")
+    response = admin_authenticated.delete("/v1/users/3")
     assert response.status_code == 204
 
     # user 3 should no longer appear in Organization 1 users
@@ -132,19 +78,11 @@ def test_remove_user_from_organization(
     assert 3 not in user_ids
 
 
-def test_cannot_remove_user_from_organization_you_are_not_active_in(
-    admin_authenticated: TestClient,
-) -> None:
-    # admin is active in Organization 1; cannot remove from Organization 2
-    response = admin_authenticated.delete("/v1/organizations/2/users/4")
-    assert response.status_code == 403
-
-
 def test_cannot_remove_nonmember_from_organization(
     organization2_admin_authenticated: TestClient,
 ) -> None:
-    # user 2 (standard) is not in Organization 2
-    response = organization2_admin_authenticated.delete("/v1/organizations/2/users/2")
+    # user 2 (standard) is not in Organization 2; org-scoped lookup returns 404
+    response = organization2_admin_authenticated.delete("/v1/users/2")
     assert response.status_code == 404
 
 
@@ -152,7 +90,7 @@ def test_cannot_remove_owner_from_organization(
     admin_authenticated: TestClient,
 ) -> None:
     # user 1 is the Owner - owner removal is blocked before the last-admin check
-    response = admin_authenticated.delete("/v1/organizations/1/users/1")
+    response = admin_authenticated.delete("/v1/users/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["error_code"] == "protected_role_modification"
@@ -161,7 +99,7 @@ def test_cannot_remove_owner_from_organization(
 def test_cannot_remove_user_without_permission(
     standard_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.delete("/v1/organizations/1/users/3")
+    response = standard_authenticated.delete("/v1/users/3")
     assert response.status_code == 403
 
 
@@ -183,11 +121,8 @@ def test_get_organization_users(admin_authenticated: TestClient) -> None:
 
 def test_get_organization_users_shows_only_organization_roles(
     admin_authenticated: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin (user 1) to Organization 2 with no roles there
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # When Organization 1 lists its users, admin's roles should be Organization 1 roles only
     response = admin_authenticated.get("/v1/organizations/1/users")
     assert response.status_code == 200
@@ -219,11 +154,8 @@ def test_cannot_get_organization_users_without_read_user_permission(
 
 def test_switch_organization(
     client: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin (user 1) to Organization 2
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # Login as admin (currently active in Organization 1)
     token = _login(client, "admin@example.org")
 
@@ -241,11 +173,8 @@ def test_switch_organization(
 
 def test_switch_organization_context_changes(
     client: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin (user 1) to Organization 2 (no roles assigned there)
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     token = _login(client, "admin@example.org")
 
     # Active in Organization 1 - /users/me shows Admin role
@@ -282,9 +211,8 @@ def test_switch_organization_requires_auth(client: TestClient) -> None:
 
 def test_switch_organization_sets_refresh_token_cookie(
     client: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
     token = _login(client, "admin@example.org")
 
     response = client.post(
@@ -298,10 +226,8 @@ def test_switch_organization_sets_refresh_token_cookie(
 
 def test_switch_organization_rotates_refresh_token(
     client: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # Login to get initial tokens
     login_rs = client.post(
         "/v1/auth/token",
@@ -331,11 +257,8 @@ def test_switch_organization_rotates_refresh_token(
 
 def test_login_auto_selects_most_recently_active_organization(
     client: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin to Organization 2 (no roles there)
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # Login and switch to Organization 2 (updates last_active_at for Organization 2)
     first_token = _login(client, "admin@example.org")
     switch_rs = client.post(
@@ -371,11 +294,8 @@ def test_login_selects_first_organization_when_none_active(
 
 def test_roles_shown_are_scoped_to_active_organization(
     client: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin (user 1) to Organization 2
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # While active in Organization 1, /users/me shows Organization 1 roles
     token_o1 = _login(client, "admin@example.org")
     me_o1 = client.get("/v1/users/me", headers=_auth_headers(token_o1)).json()
@@ -399,11 +319,8 @@ def test_roles_shown_are_scoped_to_active_organization(
 
 def test_cannot_update_organization_you_are_not_active_in(
     admin_authenticated: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin (user 1) to Organization 2 as a member (no roles there)
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # admin is active in Organization 1 - cannot update Organization 2
     response = admin_authenticated.patch(
         "/v1/organizations/2", json={"name": "Hijacked"}
@@ -413,11 +330,8 @@ def test_cannot_update_organization_you_are_not_active_in(
 
 def test_cannot_delete_organization_you_are_not_active_in(
     admin_authenticated: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin (user 1) to Organization 2 as a member (no roles there)
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # admin is active in Organization 1 - cannot delete Organization 2
     response = admin_authenticated.delete("/v1/organizations/2")
     assert response.status_code == 403
@@ -425,11 +339,8 @@ def test_cannot_delete_organization_you_are_not_active_in(
 
 def test_cannot_transfer_ownership_of_organization_you_are_not_active_in(
     client: TestClient,
-    organization2_admin_authenticated: TestClient,
+    admin_in_org2: None,
 ) -> None:
-    # Add admin (user 1) to Organization 2 as a member (no roles there)
-    organization2_admin_authenticated.post("/v1/organizations/2/users/1")
-
     # Login as admin (active in Organization 1) and try to transfer ownership of Org 2
     token = _login(client, "admin@example.org")
     response = client.post(
