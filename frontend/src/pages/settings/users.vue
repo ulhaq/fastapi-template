@@ -8,7 +8,7 @@ meta:
   <div class="animate-fade-in">
     <PageHeader :title="$t('users.title')" :description="$t('users.description')">
       <template #actions>
-        <PermissionGuard permission="create:user">
+        <PermissionGuard permission="manage:organization_user">
           <Button size="sm" @click="openInvite">
             <Mail class="w-4 h-4 mr-2" />
             {{ $t('users.invite.button') }}
@@ -74,14 +74,14 @@ meta:
         </TableCell>
       </template>
       <template #actions="{ item }">
-        <DropdownMenu v-if="hasAnyPermission('update:user', 'manage:user_role', 'delete:user')">
+        <DropdownMenu v-if="hasAnyPermission('manage:organization_user', 'manage:user_role')">
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
               <MoreHorizontal class="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <PermissionGuard permission="update:user">
+            <PermissionGuard permission="manage:organization_user">
               <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
                 <Pencil class="w-4 h-4 mr-2" />
                 {{ $t('common.edit') }}
@@ -93,7 +93,7 @@ meta:
                 {{ $t('users.manageRoles') }}
               </DropdownMenuItem>
             </PermissionGuard>
-            <PermissionGuard permission="delete:user">
+            <PermissionGuard permission="manage:organization_user">
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 @click="handleDelete(item)"

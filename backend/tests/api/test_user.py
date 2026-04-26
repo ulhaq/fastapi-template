@@ -130,10 +130,10 @@ def test_retrieve_a_user(admin_authenticated: TestClient) -> None:
     assert rs["roles"][0]["description"] == "Access to manage and view own resources."
 
     permissions = rs["roles"][0]["permissions"]
-    assert len(permissions) == 2
+    assert len(permissions) == 1
 
     permission_names = {p["name"] for p in permissions}
-    assert permission_names == {"read:user", "create:user"}
+    assert permission_names == {"read:user"}
 
     for p in permissions:
         assert p["name"] in PERMISSION_DESCRIPTIONS

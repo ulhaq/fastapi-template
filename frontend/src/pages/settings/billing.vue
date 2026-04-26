@@ -57,7 +57,7 @@ meta:
         </div>
 
         <PermissionGuard v-if="subscription.trial_end" permission="manage:subscription">
-          <TooltipProvider :delay-duration="200">
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">
@@ -283,7 +283,7 @@ meta:
             </Button>
           </PermissionGuard>
           <PermissionGuard permission="manage:subscription">
-            <TooltipProvider :delay-duration="200">
+            <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger as-child>
                   <Button variant="outline" @click="handlePortal" :disabled="isPortalLoading">

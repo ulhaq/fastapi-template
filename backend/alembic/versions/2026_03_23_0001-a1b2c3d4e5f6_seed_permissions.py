@@ -25,8 +25,6 @@ _PERMISSIONS = [
     Permission.DELETE_ORGANIZATION,
     Permission.MANAGE_ORGANIZATION_USER,
     Permission.READ_USER,
-    Permission.CREATE_USER,
-    Permission.UPDATE_USER,
     Permission.READ_ROLE,
     Permission.CREATE_ROLE,
     Permission.UPDATE_ROLE,

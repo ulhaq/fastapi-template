@@ -87,8 +87,6 @@ class Permission(StrEnum):
     DELETE_ORGANIZATION = "delete:organization"
     MANAGE_ORGANIZATION_USER = "manage:organization_user"
     READ_USER = "read:user"
-    CREATE_USER = "create:user"
-    UPDATE_USER = "update:user"
     READ_ROLE = "read:role"
     CREATE_ROLE = "create:role"
     UPDATE_ROLE = "update:role"
@@ -98,6 +96,7 @@ class Permission(StrEnum):
     MANAGE_ROLE_PERMISSION = "manage:role_permission"
     READ_SUBSCRIPTION = "read:subscription"
     MANAGE_SUBSCRIPTION = "manage:subscription"
+    MANAGE_API_TOKEN = "manage:api_token"
 
 
 DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
@@ -108,8 +107,6 @@ DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
             Permission.UPDATE_ORGANIZATION,
             Permission.MANAGE_ORGANIZATION_USER,
             Permission.READ_USER,
-            Permission.CREATE_USER,
-            Permission.UPDATE_USER,
             Permission.READ_ROLE,
             Permission.CREATE_ROLE,
             Permission.UPDATE_ROLE,
@@ -118,6 +115,7 @@ DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
             Permission.READ_PERMISSION,
             Permission.MANAGE_ROLE_PERMISSION,
             Permission.READ_SUBSCRIPTION,
+            Permission.MANAGE_API_TOKEN,
         ],
     ),
     (
@@ -128,6 +126,7 @@ DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
             Permission.READ_ROLE,
             Permission.READ_PERMISSION,
             Permission.READ_SUBSCRIPTION,
+            Permission.MANAGE_API_TOKEN,
         ],
     ),
 ]
@@ -140,8 +139,6 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
         "Allows the user to manage organizations' users."
     ),
     Permission.READ_USER: "Allows the user to read users.",
-    Permission.CREATE_USER: "Allows the user to create new users.",
-    Permission.UPDATE_USER: "Allows the user to update users.",
     Permission.READ_ROLE: "Allows the user to read roles.",
     Permission.CREATE_ROLE: "Allows the user to create new roles.",
     Permission.UPDATE_ROLE: "Allows the user to update roles.",
@@ -153,4 +150,7 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
         "Allows the user to read the organization's subscription."
     ),
     Permission.MANAGE_SUBSCRIPTION: "Allows managing the organization's subscription.",
+    Permission.MANAGE_API_TOKEN: (
+        "Allows the user to create and manage their own API tokens."
+    ),
 }

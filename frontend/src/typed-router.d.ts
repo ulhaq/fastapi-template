@@ -28,6 +28,7 @@ declare module 'vue-router/auto-routes' {
     '/reset-password': RouteRecordInfo<'/reset-password', '/reset-password', Record<never, never>, Record<never, never>>,
     '/settings': RouteRecordInfo<'/settings', '/settings', Record<never, never>, Record<never, never>>,
     '/settings/': RouteRecordInfo<'/settings/', '/settings', Record<never, never>, Record<never, never>>,
+    '/settings/api': RouteRecordInfo<'/settings/api', '/settings/api', Record<never, never>, Record<never, never>>,
     '/settings/billing': RouteRecordInfo<'/settings/billing', '/settings/billing', Record<never, never>, Record<never, never>>,
     '/settings/general': RouteRecordInfo<'/settings/general', '/settings/general', Record<never, never>, Record<never, never>>,
     '/settings/organizations': RouteRecordInfo<'/settings/organizations', '/settings/organizations', Record<never, never>, Record<never, never>>,

@@ -32,7 +32,7 @@ INIT_AUTH_DATA: dict = {
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
-            "permissions": [Permission.READ_USER, Permission.CREATE_USER],
+            "permissions": [Permission.READ_USER],
             "organization": 1,
         },
         {
@@ -45,7 +45,7 @@ INIT_AUTH_DATA: dict = {
         {
             "name": "standard",
             "description": "Access to manage and view own resources.",
-            "permissions": [Permission.READ_USER, Permission.CREATE_USER],
+            "permissions": [Permission.READ_USER],
             "organization": 2,
         },
     ],

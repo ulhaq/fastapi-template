@@ -1,16 +1,51 @@
+import hashlib
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
 from src.core.database import get_db
 from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
 from src.core.security import BEARER_HEADERS, Auth, decode_token, oauth2_scheme
-from src.enums import OWNER_ROLE_NAME, Permission
-from src.models.user import User
+from src.enums import OWNER_ROLE_NAME, ErrorCode, Permission
+from src.repositories.api_token import ApiTokenRepository
+from src.repositories.user import UserRepository
+
+
+async def _authenticate_api_token(token: str, db: AsyncSession) -> Auth:
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    repo = ApiTokenRepository(db)
+    api_token = await repo.get_by_hash(token_hash)
+
+    if not api_token:
+        raise NotAuthenticatedException(headers=BEARER_HEADERS)
+
+    if api_token.expires_at is not None:
+        expires = api_token.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=UTC)
+        if expires < datetime.now(UTC):
+            raise NotAuthenticatedException(
+                "Token expired",
+                error_code=ErrorCode.TOKEN_EXPIRED,
+                headers=BEARER_HEADERS,
+            )
+
+    user_repo = UserRepository(db)
+    user_repo.set_organization_scope(api_token.organization_id)
+    user = await user_repo.get(api_token.user_id)
+    if not user:
+        raise NotAuthenticatedException(headers=BEARER_HEADERS)
+
+    await repo.touch_last_used(api_token.id, api_token.organization_id)
+
+    auth = Auth.from_user_model(user, api_token.organization_id)
+    token_perms = set(api_token.permissions)
+    auth.permissions = [p for p in auth.permissions if p in token_perms]
+    return auth
 
 
 async def authenticate(
@@ -30,6 +65,9 @@ async def authenticate(
     if not token:
         raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
+    if token.startswith("sk_"):
+        return await _authenticate_api_token(token, db)
+
     payload = decode_token(token)
     user_id = int(payload.get("sub", 0))
     organization_id = int(payload.get("oid", 0))
@@ -37,9 +75,7 @@ async def authenticate(
     if not organization_id:
         raise NotAuthenticatedException(headers=BEARER_HEADERS)
 
-    user = await db.scalar(
-        select(User).where(User.id == user_id, User.deleted_at.is_(None))
-    )
+    user = await UserRepository(db).get(user_id)
 
     if not user:
         raise NotAuthenticatedException(headers=BEARER_HEADERS)

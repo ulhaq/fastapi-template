@@ -6,6 +6,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
+from src.repositories.api_token import ApiTokenRepository
 from src.repositories.billing import (
     PlanPriceRepository,
     PlanRepository,
@@ -27,6 +28,7 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
 
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> None:
         self.db = db
+        self._api_token: ApiTokenRepository | None = None
         self._organization: OrganizationRepository | None = None
         self._user: UserRepository | None = None
         self._role: RoleRepository | None = None
@@ -39,6 +41,12 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         self._webhook_event: WebhookEventRepository | None = None
         self._email_verification_token: EmailVerificationTokenRepository | None = None
         self._invite_token: InviteTokenRepository | None = None
+
+    @property
+    def api_token(self) -> ApiTokenRepository:
+        if self._api_token is None:
+            self._api_token = ApiTokenRepository(self.db)
+        return self._api_token
 
     @property
     def organization(self) -> OrganizationRepository:

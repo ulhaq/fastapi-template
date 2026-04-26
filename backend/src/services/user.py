@@ -274,6 +274,7 @@ class UserService(
             )
             if active and active.organization_id == org_id:
                 await self.repos.refresh_token.delete_by_user(user)
+            await self.repos.api_token.revoke_all_for_user_org(identifier, org_id)
             await self.repos.user_organization.force_delete(membership)
 
         remaining = await self.repos.user_organization.get_all_for_user(identifier)

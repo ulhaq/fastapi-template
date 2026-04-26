@@ -49,9 +49,9 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
     assert rs["items"][1]["name"] == "standard"
     assert rs["items"][1]["description"] == "Access to manage and view own resources."
     assert rs["items"][1]["is_protected"] is False
-    assert len(rs["items"][1]["permissions"]) == 2
+    assert len(rs["items"][1]["permissions"]) == 1
     standard_perm_names = {p["name"] for p in rs["items"][1]["permissions"]}
-    assert standard_perm_names == {"read:user", "create:user"}
+    assert standard_perm_names == {"read:user"}
     assert rs["items"][1]["created_at"]
     assert rs["items"][1]["updated_at"]
 
@@ -364,16 +364,16 @@ def test_cannot_manage_a_role_while_unauthorized(
 async def test_deleted_permission_excluded_from_role_permissions(
     admin_authenticated: TestClient,
 ) -> None:
-    # Role 2 "standard" starts with exactly read:user and create:user
+    # Role 2 "standard" starts with exactly read:user
     response = admin_authenticated.get("/v1/roles/2")
     assert response.status_code == 200
     perm_names = {p["name"] for p in response.json()["permissions"]}
-    assert perm_names == {Permission.READ_USER.value, Permission.CREATE_USER.value}
+    assert perm_names == {Permission.READ_USER.value}
 
-    # Soft-delete create:user directly via DB (no API endpoint exists for this)
+    # Soft-delete read:user directly via DB (no API endpoint exists for this)
     async with TestSessionLocal() as session:
         result = await session.execute(
-            select(PermissionModel).where(PermissionModel.name == Permission.CREATE_USER.value)
+            select(PermissionModel).where(PermissionModel.name == Permission.READ_USER.value)
         )
         permission = result.scalar_one()
         permission.deleted_at = datetime.now(UTC)
@@ -383,5 +383,5 @@ async def test_deleted_permission_excluded_from_role_permissions(
     response = admin_authenticated.get("/v1/roles/2")
     assert response.status_code == 200
     perm_names = {p["name"] for p in response.json()["permissions"]}
-    assert perm_names == {Permission.READ_USER.value}
-    assert Permission.CREATE_USER.value not in perm_names
+    assert perm_names == set()
+    assert Permission.READ_USER.value not in perm_names

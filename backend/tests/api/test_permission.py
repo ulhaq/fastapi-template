@@ -16,9 +16,9 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 
     assert rs["page_number"] == 1
     assert rs["page_size"] == 100
-    assert rs["total"] == 15
+    assert rs["total"] == 14
 
-    assert len(rs["items"]) == 15
+    assert len(rs["items"]) == 14
     assert rs["items"][0]["id"] == 1
     assert rs["items"][0]["name"] == "update:organization"
     assert (
@@ -32,9 +32,9 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 10, 15),
-        pytest.param(2, 10, 5, 15),
-        pytest.param(3, 10, 0, 15),
+        pytest.param(1, 10, 10, 14),
+        pytest.param(2, 10, 4, 14),
+        pytest.param(3, 10, 0, 14),
     ],
 )
 def test_paginate_permissions(
@@ -87,7 +87,7 @@ def test_sort_permissions(sort: str, admin_authenticated: TestClient) -> None:
         pytest.param(["id"], [[0, 1]], ["between"], 1),
         pytest.param(["id"], [[1, 2]], ["between"], 2),
         pytest.param(["id"], [[2, 3]], ["between"], 2),
-        pytest.param(["name"], [["create:user"]], ["eq"], 1),
+        pytest.param(["name"], [["read:user"]], ["eq"], 1),
         pytest.param(["description"], [["allows"]], ["ico"], 10),
         pytest.param(
             ["created_at"],

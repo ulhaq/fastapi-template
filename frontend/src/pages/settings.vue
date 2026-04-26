@@ -73,20 +73,27 @@ meta:
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { User, Lock, Users, Shield, Building2, Receipt, Settings2 } from 'lucide-vue-next'
+import { User, Lock, Users, Shield, Building2, Receipt, Settings2, KeyRound } from 'lucide-vue-next'
 import { usePermission } from '@/composables/usePermission'
+import { useProfileStore } from '@/stores/profile'
 
 const route = useRoute()
 const { t } = useI18n()
 const { hasPermission } = usePermission()
+const profileStore = useProfileStore()
+
+const isOwner = computed(() =>
+  profileStore.user?.roles.some((r: any) => r.is_protected && r.name === 'Owner') ?? false
+)
 
 const accountItems = computed(() => [
   { to: '/settings', label: t('settings.profile'), icon: User, exact: true },
   { to: '/settings/security', label: t('settings.security'), icon: Lock },
+  ...(hasPermission('manage:api_token') ? [{ to: '/settings/api', label: t('settings.api'), icon: KeyRound }] : []),
 ])
 
 const workspaceItems = computed(() => [
-  { to: '/settings/general', label: t('settings.general'), icon: Settings2 },
+  ...(isOwner.value ? [{ to: '/settings/general', label: t('settings.general'), icon: Settings2 }] : []),
   ...(hasPermission('read:user') ? [{ to: '/settings/users', label: t('nav.users'), icon: Users }] : []),
   ...(hasPermission('read:role') ? [{ to: '/settings/roles', label: t('nav.roles'), icon: Shield }] : []),
   ...(hasPermission('read:subscription') ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }] : []),

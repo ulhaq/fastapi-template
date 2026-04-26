@@ -68,7 +68,7 @@ async def get_all_users(
 async def invite_a_user(
     bg_tasks: BackgroundTasks,
     service: Annotated[UserService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.CREATE_USER))],
+    _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_ORGANIZATION_USER))],
     invite_in: InviteUserIn,
 ) -> None:
     await service.invite_user(invite_in, bg_tasks.add_task)
@@ -77,7 +77,7 @@ async def invite_a_user(
 @router.patch("/{identifier}", status_code=status.HTTP_200_OK)
 async def patch_a_user(
     service: Annotated[UserService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.UPDATE_USER))],
+    _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_ORGANIZATION_USER))],
     identifier: Annotated[int, Path()],
     user_patch: UserPatch,
 ) -> UserOut:
