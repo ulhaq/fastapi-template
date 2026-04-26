@@ -74,7 +74,7 @@ meta:
         </TableCell>
       </template>
       <template #actions="{ item }">
-        <DropdownMenu>
+        <DropdownMenu v-if="hasAnyPermission('update:user', 'manage:user_role', 'delete:user')">
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
               <MoreHorizontal class="w-4 h-4" />
@@ -145,6 +145,7 @@ import UserRoleDialog from '@/components/users/UserRoleDialog.vue'
 import InviteUserDialog from '@/components/users/InviteUserDialog.vue'
 import { usersApi } from '@/api/users'
 import { useDataTable } from '@/composables/useDataTable'
+import { usePermission } from '@/composables/usePermission'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import type { UserOut } from '@/types'
@@ -152,6 +153,7 @@ import type { UserOut } from '@/types'
 const { t } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
+const { hasAnyPermission } = usePermission()
 
 const columns = [
   { key: 'name', label: t('users.columns.user'), sortable: true },

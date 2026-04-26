@@ -54,7 +54,7 @@ meta:
         <TableCell class="text-muted-foreground text-xs">{{ formatDate(item.created_at) }}</TableCell>
       </template>
       <template #actions="{ item }">
-        <DropdownMenu>
+        <DropdownMenu v-if="item.is_protected || hasAnyPermission('update:role', 'manage:role_permission', 'read:permission', 'delete:role')">
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
               <MoreHorizontal class="w-4 h-4" />
@@ -118,7 +118,7 @@ import type { RoleOut } from '@/types'
 const { t } = useI18n()
 const { toast } = useToast()
 const { confirm } = useConfirm()
-const { hasPermission } = usePermission()
+const { hasPermission, hasAnyPermission } = usePermission()
 
 const columns = [
   { key: 'name', label: t('roles.columns.name'), sortable: true },
