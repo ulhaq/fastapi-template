@@ -96,6 +96,6 @@ def test_new_role_not_visible_to_other_organization(
 def test_cannot_assign_other_organization_role_to_own_user(
     admin_authenticated: TestClient,
 ) -> None:
-    # Role 3 belongs to Organization 2; user 2 belongs to Organization 1
-    response = admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [3]})
+    # Role 4 belongs to Organization 2; user 2 belongs to Organization 1
+    response = admin_authenticated.post("/v1/users/2/roles", json={"role_ids": [4]})
     assert response.status_code == 403

@@ -31,7 +31,9 @@ class Organization(Base, DeleteTimestampMixin, TimestampMixin):
     users: Mapped[list[User]] = relationship(
         User,
         secondary="user_organization",
-        secondaryjoin=and_(UserOrganization.user_id == User.id, User.deleted_at.is_(None)),
+        secondaryjoin=and_(
+            UserOrganization.user_id == User.id, User.deleted_at.is_(None)
+        ),
         back_populates="organizations",
         lazy="selectin",
         passive_deletes=True,

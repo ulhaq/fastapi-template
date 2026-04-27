@@ -12,7 +12,7 @@ from src.core.exceptions import (
     PermissionDeniedException,
 )
 from src.core.security import Auth
-from src.enums import DEFAULT_ROLES, OWNER_ROLE_NAME, ErrorCode, Permission
+from src.enums import DEFAULT_ROLES, OWNER_ROLE_NAME, ErrorCode
 from src.models.organization import Organization
 from src.models.user import User
 from src.repositories.organization import OrganizationRepository
@@ -215,7 +215,8 @@ class OrganizationService(
             user = await self.repos.user.get(membership.user_id)
             if not user:
                 continue
-            # get_all_for_user filters soft-deleted orgs, so this gives remaining active orgs
+            # get_all_for_user filters soft-deleted orgs
+            # so this gives remaining active orgs
             other = await self.repos.user_organization.get_all_for_user(
                 membership.user_id
             )

@@ -69,7 +69,6 @@ async def delete_an_organization(
     await service.delete_organization(identifier)
 
 
-
 @router.post(
     "/{organization_id}/transfer-ownership", status_code=status.HTTP_204_NO_CONTENT
 )

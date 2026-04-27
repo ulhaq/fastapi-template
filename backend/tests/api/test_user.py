@@ -9,10 +9,16 @@ from src.enums import PERMISSION_DESCRIPTIONS, Permission
 from src.models.organization import Organization
 from src.models.user import User
 from tests.conftest import TestSessionLocal
-from tests.utils import assert_filtering_of_items_list, assert_pagination, assert_sorting_of_items_list
+from tests.utils import (
+    assert_filtering_of_items_list,
+    assert_pagination,
+    assert_sorting_of_items_list,
+)
 
 
-async def _seed_external_customer(organization_id: int, external_customer_id: str | None) -> None:
+async def _seed_external_customer(
+    organization_id: int, external_customer_id: str | None
+) -> None:
     async with TestSessionLocal() as session:
         organization = await session.get(Organization, organization_id)
         organization.external_customer_id = external_customer_id
@@ -24,7 +30,7 @@ def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Admin"
+    assert rs["name"] == "Alice Owner"
     assert rs["email"] == "admin@example.org"
 
     assert len(rs["roles"]) == 1
@@ -77,7 +83,7 @@ def test_patch_authenticated_user_profile_with_partial_body(
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Admin"
+    assert rs["name"] == "Alice Owner"
     assert rs["email"] == "admin@example.org"
 
 
@@ -95,7 +101,7 @@ def test_change_authenticated_user_password(
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Admin"
+    assert rs["name"] == "Alice Owner"
     assert rs["email"] == "admin@example.org"
 
     response = client.post(
@@ -112,7 +118,7 @@ def test_change_authenticated_user_password(
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Admin"
+    assert rs["name"] == "Alice Owner"
     assert rs["email"] == "admin@example.org"
 
 
@@ -122,18 +128,26 @@ def test_retrieve_a_user(admin_authenticated: TestClient) -> None:
     rs = response.json()
 
     assert rs["id"] == 2
-    assert rs["name"] == "Standard"
+    assert rs["name"] == "Bob Member"
     assert rs["email"] == "standard@example.org"
     assert len(rs["roles"]) == 1
-    assert rs["roles"][0]["id"] == 2
-    assert rs["roles"][0]["name"] == "standard"
-    assert rs["roles"][0]["description"] == "Access to manage and view own resources."
+    assert rs["roles"][0]["id"] == 3
+    assert rs["roles"][0]["name"] == "Member"
+    assert (
+        rs["roles"][0]["description"]
+        == "Read-only access to users, roles, and organization settings."
+    )
 
     permissions = rs["roles"][0]["permissions"]
-    assert len(permissions) == 1
+    assert len(permissions) == 4
 
     permission_names = {p["name"] for p in permissions}
-    assert permission_names == {"read:user"}
+    assert permission_names == {
+        "read:user",
+        "read:role",
+        "read:permission",
+        "manage:api_token",
+    }
 
     for p in permissions:
         assert p["name"] in PERMISSION_DESCRIPTIONS
@@ -144,17 +158,17 @@ def test_retrieve_a_user(admin_authenticated: TestClient) -> None:
 
 
 def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
-    # Assign the standard role to user 3 (who currently has no roles)
+    # Assign the Member role to user 3 (who currently has no roles)
     response = admin_authenticated.post(
         "/v1/users/3/roles",
-        json={"role_ids": [2]},
+        json={"role_ids": [3]},
     )
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 3
     assert len(rs["roles"]) == 1
-    assert rs["roles"][0]["id"] == 2
-    assert rs["roles"][0]["name"] == "standard"
+    assert rs["roles"][0]["id"] == 3
+    assert rs["roles"][0]["name"] == "Member"
 
     # Remove all roles from user 3
     response = admin_authenticated.post(
@@ -165,7 +179,6 @@ def test_manage_roles_of_a_user(admin_authenticated: TestClient) -> None:
     rs = response.json()
     assert rs["id"] == 3
     assert len(rs["roles"]) == 0
-
 
 
 def test_cannot_manage_own_roles(admin_authenticated: TestClient) -> None:
@@ -198,9 +211,10 @@ def test_cannot_invite_a_user_while_unauthorized(client: TestClient) -> None:
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
-
 def test_patch_a_user(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.patch("/v1/users/2", json={"name": "Standard Patched", "email": "patched@example.org"})
+    response = admin_authenticated.patch(
+        "/v1/users/2", json={"name": "Standard Patched", "email": "patched@example.org"}
+    )
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 2
@@ -219,14 +233,20 @@ def test_patch_a_user_with_partial_body(admin_authenticated: TestClient) -> None
     assert rs["email"] == "standard@example.org"
 
 
-def test_cannot_patch_a_user_with_duplicate_email(admin_authenticated: TestClient) -> None:
-    response = admin_authenticated.patch("/v1/users/2", json={"email": "admin@example.org"})
+def test_cannot_patch_a_user_with_duplicate_email(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.patch(
+        "/v1/users/2", json={"email": "admin@example.org"}
+    )
     assert response.status_code == 409
     rs = response.json()
     assert "already exists" in rs["msg"]
 
 
-def test_cannot_patch_a_user_while_unauthorized(standard_authenticated: TestClient) -> None:
+def test_cannot_patch_a_user_while_unauthorized(
+    standard_authenticated: TestClient,
+) -> None:
     response = standard_authenticated.patch("/v1/users/1", json={"name": "Hacked"})
     assert response.status_code == 403
     rs = response.json()
@@ -327,7 +347,11 @@ def test_get_all_users(admin_authenticated: TestClient) -> None:
     assert rs["total"] == 3
     assert len(rs["items"]) == 3
     emails = {u["email"] for u in rs["items"]}
-    assert emails == {"admin@example.org", "standard@example.org", "no_roles@example.org"}
+    assert emails == {
+        "admin@example.org",
+        "standard@example.org",
+        "no_roles@example.org",
+    }
 
 
 @pytest.mark.parametrize(
@@ -351,7 +375,9 @@ def test_paginate_users(
     assert_pagination(response.json(), page_number, page_size, page_total, total)
 
 
-@pytest.mark.parametrize("sort", ["id", "-id", "name", "-name", "created_at", "-created_at"])
+@pytest.mark.parametrize(
+    "sort", ["id", "-id", "name", "-name", "created_at", "-created_at"]
+)
 def test_sort_users(sort: str, admin_authenticated: TestClient) -> None:
     response = admin_authenticated.get(f"/v1/users?sort={sort}&page_size=50")
     assert response.status_code == 200
@@ -361,8 +387,8 @@ def test_sort_users(sort: str, admin_authenticated: TestClient) -> None:
 @pytest.mark.parametrize(
     "fields,values,operators",
     [
-        (["name"], [["Admin"]], ["eq"]),
-        (["name"], [["dmin"]], ["ico"]),
+        (["name"], [["Alice Owner"]], ["eq"]),
+        (["name"], [["alice"]], ["ico"]),
     ],
 )
 def test_filter_users(
@@ -377,7 +403,9 @@ def test_filter_users(
         field: {"v": value, "op": op}
         for field, value, op in zip(fields, values, operators)
     }
-    response = admin_authenticated.get(f"/v1/users?filters={json.dumps(filters)}&page_size=50")
+    response = admin_authenticated.get(
+        f"/v1/users?filters={json.dumps(filters)}&page_size=50"
+    )
     assert response.status_code == 200
     filter_data = list(zip(fields, values, operators))
     assert_filtering_of_items_list(response.json()["items"], filter_data)
@@ -438,23 +466,21 @@ def test_cannot_remove_owner_role_via_manage_roles(
     assert rs["error_code"] == "protected_role_modification"
 
 
-
 def test_deleted_role_excluded_from_user_roles(admin_authenticated: TestClient) -> None:
-    # Standard user (id=2) starts with the "standard" role
+    # Standard user (id=2) starts with the "Member" role
     response = admin_authenticated.get("/v1/users/2")
     assert response.status_code == 200
     assert len(response.json()["roles"]) == 1
-    assert response.json()["roles"][0]["name"] == "standard"
+    assert response.json()["roles"][0]["name"] == "Member"
 
     # Admin soft-deletes the role
-    response = admin_authenticated.delete("/v1/roles/2")
+    response = admin_authenticated.delete("/v1/roles/3")
     assert response.status_code == 204
 
     # The soft-deleted role must not appear in the user's roles
     response = admin_authenticated.get("/v1/users/2")
     assert response.status_code == 200
     assert response.json()["roles"] == []
-
 
 
 async def test_deleted_user_excluded_from_organization_users() -> None:
@@ -473,5 +499,5 @@ async def test_deleted_user_excluded_from_organization_users() -> None:
         )
         org = result.scalar_one()
         user_ids = {u.id for u in org.users}
-        assert 1 in user_ids       # admin still present
-        assert 2 not in user_ids   # soft-deleted user excluded
+        assert 1 in user_ids  # admin still present
+        assert 2 not in user_ids  # soft-deleted user excluded

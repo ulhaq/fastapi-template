@@ -591,7 +591,7 @@ def test_webhook_price_created(
                     "id": "price_stripe_new",
                     "product": "prod_test123",
                     "unit_amount": 4999,
-                    "currency": "usd",
+                    "currency": "dkk",
                     "active": True,
                     "recurring": {"interval": "year", "interval_count": 1},
                 }
@@ -624,7 +624,7 @@ def test_webhook_price_created_unknown_product(
                     "id": "price_orphan",
                     "product": "prod_nonexistent",
                     "unit_amount": 999,
-                    "currency": "usd",
+                    "currency": "dkk",
                     "active": True,
                     "recurring": {"interval": "month", "interval_count": 1},
                 }

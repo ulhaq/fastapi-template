@@ -426,7 +426,9 @@ const subscription = ref<SubscriptionOut | null>(null)
 const availablePlans = ref<PlanOut[]>([])
 
 const trialPrice = computed<PlanPriceOut | undefined>(() => {
-  for (const price of availablePlans.value[availablePlans.value.length - 1].prices) {
+  const last = availablePlans.value[availablePlans.value.length - 1]
+  if (!last) return undefined
+  for (const price of last.prices) {
     if (price.is_active && price.amount > 0 && price.trial_period_days) {
       return price
     }

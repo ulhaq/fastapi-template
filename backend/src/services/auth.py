@@ -27,8 +27,8 @@ from src.core.security import (
     verify_secret,
 )
 from src.enums import OWNER_ROLE_NAME, ErrorCode
-from src.repositories.repository_manager import RepositoryManager
 from src.models.role import Role
+from src.repositories.repository_manager import RepositoryManager
 from src.schemas.user import (
     CompleteInviteIn,
     CompleteRegistrationIn,

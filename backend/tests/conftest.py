@@ -129,7 +129,7 @@ async def prepare_database() -> AsyncGenerator[None]:
         free_price = PlanPrice(
             plan_id=free_plan.id,
             amount=0,
-            currency="usd",
+            currency="dkk",
             interval="month",
             interval_count=1,
             external_price_id=None,
@@ -187,7 +187,9 @@ def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
     mock.archive_price.return_value = None
     _cus_ids = {1: "cus_test123", 2: "cus_test456"}
     mock.get_or_create_customer.side_effect = (
-        lambda *, organization_id, **kw: _cus_ids.get(organization_id, f"cus_{organization_id}")
+        lambda *, organization_id, **kw: _cus_ids.get(
+            organization_id, f"cus_{organization_id}"
+        )
     )
     mock.create_checkout_session.return_value = CheckoutResult(
         checkout_url="https://checkout.stripe.com/test_session",
@@ -247,6 +249,19 @@ def mock_billing_provider(mocker):  # type: ignore[no-untyped-def]
     app.dependency_overrides[get_billing_provider] = lambda: mock
     yield mock
     app.dependency_overrides.pop(get_billing_provider, None)
+
+
+@pytest.fixture
+def no_roles_authenticated(client: TestClient) -> TestClient:
+    rs = client.post(
+        "/v1/auth/token",
+        data={"username": "no_roles@example.org", "password": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()
+
+    client.headers = Headers({"Authorization": f"Bearer {rs['access_token']}"})
+
+    return client
 
 
 @pytest.fixture
@@ -320,7 +335,7 @@ async def plan_with_price() -> dict:
         price = PlanPrice(
             plan_id=plan_id,
             amount=999,
-            currency="usd",
+            currency="dkk",
             interval="month",
             interval_count=1,
             external_price_id="price_test123",
@@ -344,7 +359,7 @@ async def plan_with_price() -> dict:
             "id": price_id,
             "plan_id": plan_id,
             "amount": 999,
-            "currency": "usd",
+            "currency": "dkk",
             "interval": "month",
             "interval_count": 1,
             "external_price_id": "price_test123",

@@ -40,7 +40,10 @@ class Role(Base, DeleteTimestampMixin, TimestampMixin):
     permissions: Mapped[list[Permission]] = relationship(
         Permission,
         secondary="role_permission",
-        secondaryjoin=and_(RolePermission.permission_id == Permission.id, Permission.deleted_at.is_(None)),
+        secondaryjoin=and_(
+            RolePermission.permission_id == Permission.id,
+            Permission.deleted_at.is_(None),
+        ),
         back_populates="roles",
         lazy="joined",
         passive_deletes=True,

@@ -1,11 +1,12 @@
+
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-
-import pytest
+from sqlalchemy import select
 from fastapi.testclient import TestClient
 from httpx import Headers
 
+from src.main import app
 from src.models.api_token import ApiToken
 from tests.conftest import TestSessionLocal
 
@@ -19,7 +20,11 @@ def _create_token(
     expires_at: str | None = None,
     permissions: list[str] | None = None,
 ) -> dict:
-    payload: dict = {"name": name, "expires_at": expires_at, "permissions": permissions or ["manage:api_token"]}
+    payload: dict = {
+        "name": name,
+        "expires_at": expires_at,
+        "permissions": permissions or ["manage:api_token"],
+    }
     rs = client.post("/v1/api-tokens", json=payload)
     return rs
 
@@ -120,9 +125,9 @@ def test_revoke_nonexistent_token_returns_404(admin_authenticated: TestClient) -
 
 
 def test_cannot_manage_tokens_without_permission(
-    standard_authenticated: TestClient,
+    no_roles_authenticated: TestClient,
 ) -> None:
-    rs = standard_authenticated.get("/v1/api-tokens")
+    rs = no_roles_authenticated.get("/v1/api-tokens")
     assert rs.status_code == 403
 
 
@@ -188,8 +193,6 @@ async def test_is_expired_true_for_past_expiry(admin_authenticated: TestClient) 
 async def test_removing_user_from_org_revokes_tokens(
     admin_authenticated: TestClient,
 ) -> None:
-    from src.main import app
-
     _, plaintext = await _seed_token(
         user_id=2, organization_id=1, name="standard token"
     )
@@ -230,9 +233,8 @@ async def test_tokens_in_other_orgs_unaffected_on_removal(
 
     # Org 2 token is untouched (check via DB directly)
     async with TestSessionLocal() as session:
-        from sqlalchemy import select
-        from src.models.api_token import ApiToken as AT
-
-        result = await session.execute(select(AT).where(AT.name == "org2 token"))
+        result = await session.execute(
+            select(ApiToken).where(ApiToken.name == "org2 token")
+        )
         token = result.scalar_one()
         assert token.revoked_at is None

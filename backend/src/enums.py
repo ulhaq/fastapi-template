@@ -101,7 +101,7 @@ class Permission(StrEnum):
 DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
     (
         ADMIN_ROLE_NAME,
-        "Access to manage users, roles, and organization settings.",
+        "Access to manage users, roles, organization settings, and billing.",
         [
             Permission.UPDATE_ORGANIZATION,
             Permission.MANAGE_ORGANIZATION_USER,
@@ -113,6 +113,7 @@ DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
             Permission.MANAGE_USER_ROLE,
             Permission.READ_PERMISSION,
             Permission.MANAGE_ROLE_PERMISSION,
+            Permission.MANAGE_SUBSCRIPTION,
             Permission.MANAGE_API_TOKEN,
         ],
     ),

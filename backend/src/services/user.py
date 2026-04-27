@@ -257,7 +257,9 @@ class UserService(
         user = await self.get(identifier)
 
         organization_roles = [r for r in user.roles if r.organization_id == org_id]
-        if any(r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles):
+        if any(
+            r.is_protected and r.name == OWNER_ROLE_NAME for r in organization_roles
+        ):
             raise PermissionDeniedException(
                 "The organization owner cannot be removed. Transfer ownership first.",
                 error_code=ErrorCode.PROTECTED_ROLE_MODIFICATION,
@@ -269,8 +271,10 @@ class UserService(
             identifier, org_id
         )
         if membership:
-            active = await self.repos.user_organization.get_active_organization_for_user(
-                identifier
+            active = (
+                await self.repos.user_organization.get_active_organization_for_user(
+                    identifier
+                )
             )
             if active and active.organization_id == org_id:
                 await self.repos.refresh_token.delete_by_user(user)

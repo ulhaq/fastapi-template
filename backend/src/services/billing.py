@@ -748,6 +748,7 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
                     )
                 )
                 if organization:
+                    # pylint: disable=line-too-long
                     sub = await self.repos.subscription.get_active_for_organization_locked(
                         organization.id
                     )
@@ -762,6 +763,7 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
                                 status="incomplete",
                             )
                         except IntegrityError:
+                            # pylint: disable=line-too-long
                             sub = await self.repos.subscription.get_active_for_organization_locked(
                                 organization.id
                             )
@@ -1080,6 +1082,7 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
             await self.repos.plan_price.update(price, is_active=obj["active"])
 
 
+# pylint: disable=too-few-public-methods
 class BillingMaintenanceService(BaseService):
     def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
         super().__init__(repos)

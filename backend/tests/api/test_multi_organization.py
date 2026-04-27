@@ -33,13 +33,15 @@ def _auth_headers(token: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_get_my_organizations_returns_own_organization(admin_authenticated: TestClient) -> None:
+def test_get_my_organizations_returns_own_organization(
+    admin_authenticated: TestClient,
+) -> None:
     response = admin_authenticated.get("/v1/organizations")
     assert response.status_code == 200
     organizations = response.json()
     assert len(organizations) == 1
     assert organizations[0]["id"] == 1
-    assert organizations[0]["name"] == "Organization 1"
+    assert organizations[0]["name"] == "Acme Corp"
 
 
 def test_get_my_organizations_after_joining_second_organization(
@@ -126,7 +128,9 @@ def test_get_organization_users_shows_only_organization_roles(
     # When Organization 1 lists its users, admin's roles should be Organization 1 roles only
     response = admin_authenticated.get("/v1/organizations/1/users")
     assert response.status_code == 200
-    admin_user = next(u for u in response.json()["items"] if u["email"] == "admin@example.org")
+    admin_user = next(
+        u for u in response.json()["items"] if u["email"] == "admin@example.org"
+    )
     for role in admin_user["roles"]:
         assert role["organization_id"] == 1
 
@@ -284,7 +288,7 @@ def test_login_selects_first_organization_when_none_active(
     assert response.status_code == 200
     rs = response.json()
     assert len(rs) == 1
-    assert rs[0]["name"] == "Organization 1"
+    assert rs[0]["name"] == "Acme Corp"
 
 
 # ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from src.core.dependencies import authenticate
-from src.core.exceptions import ValidationException, NotFoundException
+from src.core.exceptions import NotFoundException, ValidationException
 from src.core.security import Auth
 from src.enums import ErrorCode
 from src.repositories.repository_manager import RepositoryManager

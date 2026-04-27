@@ -12,6 +12,7 @@ class ApiTokenRepository:
 
     async def create(
         self,
+        *,
         user_id: int,
         organization_id: int,
         name: str,

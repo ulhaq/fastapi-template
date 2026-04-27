@@ -578,7 +578,7 @@ def test_invited_user_is_added_to_organization_with_roles(
     ).json()
     assert profile["email"] == "invited@example.org"
     role_names = {r["name"] for r in profile["roles"]}
-    assert "standard" in role_names
+    assert "Admin" in role_names
 
 
 def test_cannot_complete_invite_with_invalid_token(client: TestClient) -> None:

@@ -277,7 +277,7 @@ async def test_switch_plan_success(
         price2 = PlanPrice(
             plan_id=plan2_id,
             amount=2999,
-            currency="usd",
+            currency="dkk",
             interval="month",
             interval_count=1,
             external_price_id="price_enterprise123",

@@ -30,9 +30,9 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
     rs = response.json()
     assert rs["page_number"] == 1
     assert rs["page_size"] == 10
-    assert rs["total"] == 2
+    assert rs["total"] == 3
 
-    assert len(rs["items"]) == 2
+    assert len(rs["items"]) == 3
     assert rs["items"][0]["id"] == 1
     assert rs["items"][0]["name"] == "Owner"
     assert (
@@ -46,21 +46,40 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
     assert rs["items"][0]["updated_at"]
 
     assert rs["items"][1]["id"] == 2
-    assert rs["items"][1]["name"] == "standard"
-    assert rs["items"][1]["description"] == "Access to manage and view own resources."
+    assert rs["items"][1]["name"] == "Admin"
+    assert (
+        rs["items"][1]["description"]
+        == "Access to manage users, roles, organization settings, and billing."
+    )
     assert rs["items"][1]["is_protected"] is False
-    assert len(rs["items"][1]["permissions"]) == 1
-    standard_perm_names = {p["name"] for p in rs["items"][1]["permissions"]}
-    assert standard_perm_names == {"read:user"}
+    assert len(rs["items"][1]["permissions"]) == 12
     assert rs["items"][1]["created_at"]
     assert rs["items"][1]["updated_at"]
+
+    assert rs["items"][2]["id"] == 3
+    assert rs["items"][2]["name"] == "Member"
+    assert (
+        rs["items"][2]["description"]
+        == "Read-only access to users, roles, and organization settings."
+    )
+    assert rs["items"][2]["is_protected"] is False
+    assert len(rs["items"][2]["permissions"]) == 4
+    member_perm_names = {p["name"] for p in rs["items"][2]["permissions"]}
+    assert member_perm_names == {
+        "read:user",
+        "read:role",
+        "read:permission",
+        "manage:api_token",
+    }
+    assert rs["items"][2]["created_at"]
+    assert rs["items"][2]["updated_at"]
 
 
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 2, 2),
-        pytest.param(2, 10, 0, 2),
+        pytest.param(1, 10, 3, 3),
+        pytest.param(2, 10, 0, 3),
     ],
 )
 def test_paginate_roles(
@@ -112,16 +131,16 @@ def test_sort_roles(sort: str, admin_authenticated: TestClient) -> None:
         pytest.param(["id"], [[1]], ["eq"], 1),
         pytest.param(["id"], [[0, 1]], ["between"], 1),
         pytest.param(["id"], [[1, 2]], ["between"], 2),
-        pytest.param(["id"], [[2, 3]], ["between"], 1),
+        pytest.param(["id"], [[2, 3]], ["between"], 2),
         pytest.param(["id", "name"], [[1], ["a"]], ["eq", "co"], 2),
         pytest.param(["name"], [["Owner"]], ["eq"], 1),
         pytest.param(["name"], [["n"]], ["co"], 2),
-        pytest.param(["description"], [["access"]], ["ico"], 2),
+        pytest.param(["description"], [["access"]], ["ico"], 3),
         pytest.param(
             ["created_at"],
             [["2025-04-22T14:04:38.586226", "2050-09-22T14:04:38.586226"]],
             ["between"],
-            2,
+            3,
         ),
     ],
 )
@@ -157,7 +176,7 @@ def test_create_a_role(admin_authenticated: TestClient) -> None:
     )
     assert response.status_code == 201
     rs = response.json()
-    assert rs["id"] == 5
+    assert rs["id"] == 7
     assert rs["name"] == "test role"
     assert rs["description"] == "description of test role"
     assert rs["organization_id"] == 1
@@ -190,8 +209,11 @@ def test_patch_a_role_with_partial_body(admin_authenticated: TestClient) -> None
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 2
-    assert rs["name"] == "standard"
-    assert rs["description"] == "Access to manage and view own resources."
+    assert rs["name"] == "Admin"
+    assert (
+        rs["description"]
+        == "Access to manage users, roles, organization settings, and billing."
+    )
 
 
 def test_retrieve_a_role(admin_authenticated: TestClient) -> None:
@@ -213,7 +235,11 @@ def test_retrieve_a_role(admin_authenticated: TestClient) -> None:
 def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     response = admin_authenticated.get("/v1/permissions?page_size=50")
     all_perms = response.json()["items"]
-    user_perm_ids = [p["id"] for p in all_perms if "user" in p["name"] or "role" in p["name"] or "permission" in p["name"]]
+    user_perm_ids = [
+        p["id"]
+        for p in all_perms
+        if "user" in p["name"] or "role" in p["name"] or "permission" in p["name"]
+    ]
 
     response = admin_authenticated.post(
         "/v1/roles/2/permissions",
@@ -224,13 +250,15 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 2
-    assert rs["name"] == "standard"
+    assert rs["name"] == "Admin"
     assert len(rs["permissions"]) == len(user_perm_ids)
 
     assert rs["created_at"]
     assert rs["updated_at"]
 
-    update_organization_id = next(p["id"] for p in all_perms if p["name"] == "update:organization")
+    update_organization_id = next(
+        p["id"] for p in all_perms if p["name"] == "update:organization"
+    )
     response = admin_authenticated.post(
         "/v1/roles/2/permissions",
         json={
@@ -240,7 +268,7 @@ def test_manage_permissions_of_a_role(admin_authenticated: TestClient) -> None:
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 2
-    assert rs["name"] == "standard"
+    assert rs["name"] == "Admin"
 
     assert len(rs["permissions"]) == 1
     assert rs["permissions"][0]["name"] == "update:organization"
@@ -321,18 +349,18 @@ def test_cannot_patch_a_role_while_unauthorized(
 
 
 def test_cannot_get_roles_while_unauthorized(
-    standard_authenticated: TestClient,
+    no_roles_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/v1/roles")
+    response = no_roles_authenticated.get("/v1/roles")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
 
 
 def test_cannot_retrieve_a_role_while_unauthorized(
-    standard_authenticated: TestClient,
+    no_roles_authenticated: TestClient,
 ) -> None:
-    response = standard_authenticated.get("/v1/roles/1")
+    response = no_roles_authenticated.get("/v1/roles/1")
     assert response.status_code == 403
     rs = response.json()
     assert rs["msg"] == "You are not authorized to perform this action"
@@ -364,24 +392,25 @@ def test_cannot_manage_a_role_while_unauthorized(
 async def test_deleted_permission_excluded_from_role_permissions(
     admin_authenticated: TestClient,
 ) -> None:
-    # Role 2 "standard" starts with exactly read:user
-    response = admin_authenticated.get("/v1/roles/2")
+    # Role 3 "Member" starts with read:user among its permissions
+    response = admin_authenticated.get("/v1/roles/3")
     assert response.status_code == 200
     perm_names = {p["name"] for p in response.json()["permissions"]}
-    assert perm_names == {Permission.READ_USER.value}
+    assert Permission.READ_USER.value in perm_names
 
     # Soft-delete read:user directly via DB (no API endpoint exists for this)
     async with TestSessionLocal() as session:
         result = await session.execute(
-            select(PermissionModel).where(PermissionModel.name == Permission.READ_USER.value)
+            select(PermissionModel).where(
+                PermissionModel.name == Permission.READ_USER.value
+            )
         )
         permission = result.scalar_one()
         permission.deleted_at = datetime.now(UTC)
         await session.commit()
 
     # The soft-deleted permission must not appear in the role's permissions
-    response = admin_authenticated.get("/v1/roles/2")
+    response = admin_authenticated.get("/v1/roles/3")
     assert response.status_code == 200
     perm_names = {p["name"] for p in response.json()["permissions"]}
-    assert perm_names == set()
     assert Permission.READ_USER.value not in perm_names

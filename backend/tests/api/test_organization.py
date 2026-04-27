@@ -22,7 +22,7 @@ def test_user_organizations_list_only_shows_own_organization(
     assert response.status_code == 200
     rs = response.json()
     assert len(rs) == 1
-    assert rs[0]["name"] == "Organization 2"
+    assert rs[0]["name"] == "Globex Ltd"
 
 
 def test_create_an_organization(admin_authenticated: TestClient) -> None:
@@ -56,12 +56,12 @@ def test_cannot_create_an_organization_with_already_existing_name(
     response = admin_authenticated.post(
         "/v1/organizations",
         json={
-            "name": "Organization 1",
+            "name": "Acme Corp",
         },
     )
     assert response.status_code == 409
     rs = response.json()
-    assert rs["msg"] == "Organization already exists. [name=Organization 1]"
+    assert rs["msg"] == "Organization already exists. [name=Acme Corp]"
 
 
 def test_create_an_organization_creates_free_subscription(
@@ -96,7 +96,7 @@ def test_patch_an_organization_with_partial_body(
     assert response.status_code == 200
     rs = response.json()
     assert rs["id"] == 1
-    assert rs["name"] == "Organization 1"
+    assert rs["name"] == "Acme Corp"
 
 
 def test_retrieve_an_organization(admin_authenticated: TestClient) -> None:
@@ -105,7 +105,7 @@ def test_retrieve_an_organization(admin_authenticated: TestClient) -> None:
     rs = response.json()
 
     assert rs["id"] == 1
-    assert rs["name"] == "Organization 1"
+    assert rs["name"] == "Acme Corp"
     assert rs["created_at"]
     assert rs["updated_at"]
 
