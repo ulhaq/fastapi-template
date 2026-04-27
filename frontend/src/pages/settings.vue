@@ -96,7 +96,7 @@ const workspaceItems = computed(() => [
   ...(isOwner.value ? [{ to: '/settings/general', label: t('settings.general'), icon: Settings2 }] : []),
   ...(hasPermission('read:user') ? [{ to: '/settings/users', label: t('nav.users'), icon: Users }] : []),
   ...(hasPermission('read:role') ? [{ to: '/settings/roles', label: t('nav.roles'), icon: Shield }] : []),
-  ...(hasPermission('read:subscription') ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }] : []),
+  ...(hasPermission('manage:subscription') ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }] : []),
 ])
 
 const adminItems = computed(() => [

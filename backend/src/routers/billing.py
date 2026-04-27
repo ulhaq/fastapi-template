@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 
-from src.core.dependencies import require_permission
+from src.core.dependencies import authenticate, require_permission
 from src.core.limiter import limiter
 from src.core.security import Auth
 from src.enums import Permission
@@ -69,7 +69,7 @@ async def start_trial(
 @subscription_router.get("/current", status_code=status.HTTP_200_OK)
 async def get_current_subscription(
     service: Annotated[SubscriptionService, Depends()],
-    _: Annotated[Auth, Depends(require_permission(Permission.READ_SUBSCRIPTION))],
+    _: Annotated[Auth, Depends(authenticate)],
 ) -> SubscriptionOut:
     return await service.get_current_subscription()
 

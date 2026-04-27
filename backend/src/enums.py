@@ -94,7 +94,6 @@ class Permission(StrEnum):
     MANAGE_USER_ROLE = "manage:user_role"
     READ_PERMISSION = "read:permission"
     MANAGE_ROLE_PERMISSION = "manage:role_permission"
-    READ_SUBSCRIPTION = "read:subscription"
     MANAGE_SUBSCRIPTION = "manage:subscription"
     MANAGE_API_TOKEN = "manage:api_token"
 
@@ -114,18 +113,16 @@ DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
             Permission.MANAGE_USER_ROLE,
             Permission.READ_PERMISSION,
             Permission.MANAGE_ROLE_PERMISSION,
-            Permission.READ_SUBSCRIPTION,
             Permission.MANAGE_API_TOKEN,
         ],
     ),
     (
         MEMBER_ROLE_NAME,
-        "Read-only access to users, roles, and subscription.",
+        "Read-only access to users, roles, and organization settings.",
         [
             Permission.READ_USER,
             Permission.READ_ROLE,
             Permission.READ_PERMISSION,
-            Permission.READ_SUBSCRIPTION,
             Permission.MANAGE_API_TOKEN,
         ],
     ),
@@ -146,9 +143,6 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.MANAGE_USER_ROLE: "Allows the user to manage users' roles.",
     Permission.READ_PERMISSION: "Allows the user to read permissions.",
     Permission.MANAGE_ROLE_PERMISSION: "Allows the user to manage roles' permissions.",
-    Permission.READ_SUBSCRIPTION: (
-        "Allows the user to read the organization's subscription."
-    ),
     Permission.MANAGE_SUBSCRIPTION: "Allows managing the organization's subscription.",
     Permission.MANAGE_API_TOKEN: (
         "Allows the user to create and manage their own API tokens."

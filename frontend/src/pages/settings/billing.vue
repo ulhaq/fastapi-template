@@ -1,6 +1,6 @@
 <route lang="yaml">
 meta:
-  permission: read:subscription
+  permission: manage:subscription
   breadcrumb: nav.subscription
 </route>
 
