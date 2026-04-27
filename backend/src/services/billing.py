@@ -148,10 +148,14 @@ class SubscriptionService(BaseService):
 
         external_customer_id = organization.external_customer_id
         if not external_customer_id:
+            owner = await self.repos.user.get_owner_for_organization(
+                self.current_user.organization_id
+            )
+            owner_email = owner.email if owner else self.current_user.email
             external_customer_id = await self.provider.get_or_create_customer(
                 organization_id=self.current_user.organization_id,
                 organization_name=organization.name,
-                email=self.current_user.email,
+                email=owner_email,
             )
             await self.repos.organization.update(
                 organization, external_customer_id=external_customer_id
@@ -243,10 +247,14 @@ class SubscriptionService(BaseService):
 
         external_customer_id = organization.external_customer_id
         if not external_customer_id:
+            owner = await self.repos.user.get_owner_for_organization(
+                self.current_user.organization_id
+            )
+            owner_email = owner.email if owner else self.current_user.email
             external_customer_id = await self.provider.get_or_create_customer(
                 organization_id=self.current_user.organization_id,
                 organization_name=organization.name,
-                email=self.current_user.email,
+                email=owner_email,
             )
             await self.repos.organization.update(
                 organization, external_customer_id=external_customer_id

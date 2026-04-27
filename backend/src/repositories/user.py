@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy import Select, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.enums import OWNER_ROLE_NAME
 from src.models.password_reset_token import PasswordResetToken
 from src.models.permission import Permission
 from src.models.role import Role
@@ -48,6 +49,9 @@ class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
     async def has_other_user_with_role(
         self, role_id: int, exclude_user_id: int
     ) -> bool: ...
+
+    @abstractmethod
+    async def get_owner_for_organization(self, organization_id: int) -> User | None: ...
 
 
 class UserRepository(OrganizationScopedRepository[User], UserRepositoryABC):
@@ -129,3 +133,18 @@ class UserRepository(OrganizationScopedRepository[User], UserRepositoryABC):
         stmt = self._include_deleted(stmt)
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none() is not None
+
+    async def get_owner_for_organization(self, organization_id: int) -> User | None:
+        stmt = (
+            select(User)
+            .join(User.roles)
+            .join(UserOrganization, UserOrganization.user_id == User.id)
+            .where(
+                UserOrganization.organization_id == organization_id,
+                Role.organization_id == organization_id,
+                Role.is_protected.is_(True),
+                Role.name == OWNER_ROLE_NAME,
+            )
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
