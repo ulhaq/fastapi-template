@@ -30,7 +30,7 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
     return { path: '/' }
   }
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+  if ((to.meta.requiresAuth || to.meta.permission) && !authStore.isAuthenticated) {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
