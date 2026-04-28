@@ -17,7 +17,7 @@ meta:
           </div>
           <div class="space-y-2">
             <Label>{{ $t('common.email') }}</Label>
-            <Input v-model="profile.email" type="email" :disabled="savingProfile" />
+            <Input v-model="profile.email" type="text" :disabled="savingProfile" />
             <p v-if="profileErrors.email" class="text-xs text-destructive">{{ profileErrors.email }}</p>
           </div>
           <p v-if="profileError" class="text-sm text-destructive">{{ profileError }}</p>

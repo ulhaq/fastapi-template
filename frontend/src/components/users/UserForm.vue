@@ -14,7 +14,7 @@
         </div>
         <div class="space-y-2">
           <Label>{{ $t('common.email') }}</Label>
-          <Input v-model="form.email" type="email" :placeholder="$t('users.form.emailPlaceholder')" :disabled="isLoading" />
+          <Input v-model="form.email" type="text" :placeholder="$t('users.form.emailPlaceholder')" :disabled="isLoading" />
           <p v-if="errors.email" class="text-xs text-destructive">{{ errors.email }}</p>
         </div>
 

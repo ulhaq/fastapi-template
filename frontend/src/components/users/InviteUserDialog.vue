@@ -12,7 +12,7 @@
           <Input
             id="invite-email"
             v-model="email"
-            type="email"
+            type="text"
             :placeholder="$t('users.form.emailPlaceholder')"
             :disabled="isLoading"
             autofocus

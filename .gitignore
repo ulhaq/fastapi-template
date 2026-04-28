@@ -1,7 +1,7 @@
 .mypy_cache
 .vscode
 logs/
-
+test-results/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -18,7 +18,7 @@ meta:
           <Input
             id="email"
             v-model="email"
-            type="email"
+            type="text"
             :placeholder="$t('auth.emailPlaceholder')"
             autocomplete="email"
             :disabled="isLoading"

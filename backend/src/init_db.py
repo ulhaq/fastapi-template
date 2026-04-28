@@ -37,7 +37,7 @@ INIT_AUTH_DATA: dict = {
         {"name": "Globex Ltd"},
     ],
     "roles": [
-        # Org 1 — index 1
+        # Org 1 - index 1
         {
             "name": OWNER_ROLE_NAME,
             "description": "Full access to all system features and settings.",
@@ -45,21 +45,21 @@ INIT_AUTH_DATA: dict = {
             "organization": 1,
             "is_protected": True,
         },
-        # Org 1 — index 2
+        # Org 1 - index 2
         {
             "name": _admin_name,
             "description": _admin_desc,
             "permissions": _admin_perms,
             "organization": 1,
         },
-        # Org 1 — index 3
+        # Org 1 - index 3
         {
             "name": _member_name,
             "description": _member_desc,
             "permissions": _member_perms,
             "organization": 1,
         },
-        # Org 2 — index 4
+        # Org 2 - index 4
         {
             "name": OWNER_ROLE_NAME,
             "description": "Full access to all system features and settings.",
@@ -67,14 +67,14 @@ INIT_AUTH_DATA: dict = {
             "organization": 2,
             "is_protected": True,
         },
-        # Org 2 — index 5
+        # Org 2 - index 5
         {
             "name": _admin_name,
             "description": _admin_desc,
             "permissions": _admin_perms,
             "organization": 2,
         },
-        # Org 2 — index 6
+        # Org 2 - index 6
         {
             "name": _member_name,
             "description": _member_desc,
