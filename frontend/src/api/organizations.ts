@@ -7,7 +7,7 @@ export const organizationsApi = {
   },
 
   get(id: number) {
-    return apiClient.get<OrganizationOut>(`/v1/organizations/${id}`)
+    return apiClient.get<OrganizationOut>(`/organizations/${id}`)
   },
 
   create(data: OrganizationBase) {
@@ -15,18 +15,18 @@ export const organizationsApi = {
   },
 
   patch(id: number, data: OrganizationPatch) {
-    return apiClient.patch<OrganizationOut>(`/v1/organizations/${id}`, data)
+    return apiClient.patch<OrganizationOut>(`/organizations/${id}`, data)
   },
 
   delete(id: number) {
-    return apiClient.delete(`/v1/organizations/${id}`)
+    return apiClient.delete(`/organizations/${id}`)
   },
 
   getUsers(organizationId: number) {
-    return apiClient.get<PaginatedResponse<UserOut>>(`/v1/organizations/${organizationId}/users`)
+    return apiClient.get<PaginatedResponse<UserOut>>(`/organizations/${organizationId}/users`)
   },
 
   transferOwnership(organizationId: number, userId: number) {
-    return apiClient.post(`/v1/organizations/${organizationId}/transfer-ownership`, { user_id: userId })
+    return apiClient.post(`/organizations/${organizationId}/transfer-ownership`, { user_id: userId })
   },
 }

@@ -14,6 +14,6 @@ export const permissionsApi = {
   },
 
   get(id: number) {
-    return apiClient.get<PermissionOut>(`/v1/permissions/${id}`)
+    return apiClient.get<PermissionOut>(`/permissions/${id}`)
   },
 }

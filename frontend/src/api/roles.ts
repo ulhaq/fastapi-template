@@ -14,7 +14,7 @@ export const rolesApi = {
   },
 
   get(id: number) {
-    return apiClient.get<RoleOut>(`/v1/roles/${id}`)
+    return apiClient.get<RoleOut>(`/roles/${id}`)
   },
 
   create(data: RoleIn) {
@@ -22,14 +22,14 @@ export const rolesApi = {
   },
 
   patch(id: number, data: RolePatch) {
-    return apiClient.patch<RoleOut>(`/v1/roles/${id}`, data)
+    return apiClient.patch<RoleOut>(`/roles/${id}`, data)
   },
 
   delete(id: number) {
-    return apiClient.delete(`/v1/roles/${id}`)
+    return apiClient.delete(`/roles/${id}`)
   },
 
   setPermissions(id: number, data: RolePermissionIn) {
-    return apiClient.post<RoleOut>(`/v1/roles/${id}/permissions`, data)
+    return apiClient.post<RoleOut>(`/roles/${id}/permissions`, data)
   },
 }

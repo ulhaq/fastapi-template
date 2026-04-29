@@ -13,7 +13,7 @@ export const billingApi = {
   },
 
   getPlan(id: number) {
-    return apiClient.get<PlanOut>(`/v1/billing/plans/${id}`)
+    return apiClient.get<PlanOut>(`/billing/plans/${id}`)
   },
 
   // Subscriptions

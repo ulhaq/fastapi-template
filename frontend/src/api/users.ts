@@ -22,11 +22,11 @@ export const usersApi = {
   },
 
   get(id: number) {
-    return apiClient.get<UserOut>(`/v1/users/${id}`)
+    return apiClient.get<UserOut>(`/users/${id}`)
   },
 
   patch(id: number, data: UserPatch) {
-    return apiClient.patch<UserOut>(`/v1/users/${id}`, data)
+    return apiClient.patch<UserOut>(`/users/${id}`, data)
   },
 
   patchMe(data: UserPatch) {
@@ -38,11 +38,11 @@ export const usersApi = {
   },
 
   removeFromOrganization(id: number) {
-    return apiClient.delete(`/v1/users/${id}`)
+    return apiClient.delete(`/users/${id}`)
   },
 
   setRoles(id: number, data: UserRoleIn) {
-    return apiClient.post<UserOut>(`/v1/users/${id}/roles`, data)
+    return apiClient.post<UserOut>(`/users/${id}/roles`, data)
   },
 
   invite(data: { email: string; role_ids: number[] }) {

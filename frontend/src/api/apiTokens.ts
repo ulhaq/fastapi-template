@@ -11,6 +11,6 @@ export const apiTokensApi = {
   },
 
   revoke(id: number) {
-    return apiClient.delete(`/v1/api-tokens/${id}`)
+    return apiClient.delete(`/api-tokens/${id}`)
   },
 }
