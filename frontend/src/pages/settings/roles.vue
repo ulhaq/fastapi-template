@@ -43,11 +43,11 @@ meta:
         </TableCell>
         <TableCell>
           <div class="flex flex-wrap gap-1">
-            <Badge variant="outline" class="text-xs" v-for="p in item.permissions.slice(0, 4)" :key="p.id">
+            <Badge variant="outline" class="text-xs" v-for="p in item.permissions.slice(0, BADGE_MAX)" :key="p.id">
               {{ p.name }}
             </Badge>
-            <Badge v-if="item.permissions.length > 4" variant="secondary" class="text-xs">
-              +{{ item.permissions.length - 4 }}
+            <Badge v-if="item.permissions.length > BADGE_MAX" variant="secondary" class="text-xs">
+              +{{ item.permissions.length - BADGE_MAX }}
             </Badge>
           </div>
         </TableCell>
@@ -113,6 +113,7 @@ import { rolesApi } from '@/api/roles'
 import { useDataTable } from '@/composables/useDataTable'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
+import { BADGE_MAX } from '@/constants'
 import type { RoleOut } from '@/types'
 
 const { t } = useI18n()

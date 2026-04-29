@@ -3,7 +3,7 @@ import type { PaginatedResponse, OrganizationOut, OrganizationBase, Organization
 
 export const organizationsApi = {
   list() {
-    return apiClient.get<OrganizationOut[]>('/v1/organizations')
+    return apiClient.get<OrganizationOut[]>('/organizations')
   },
 
   get(id: number) {
@@ -11,7 +11,7 @@ export const organizationsApi = {
   },
 
   create(data: OrganizationBase) {
-    return apiClient.post<OrganizationOut>('/v1/organizations', data)
+    return apiClient.post<OrganizationOut>('/organizations', data)
   },
 
   patch(id: number, data: OrganizationPatch) {

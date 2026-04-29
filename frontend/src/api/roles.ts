@@ -10,7 +10,7 @@ interface ListParams {
 
 export const rolesApi = {
   list(params: ListParams = {}) {
-    return apiClient.get<PaginatedResponse<RoleOut>>('/v1/roles', { params })
+    return apiClient.get<PaginatedResponse<RoleOut>>('/roles', { params })
   },
 
   get(id: number) {
@@ -18,7 +18,7 @@ export const rolesApi = {
   },
 
   create(data: RoleIn) {
-    return apiClient.post<RoleOut>('/v1/roles', data)
+    return apiClient.post<RoleOut>('/roles', data)
   },
 
   patch(id: number, data: RolePatch) {

@@ -10,15 +10,15 @@ interface ListParams {
 
 export const usersApi = {
   list(params: ListParams = {}) {
-    return apiClient.get<PaginatedResponse<UserOut>>('/v1/users', { params })
+    return apiClient.get<PaginatedResponse<UserOut>>('/users', { params })
   },
 
   getMe() {
-    return apiClient.get<UserOut>('/v1/users/me')
+    return apiClient.get<UserOut>('/users/me')
   },
 
   getMyOrganizations() {
-    return apiClient.get<OrganizationOut[]>('/v1/organizations')
+    return apiClient.get<OrganizationOut[]>('/organizations')
   },
 
   get(id: number) {
@@ -30,11 +30,11 @@ export const usersApi = {
   },
 
   patchMe(data: UserPatch) {
-    return apiClient.patch<UserOut>('/v1/users/me', data)
+    return apiClient.patch<UserOut>('/users/me', data)
   },
 
   changePassword(data: ChangePasswordIn) {
-    return apiClient.put<UserOut>('/v1/users/me/change-password', data)
+    return apiClient.put<UserOut>('/users/me/change-password', data)
   },
 
   removeFromOrganization(id: number) {
@@ -46,6 +46,6 @@ export const usersApi = {
   },
 
   invite(data: { email: string; role_ids: number[] }) {
-    return apiClient.post('/v1/users/invite', data)
+    return apiClient.post('/users/invite', data)
   },
 }

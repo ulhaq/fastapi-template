@@ -18,48 +18,48 @@ export const authApi = {
     const form = new URLSearchParams()
     form.append('username', email) // OAuth2 spec uses 'username'
     form.append('password', password)
-    return apiClient.post<Token>('/v1/auth/token', form, {
+    return apiClient.post<Token>('/auth/token', form, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
   },
 
   register(data: RegisterIn) {
-    return apiClient.post<RegisterOut>('/v1/auth/register', data)
+    return apiClient.post<RegisterOut>('/auth/register', data)
   },
 
   verifyEmail(data: VerifyEmailIn) {
-    return apiClient.post<VerifyEmailOut>('/v1/auth/verify-email', data)
+    return apiClient.post<VerifyEmailOut>('/auth/verify-email', data)
   },
 
   completeRegistration(data: CompleteRegistrationIn) {
-    return apiClient.post<Token>('/v1/auth/complete-registration', data)
+    return apiClient.post<Token>('/auth/complete-registration', data)
   },
 
   logout() {
-    return apiClient.post('/v1/auth/logout')
+    return apiClient.post('/auth/logout')
   },
 
   refresh() {
-    return apiClient.post<Token>('/v1/auth/refresh')
+    return apiClient.post<Token>('/auth/refresh')
   },
 
   requestPasswordReset(data: ResetPasswordRequestIn) {
-    return apiClient.post('/v1/auth/reset-password/request', data)
+    return apiClient.post('/auth/reset-password/request', data)
   },
 
   resetPassword(data: ResetPasswordIn) {
-    return apiClient.post('/v1/auth/reset-password', data)
+    return apiClient.post('/auth/reset-password', data)
   },
 
   switchOrganization(data: SwitchOrganizationIn) {
-    return apiClient.post<Token>('/v1/auth/switch-organization', data)
+    return apiClient.post<Token>('/auth/switch-organization', data)
   },
 
   inviteStatus(token: string) {
-    return apiClient.post<InviteStatusResponse>('/v1/auth/invite-status', { token })
+    return apiClient.post<InviteStatusResponse>('/auth/invite-status', { token })
   },
 
   completeInvite(data: CompleteInviteIn) {
-    return apiClient.post<Token>('/v1/auth/complete-invite', data)
+    return apiClient.post<Token>('/auth/complete-invite', data)
   },
 }

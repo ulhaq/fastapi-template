@@ -34,8 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -44,29 +43,32 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { rolesApi } from '@/api/roles'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 import type { RoleOut } from '@/types'
 
 const props = defineProps<{ open: boolean; role?: RoleOut | null }>()
 const emit = defineEmits<{ 'update:open': [boolean]; saved: [] }>()
 
-const { t } = useI18n()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
+const rules = useRules()
 const isEdit = computed(() => !!props.role)
-const form = reactive({ name: '', description: '' })
-const errors = reactive({ name: '' })
+const { form, errors, validate, clearErrors } = useValidation({
+  name: rules.required,
+  description: [],
+})
 const isLoading = ref(false)
 const errorMessage = ref('')
 
 watch(() => props.role, (r) => {
   form.name = r?.name ?? ''
   form.description = r?.description ?? ''
-  errors.name = ''
+  clearErrors()
   errorMessage.value = ''
 }, { immediate: true })
 
 async function onSubmit() {
-  errors.name = form.name.trim() ? '' : t('common.nameRequired')
-  if (errors.name) return
+  if (!validate()) return
   isLoading.value = true
   errorMessage.value = ''
   try {

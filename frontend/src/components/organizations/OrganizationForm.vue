@@ -30,8 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -40,29 +39,29 @@ import { Label } from '@/components/ui/label'
 import { organizationsApi } from '@/api/organizations'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useOrganizationStore } from '@/stores/organization'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 import type { OrganizationOut } from '@/types'
 
 const props = defineProps<{ open: boolean; organization?: OrganizationOut | null }>()
 const emit = defineEmits<{ 'update:open': [boolean]; saved: [] }>()
 
-const { t } = useI18n()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
 const organizationStore = useOrganizationStore()
+const rules = useRules()
 const isEdit = computed(() => !!props.organization)
-const form = reactive({ name: '' })
-const errors = reactive({ name: '' })
+const { form, errors, validate, clearErrors } = useValidation({ name: rules.required })
 const isLoading = ref(false)
 const errorMessage = ref('')
 
 watch(() => props.organization, (organization) => {
   form.name = organization?.name ?? ''
-  errors.name = ''
+  clearErrors()
   errorMessage.value = ''
 }, { immediate: true })
 
 async function onSubmit() {
-  errors.name = form.name.trim() ? '' : t('common.nameRequired')
-  if (errors.name) return
+  if (!validate()) return
   isLoading.value = true
   errorMessage.value = ''
   try {

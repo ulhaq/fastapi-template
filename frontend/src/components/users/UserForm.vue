@@ -35,8 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -46,6 +45,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { usersApi } from '@/api/users'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 import type { UserOut } from '@/types'
 
 const props = defineProps<{
@@ -58,11 +59,13 @@ const emit = defineEmits<{
   saved: []
 }>()
 
-const { t } = useI18n()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
+const rules = useRules()
+const { form, errors, validate, clearErrors } = useValidation({
+  name: rules.required,
+  email: rules.email,
+})
 
-const form = reactive({ name: '', email: '' })
-const errors = reactive({ name: '', email: '' })
 const isLoading = ref(false)
 const errorMessage = ref('')
 
@@ -71,18 +74,11 @@ watch(
   (u) => {
     form.name = u?.name ?? ''
     form.email = u?.email ?? ''
-    errors.name = ''
-    errors.email = ''
+    clearErrors()
     errorMessage.value = ''
   },
   { immediate: true },
 )
-
-function validate() {
-  errors.name = form.name.trim() ? '' : t('common.nameRequired')
-  errors.email = form.email.trim() ? '' : t('common.emailRequired')
-  return !errors.name && !errors.email
-}
 
 async function onSubmit() {
   if (!validate() || !props.user) return

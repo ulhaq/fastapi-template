@@ -3,11 +3,11 @@ import type { ApiTokenCreate, ApiTokenCreatedResponse, ApiTokenResponse } from '
 
 export const apiTokensApi = {
   list() {
-    return apiClient.get<ApiTokenResponse[]>('/v1/api-tokens')
+    return apiClient.get<ApiTokenResponse[]>('/api-tokens')
   },
 
   create(data: ApiTokenCreate) {
-    return apiClient.post<ApiTokenCreatedResponse>('/v1/api-tokens', data)
+    return apiClient.post<ApiTokenCreatedResponse>('/api-tokens', data)
   },
 
   revoke(id: number) {

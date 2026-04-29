@@ -57,15 +57,15 @@ meta:
         <TableCell>
           <div class="flex flex-wrap gap-1">
             <Badge
-              v-for="role in item.roles.slice(0, 3)"
+              v-for="role in item.roles.slice(0, BADGE_MAX)"
               :key="role.id"
               variant="secondary"
               class="text-xs"
             >
               {{ role.name }}
             </Badge>
-            <Badge v-if="item.roles.length > 3" variant="outline" class="text-xs">
-              +{{ item.roles.length - 3 }}
+            <Badge v-if="item.roles.length > BADGE_MAX" variant="outline" class="text-xs">
+              +{{ item.roles.length - BADGE_MAX }}
             </Badge>
           </div>
         </TableCell>
@@ -148,6 +148,7 @@ import { useDataTable } from '@/composables/useDataTable'
 import { usePermission } from '@/composables/usePermission'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
+import { BADGE_MAX } from '@/constants'
 import type { UserOut } from '@/types'
 
 const { t } = useI18n()

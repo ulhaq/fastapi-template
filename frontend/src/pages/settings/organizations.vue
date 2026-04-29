@@ -77,7 +77,7 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, MoreHorizontal, Pencil, Trash2, Users, ArrowRightLeft } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -99,6 +99,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useProfileStore } from '@/stores/profile'
 import { useSessionStore } from '@/stores/session'
 import { usePermission } from '@/composables/usePermission'
+import { PAGE_SIZE } from '@/constants'
 import type { OrganizationOut, PaginatedResponse } from '@/types'
 
 const { t } = useI18n()
@@ -107,11 +108,7 @@ const { confirm } = useConfirm()
 const { handleError } = useErrorHandler()
 const profile = useProfileStore()
 const session = useSessionStore()
-const { hasPermission } = usePermission()
-
-const isOwner = computed(() =>
-  profile.user?.roles.some((r: any) => r.is_protected && r.name === 'Owner') ?? false
-)
+const { hasPermission, isOwner } = usePermission()
 
 function isActiveOrg(orgId: number): boolean {
   return session.activeOrganizationId === orgId
@@ -141,7 +138,7 @@ async function fetchOrganizations() {
 }
 
 const { items, total, isLoading, setSort, refresh } =
-  useDataTable<OrganizationOut>({ fetcher: fetchOrganizations, defaultPageSize: 1000 })
+  useDataTable<OrganizationOut>({ fetcher: fetchOrganizations, defaultPageSize: PAGE_SIZE })
 
 const showForm = ref(false)
 const showUsers = ref(false)

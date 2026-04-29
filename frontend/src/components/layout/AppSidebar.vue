@@ -80,8 +80,6 @@ import {
   Settings,
   Check,
   ChevronsUpDown,
-  Layers,
-  Receipt,
 } from 'lucide-vue-next'
 import {
   DropdownMenu,
@@ -138,8 +136,6 @@ const currentOrganizationName = computed(() => {
 
 const navItems = computed(() => [
   { to: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
-  // TODO: replace with domain-specific links
-  { to: '/example', label: 'Example', icon: Layers },
   { to: '/settings', label: t('nav.settings'), icon: Settings },
 ])
 

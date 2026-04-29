@@ -35,7 +35,7 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
@@ -49,6 +49,7 @@ import { useSessionStore } from '@/stores/session'
 import { useOrganizationStore } from '@/stores/organization'
 import { useConfirm } from '@/composables/useConfirm'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { usePermission } from '@/composables/usePermission'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -58,12 +59,9 @@ const session = useSessionStore()
 const orgStore = useOrganizationStore()
 const { confirm } = useConfirm()
 const { handleError } = useErrorHandler()
+const { isOwner } = usePermission()
 
 const deleting = ref(false)
-
-const isOwner = computed(() =>
-  profile.user?.roles.some((r: any) => r.is_protected && r.name === 'Owner') ?? false
-)
 
 const activeOrgName = computed(() => {
   const org = orgStore.organizations.find(o => o.id === session.activeOrganizationId)

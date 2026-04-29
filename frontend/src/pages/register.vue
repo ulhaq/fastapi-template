@@ -27,7 +27,7 @@ meta:
           <Label for="email">{{ $t('common.email') }}</Label>
           <Input
             id="email"
-            v-model="email"
+            v-model="form.email"
             type="text"
             :placeholder="$t('auth.emailPlaceholder')"
             :disabled="isLoading"
@@ -56,7 +56,6 @@ meta:
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { Loader2, MailCheck, CheckCircle2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -64,12 +63,13 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/api/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 
-const { t } = useI18n()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
+const rules = useRules()
+const { form, errors, validate } = useValidation({ email: rules.email })
 
-const email = ref('')
-const errors = ref({ email: '' })
 const isLoading = ref(false)
 const errorMessage = ref('')
 const sent = ref(false)
@@ -77,20 +77,19 @@ const responseMessage = ref('')
 const awaitingVerification = ref(false)
 
 async function onSubmit() {
-  errors.value.email = email.value.trim() ? '' : t('common.emailRequired')
-  if (errors.value.email) return
+  if (!validate()) return
 
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const { data } = await authApi.register({ email: email.value })
+    const { data } = await authApi.register({ email: form.email })
     responseMessage.value = data.message
     awaitingVerification.value = data.message.toLowerCase().includes('verify')
     sent.value = true
   } catch (err: unknown) {
     const fieldErrors = resolveFieldErrors(err)
     if (fieldErrors['body__email']) {
-      errors.value.email = fieldErrors['body__email']
+      errors.email = fieldErrors['body__email']
     } else {
       errorMessage.value = resolveError(err)
     }

@@ -57,6 +57,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { permissionsApi } from '@/api/permissions'
 import { rolesApi } from '@/api/roles'
+import { PAGE_SIZE } from '@/constants'
 import type { RoleOut, PermissionOut } from '@/types'
 import { useToast } from '@/composables/useToast'
 
@@ -84,7 +85,7 @@ watch(() => props.open, async (open) => {
   if (!open || !props.role) return
   loadingPerms.value = true
   try {
-    const { data } = await permissionsApi.list({ page_size: 100 })
+    const { data } = await permissionsApi.list({ page_size: PAGE_SIZE })
     allPerms.value = data.items
     selectedIds.value = props.role.permissions.map((p) => p.id)
   } finally {

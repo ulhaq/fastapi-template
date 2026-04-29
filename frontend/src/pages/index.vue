@@ -55,6 +55,7 @@ import { usersApi } from '@/api/users'
 import { rolesApi } from '@/api/roles'
 import { permissionsApi } from '@/api/permissions'
 import { usePermission } from '@/composables/usePermission'
+import { PAGE_SIZE_DASHBOARD } from '@/constants'
 import type { OrganizationOut } from '@/types'
 
 const { hasPermission } = usePermission()
@@ -64,15 +65,15 @@ const stats = ref<{ users: number | string; organizations: number | string; role
 
 onMounted(async () => {
   const requests = []
-  if (hasPermission('read:user')) requests.push(usersApi.list({ page_size: 10 }))
+  if (hasPermission('read:user')) requests.push(usersApi.list({ page_size: PAGE_SIZE_DASHBOARD }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
   requests.push(usersApi.getMyOrganizations())
 
-  if (hasPermission('read:role')) requests.push(rolesApi.list({ page_size: 10 }))
+  if (hasPermission('read:role')) requests.push(rolesApi.list({ page_size: PAGE_SIZE_DASHBOARD }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  if (hasPermission('read:permission')) requests.push(permissionsApi.list({ page_size: 10 }))
+  if (hasPermission('read:permission')) requests.push(permissionsApi.list({ page_size: PAGE_SIZE_DASHBOARD }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
   const [users, organizations, roles, permissions] = await Promise.allSettled(requests)

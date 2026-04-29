@@ -21,6 +21,7 @@ import { useI18n } from 'vue-i18n'
 import { formatDuration, intervalToDuration } from 'date-fns'
 import { da as daLocale } from 'date-fns/locale'
 import { useSubscriptionStore } from '@/stores/subscription'
+import { MS_PER_DAY } from '@/constants'
 
 const { locale } = useI18n()
 const subscriptionStore = useSubscriptionStore()
@@ -37,7 +38,7 @@ const timeRemaining = computed(() => {
   if (end <= now) return ''
 
   const duration = intervalToDuration({ start: now, end })
-  const moreThan24h = end.getTime() - now.getTime() >= 24 * 60 * 60 * 1000
+  const moreThan24h = end.getTime() - now.getTime() >= MS_PER_DAY
   return formatDuration(duration, {
     format: moreThan24h ? ['days', 'hours'] : ['hours', 'minutes'],
     locale: locale.value === 'da' ? daLocale : undefined,

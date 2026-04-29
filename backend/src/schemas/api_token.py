@@ -3,9 +3,11 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
+from src.schemas.types import NonEmptyStr
+
 
 class ApiTokenCreate(BaseModel):
-    name: Annotated[str, Field(min_length=1, max_length=100)]
+    name: Annotated[NonEmptyStr, Field(max_length=100)]
     permissions: Annotated[list[str], Field(min_length=1)]
     expires_at: datetime | None = None
 

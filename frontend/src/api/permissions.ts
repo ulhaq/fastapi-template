@@ -10,7 +10,7 @@ interface ListParams {
 
 export const permissionsApi = {
   list(params: ListParams = {}) {
-    return apiClient.get<PaginatedResponse<PermissionOut>>('/v1/permissions', { params })
+    return apiClient.get<PaginatedResponse<PermissionOut>>('/permissions', { params })
   },
 
   get(id: number) {

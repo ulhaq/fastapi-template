@@ -3,12 +3,13 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.schemas.common import Timestamp
+from src.schemas.types import NonEmptyStr
 
 
 class OrganizationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    name: Annotated[str, Field(min_length=1, max_length=255)]
+    name: Annotated[NonEmptyStr, Field(max_length=255)]
 
 
 class OrganizationOut(OrganizationBase, Timestamp):
@@ -20,7 +21,7 @@ class MyOrganizationOut(OrganizationOut):
 
 
 class OrganizationPatch(BaseModel):
-    name: Annotated[str | None, Field(min_length=1, max_length=255)] = None
+    name: Annotated[NonEmptyStr, Field(max_length=255)] | None = None
 
 
 class TransferOwnershipIn(BaseModel):

@@ -44,6 +44,9 @@ export function useErrorHandler() {
       if (data.msg) return data.msg
     }
 
+    // error_code missing but API still sent a human-readable message
+    if (data.msg) return data.msg
+
     return t('errors.common')
   }
 

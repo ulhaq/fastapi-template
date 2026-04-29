@@ -46,19 +46,19 @@ meta:
               </TableCell>
               <TableCell>
                 <div class="flex flex-wrap gap-1">
-                  <Badge v-for="perm in token.permissions.slice(0, 4)" :key="perm" variant="outline" class="text-xs">
+                  <Badge v-for="perm in token.permissions.slice(0, BADGE_MAX)" :key="perm" variant="outline" class="text-xs">
                     {{ perm }}
                   </Badge>
-                  <TooltipProvider v-if="token.permissions.length > 4">
+                  <TooltipProvider v-if="token.permissions.length > BADGE_MAX">
                     <Tooltip>
                       <TooltipTrigger>
                         <Badge variant="secondary" class="text-xs cursor-default">
-                          +{{ token.permissions.length - 4 }}
+                          +{{ token.permissions.length - BADGE_MAX }}
                         </Badge>
                       </TooltipTrigger>
                       <TooltipContent class="max-w-xs">
                         <div class="flex flex-col gap-1 font-mono text-xs">
-                          <span v-for="perm in token.permissions.slice(4)" :key="perm">{{ perm }}</span>
+                          <span v-for="perm in token.permissions.slice(BADGE_MAX)" :key="perm">{{ perm }}</span>
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -233,6 +233,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import { useApiTokensStore } from '@/stores/apiTokens'
 import { useProfileStore } from '@/stores/profile'
 import { useToast } from '@/composables/useToast'
+import { BADGE_MAX } from '@/constants'
 import type { ApiTokenResponse } from '@/types'
 
 const { t } = useI18n()

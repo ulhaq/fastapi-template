@@ -32,7 +32,7 @@ meta:
           <Label for="password">{{ $t('auth.newPassword') }}</Label>
           <Input
             id="password"
-            v-model="password"
+            v-model="form.password"
             type="password"
             :placeholder="$t('common.minCharacters')"
             :disabled="isLoading"
@@ -43,7 +43,7 @@ meta:
           <Label for="confirm">{{ $t('auth.confirmPassword') }}</Label>
           <Input
             id="confirm"
-            v-model="confirm"
+            v-model="form.confirm"
             type="password"
             :placeholder="$t('auth.repeatPassword')"
             :disabled="isLoading"
@@ -63,9 +63,7 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Loader2, CheckCircle2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -73,10 +71,11 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/api/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const { resolveError } = useErrorHandler()
 const token = (route.query.token as string) || ''
 
@@ -84,25 +83,21 @@ if (token) {
   router.replace({ path: route.path })
 }
 
-const password = ref('')
-const confirm = ref('')
-const errors = reactive({ password: '', confirm: '' })
+const rules = useRules()
+const { form, errors, validate } = useValidation((f) => ({
+  password: rules.password,
+  confirm: rules.match(() => f.password),
+}))
 const isLoading = ref(false)
 const errorMessage = ref('')
 const success = ref(false)
-
-function validate() {
-  errors.password = password.value.length >= 8 ? '' : t('common.passwordMinLength')
-  errors.confirm = password.value === confirm.value ? '' : t('common.passwordsDoNotMatch')
-  return !errors.password && !errors.confirm
-}
 
 async function onSubmit() {
   if (!validate()) return
   isLoading.value = true
   errorMessage.value = ''
   try {
-    await authApi.resetPassword({ token, password: password.value })
+    await authApi.resetPassword({ token, password: form.password })
     success.value = true
   } catch (err: unknown) {
     errorMessage.value = resolveError(err)

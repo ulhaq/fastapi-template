@@ -70,6 +70,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { usersApi } from "@/api/users";
 import { rolesApi } from "@/api/roles";
+import { PAGE_SIZE } from "@/constants";
 import type { UserOut, RoleOut } from "@/types";
 import { useToast } from "@/composables/useToast";
 
@@ -90,7 +91,7 @@ watch(
     selectedIds.value = props.user.roles.map((r) => r.id);
     loadingRoles.value = true;
     try {
-      const { data } = await rolesApi.list({ page_size: 100 });
+      const { data } = await rolesApi.list({ page_size: PAGE_SIZE });
       availableRoles.value = data.items;
     } finally {
       loadingRoles.value = false;

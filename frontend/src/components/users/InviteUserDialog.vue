@@ -11,7 +11,7 @@
           <Label for="invite-email">{{ $t('common.email') }}</Label>
           <Input
             id="invite-email"
-            v-model="email"
+            v-model="form.email"
             type="text"
             :placeholder="$t('users.form.emailPlaceholder')"
             :disabled="isLoading"
@@ -72,6 +72,8 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 import {
   Dialog,
   DialogContent,
@@ -87,6 +89,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usersApi } from '@/api/users'
 import { rolesApi } from '@/api/roles'
+import { PAGE_SIZE } from '@/constants'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import type { RoleOut } from '@/types'
@@ -98,8 +101,8 @@ const { t } = useI18n()
 const { toast } = useToast()
 const { resolveError, resolveFieldErrors } = useErrorHandler()
 
-const email = ref('')
-const errors = ref({ email: '' })
+const rules = useRules()
+const { form, errors, validate, clearErrors } = useValidation({ email: rules.email })
 const errorMessage = ref('')
 const isLoading = ref(false)
 
@@ -111,13 +114,13 @@ watch(
   () => props.open,
   async (open) => {
     if (!open) return
-    email.value = ''
-    errors.value.email = ''
+    form.email = ''
+    clearErrors()
     errorMessage.value = ''
     selectedRoleIds.value = []
     loadingRoles.value = true
     try {
-      const { data } = await rolesApi.list({ page_size: 100 })
+      const { data } = await rolesApi.list({ page_size: PAGE_SIZE })
       availableRoles.value = data.items.filter((r) => !(r.is_protected && r.name === 'Owner'))
     } finally {
       loadingRoles.value = false
@@ -131,25 +134,19 @@ function toggleRole(id: number) {
   else selectedRoleIds.value.push(id)
 }
 
-function validate() {
-  errors.value.email = email.value.trim() ? '' : t('common.emailRequired')
-  return !errors.value.email
-}
-
 async function onSubmit() {
   if (!validate()) return
   isLoading.value = true
   errorMessage.value = ''
-  errors.value.email = ''
   try {
-    await usersApi.invite({ email: email.value.trim(), role_ids: selectedRoleIds.value })
+    await usersApi.invite({ email: form.email.trim(), role_ids: selectedRoleIds.value })
     emit('update:open', false)
     emit('invited')
-    toast({ title: t('users.invite.sent'), description: t('users.invite.sentDescription', { email: email.value.trim() }) })
+    toast({ title: t('users.invite.sent'), description: t('users.invite.sentDescription', { email: form.email.trim() }) })
   } catch (err: unknown) {
     const fieldErrors = resolveFieldErrors(err)
     if (fieldErrors['body__email']) {
-      errors.value.email = fieldErrors['body__email']
+      errors.email = fieldErrors['body__email']
     } else {
       errorMessage.value = resolveError(err)
     }

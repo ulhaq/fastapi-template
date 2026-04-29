@@ -67,9 +67,8 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -78,10 +77,11 @@ import { Button } from '@/components/ui/button'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const authStore = useAuthStore()
 const { resolveError } = useErrorHandler()
 
@@ -94,8 +94,11 @@ const verifying = ref(!!token)
 const error = ref(false)
 const setupToken = ref('')
 
-const form = reactive({ name: '', password: '' })
-const errors = reactive({ name: '', password: '' })
+const rules = useRules()
+const { form, errors, validate } = useValidation({
+  name: rules.required,
+  password: rules.password,
+})
 const isLoading = ref(false)
 const errorMessage = ref('')
 
@@ -114,12 +117,6 @@ onMounted(async () => {
     verifying.value = false
   }
 })
-
-function validate() {
-  errors.name = form.name.trim() ? '' : t('common.nameRequired')
-  errors.password = form.password.length >= 8 ? '' : t('common.passwordMinLength')
-  return !errors.name && !errors.password
-}
 
 async function onSubmit() {
   if (!validate()) return

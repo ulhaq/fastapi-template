@@ -4,23 +4,22 @@ from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
-    EmailStr,
     Field,
-    StringConstraints,
     model_validator,
 )
 
 from src.core.exceptions import ValidationException
 from src.schemas.common import Timestamp
 from src.schemas.role import RoleOut
+from src.schemas.types import ConstrainedEmail, NonEmptyStr, Password
 from src.schemas.utils import sort_by_id
 
 
 class UserBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    name: Annotated[str, Field(min_length=1)]
-    email: Annotated[EmailStr, StringConstraints(to_lower=True)]
+    name: NonEmptyStr
+    email: ConstrainedEmail
 
 
 class UserOut(UserBase, Timestamp):
@@ -31,12 +30,12 @@ class UserOut(UserBase, Timestamp):
 
 
 class UserPatch(BaseModel):
-    name: Annotated[str, Field(min_length=1)] | None = None
-    email: EmailStr | None = None
+    name: NonEmptyStr | None = None
+    email: ConstrainedEmail | None = None
 
 
 class EmailIn(BaseModel):
-    email: Annotated[EmailStr, StringConstraints(to_lower=True)]
+    email: ConstrainedEmail
 
 
 class SwitchOrganizationIn(BaseModel):
@@ -44,14 +43,14 @@ class SwitchOrganizationIn(BaseModel):
 
 
 class ResetPasswordIn(BaseModel):
-    token: Annotated[str, Field()]
-    password: Annotated[str, Field(min_length=8)]
+    token: str
+    password: Password
 
 
 class ChangePasswordIn(BaseModel):
-    password: Annotated[str, Field(min_length=1)]
-    new_password: Annotated[str, Field(min_length=8)]
-    confirm_password: Annotated[str, Field()]
+    password: NonEmptyStr
+    new_password: Password
+    confirm_password: str
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> Self:
@@ -78,19 +77,19 @@ class SetupTokenOut(BaseModel):
 
 class CompleteRegistrationIn(BaseModel):
     setup_token: str
-    name: Annotated[str, Field(min_length=1)]
-    password: Annotated[str, Field(min_length=8)]
+    name: NonEmptyStr
+    password: Password
 
 
 class InviteUserIn(BaseModel):
-    email: Annotated[EmailStr, StringConstraints(to_lower=True)]
+    email: ConstrainedEmail
     role_ids: list[int] = Field(default_factory=list)
 
 
 class CompleteInviteIn(BaseModel):
     invite_token: str
-    name: Annotated[str, Field(min_length=1)] | None = None
-    password: Annotated[str, Field(min_length=8)] | None = None
+    name: NonEmptyStr | None = None
+    password: Password | None = None
 
 
 class InviteStatusIn(BaseModel):

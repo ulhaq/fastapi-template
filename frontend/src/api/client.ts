@@ -14,6 +14,7 @@ export function getAccessToken(): string | null {
 }
 
 export const apiClient = axios.create({
+  baseURL: '/v1',
   withCredentials: true, // sends the httponly refresh_token cookie
 })
 
@@ -49,7 +50,7 @@ apiClient.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !original._retry &&
-      !original.url?.includes('/v1/auth/')
+      !original.url?.includes('/auth/')
     ) {
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
@@ -64,7 +65,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const { data } = await apiClient.post<Token>('/v1/auth/refresh')
+        const { data } = await apiClient.post<Token>('/auth/refresh')
         const newToken = data.access_token
         setAccessToken(newToken)
         processQueue(null, newToken)

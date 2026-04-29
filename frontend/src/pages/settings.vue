@@ -70,21 +70,14 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { User, Lock, Users, Shield, Building2, Receipt, Settings2, KeyRound } from 'lucide-vue-next'
 import { usePermission } from '@/composables/usePermission'
-import { useProfileStore } from '@/stores/profile'
 
 const route = useRoute()
 const { t } = useI18n()
-const { hasPermission } = usePermission()
-const profileStore = useProfileStore()
-
-const isOwner = computed(() =>
-  profileStore.user?.roles.some((r: any) => r.is_protected && r.name === 'Owner') ?? false
-)
+const { hasPermission, isOwner } = usePermission()
 
 const accountItems = computed(() => [
   { to: '/settings', label: t('settings.profile'), icon: User, exact: true },

@@ -39,7 +39,7 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
 import { Card, CardContent } from '@/components/ui/card'
@@ -49,20 +49,23 @@ import { Button } from '@/components/ui/button'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { usersApi } from '@/api/users'
 import { useToast } from '@/composables/useToast'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 
 const { toast } = useToast()
 const { t } = useI18n()
 
-const pwd = reactive({ current: '', new: '', confirm: '' })
-const pwdErrors = reactive({ current: '', new: '', confirm: '' })
+const rules = useRules()
+const { form: pwd, errors: pwdErrors, validate: validatePwd } = useValidation((f) => ({
+  current: rules.required,
+  new: rules.password,
+  confirm: rules.match(() => f.new),
+}))
 const pwdError = ref('')
 const savingPwd = ref(false)
 
 async function savePassword() {
-  pwdErrors.current = pwd.current ? '' : t('settings.currentPasswordRequired')
-  pwdErrors.new = pwd.new.length >= 8 ? '' : t('common.passwordMinLength')
-  pwdErrors.confirm = pwd.new === pwd.confirm ? '' : t('common.passwordsDoNotMatch')
-  if (pwdErrors.current || pwdErrors.new || pwdErrors.confirm) return
+  if (!validatePwd()) return
 
   savingPwd.value = true
   pwdError.value = ''

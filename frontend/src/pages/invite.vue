@@ -82,9 +82,8 @@ meta:
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -95,6 +94,8 @@ import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
 import { useOrganizationStore } from '@/stores/organization'
+import { useValidation } from '@/composables/useValidation'
+import { useRules } from '@/composables/useRules'
 import { useSubscriptionStore } from '@/stores/subscription'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
@@ -102,7 +103,6 @@ type InviteState = 'loading' | 'invalid' | 'wrong-account' | 'existing-user' | '
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const authStore = useAuthStore()
 const profileStore = useProfileStore()
 const organizationStore = useOrganizationStore()
@@ -113,8 +113,11 @@ const inviteToken = (route.query.token as string) || ''
 
 const state = ref<InviteState>(inviteToken ? 'loading' : 'invalid')
 const inviteEmail = ref('')
-const form = reactive({ name: '', password: '' })
-const errors = reactive({ name: '', password: '' })
+const rules = useRules()
+const { form, errors, validate } = useValidation({
+  name: rules.required,
+  password: rules.password,
+})
 const isLoading = ref(false)
 const errorMessage = ref('')
 
@@ -173,14 +176,8 @@ async function onAcceptExisting() {
   await _finishAccept(inviteToken)
 }
 
-function validate() {
-  errors.name = form.name.trim() ? '' : t('common.nameRequired')
-  errors.password = form.password.length >= 8 ? '' : t('common.passwordMinLength')
-  return !errors.name && !errors.password
-}
-
 async function onSubmitNew() {
-  if (!validate()) return
+  if (!validate({ name: form.name, password: form.password })) return
   await _finishAccept(inviteToken, form.name, form.password)
 }
 

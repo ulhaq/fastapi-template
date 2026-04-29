@@ -4,7 +4,10 @@ import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
 import { MoreHorizontal } from "lucide-vue-next"
 import { PaginationEllipsis } from "reka-ui"
+import { useI18n } from "vue-i18n"
 import { cn } from "@/lib/utils"
+
+const { t } = useI18n()
 
 const props = defineProps<PaginationEllipsisProps & { class?: HTMLAttributes["class"] }>()
 
@@ -19,7 +22,7 @@ const delegatedProps = reactiveOmit(props, "class")
   >
     <slot>
       <MoreHorizontal class="size-4" />
-      <span class="sr-only">More pages</span>
+      <span class="sr-only">{{ t('common.morePages') }}</span>
     </slot>
   </PaginationEllipsis>
 </template>

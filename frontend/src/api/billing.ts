@@ -9,7 +9,7 @@ import type {
 export const billingApi = {
   // Plans
   listPlans() {
-    return apiClient.get<PlanOut[]>('/v1/billing/plans')
+    return apiClient.get<PlanOut[]>('/billing/plans')
   },
 
   getPlan(id: number) {
@@ -18,30 +18,30 @@ export const billingApi = {
 
   // Subscriptions
   startTrial(data: { plan_price_id: number }) {
-    return apiClient.post<CheckoutOut>('/v1/billing/subscriptions/trial', data)
+    return apiClient.post<CheckoutOut>('/billing/subscriptions/trial', data)
   },
 
   checkout(data: { plan_price_id: number }) {
-    return apiClient.post<CheckoutOut>('/v1/billing/subscriptions/checkout', data)
+    return apiClient.post<CheckoutOut>('/billing/subscriptions/checkout', data)
   },
 
   getCurrentSubscription() {
-    return apiClient.get<SubscriptionOut>('/v1/billing/subscriptions/current')
+    return apiClient.get<SubscriptionOut>('/billing/subscriptions/current')
   },
 
   cancelSubscription() {
-    return apiClient.post<SubscriptionOut>('/v1/billing/subscriptions/current/cancel')
+    return apiClient.post<SubscriptionOut>('/billing/subscriptions/current/cancel')
   },
 
   resumeSubscription() {
-    return apiClient.post<SubscriptionOut>('/v1/billing/subscriptions/current/resume')
+    return apiClient.post<SubscriptionOut>('/billing/subscriptions/current/resume')
   },
 
   switchPlan(data: { plan_price_id: number }) {
-    return apiClient.post<SubscriptionOut>('/v1/billing/subscriptions/current/switch-plan', data)
+    return apiClient.post<SubscriptionOut>('/billing/subscriptions/current/switch-plan', data)
   },
 
   getPortalUrl() {
-    return apiClient.get<CustomerPortalOut>('/v1/billing/subscriptions/portal')
+    return apiClient.get<CustomerPortalOut>('/billing/subscriptions/portal')
   },
 }
