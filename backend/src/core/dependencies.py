@@ -8,10 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
 from src.core.database import get_db
-from src.core.exceptions import NotAuthenticatedException, PermissionDeniedException
+from src.core.exceptions import (
+    NotAuthenticatedException,
+    PermissionDeniedException,
+    PlanFeatureUnavailableException,
+)
 from src.core.security import BEARER_HEADERS, Auth, decode_token, oauth2_scheme
-from src.enums import OWNER_ROLE_NAME, ErrorCode, Permission
+from src.enums import OWNER_ROLE_NAME, ErrorCode, Permission, PlanFeature
 from src.repositories.api_token import ApiTokenRepository
+from src.repositories.billing import PlanFeatureRepository
 from src.repositories.user import UserRepository
 
 
@@ -88,6 +93,23 @@ def require_permission(permission: Permission) -> Callable:
         current_user: Annotated[Auth, Depends(authenticate)],
     ) -> Auth:
         current_user.authorize(permission)
+        return current_user
+
+    return _check
+
+
+def require_plan_feature(feature: PlanFeature) -> Callable:
+    async def _check(
+        current_user: Annotated[Auth, Depends(authenticate)],
+        db: Annotated[AsyncSession, Depends(get_db)],
+    ) -> Auth:
+        if not settings.auth_enabled:
+            return current_user
+        features = await PlanFeatureRepository(db).get_features_for_organization(
+            current_user.organization_id
+        )
+        if feature not in features:
+            raise PlanFeatureUnavailableException
         return current_user
 
     return _check

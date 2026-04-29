@@ -350,6 +350,23 @@ def upgrade() -> None:
         unique=True,
     )
 
+    op.create_table(
+        "billing_plan_feature",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "plan_id",
+            sa.Integer(),
+            sa.ForeignKey("billing_plan.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("feature", sa.String(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.UniqueConstraint("plan_id", "feature", name="uq_billing_plan_feature"),
+    )
+    op.create_index("ix_billing_plan_feature_plan_id", "billing_plan_feature", ["plan_id"])
+    op.create_index("ix_billing_plan_feature_feature", "billing_plan_feature", ["feature"])
+
     # ── seed all permissions ───────────────────────────────────────────────────
 
     now = datetime.now(UTC)
@@ -402,6 +419,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index("ix_billing_plan_feature_feature", table_name="billing_plan_feature")
+    op.drop_index("ix_billing_plan_feature_plan_id", table_name="billing_plan_feature")
+    op.drop_table("billing_plan_feature")
+
     op.drop_index(
         "ix_billing_webhook_event_external_event_id",
         table_name="billing_webhook_event",

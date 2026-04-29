@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_db
 from src.repositories.api_token import ApiTokenRepository
 from src.repositories.billing import (
+    PlanFeatureRepository,
     PlanPriceRepository,
     PlanRepository,
     SubscriptionRepository,
@@ -37,6 +38,7 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         self._user_organization: UserOrganizationRepository | None = None
         self._plan: PlanRepository | None = None
         self._plan_price: PlanPriceRepository | None = None
+        self._plan_feature: PlanFeatureRepository | None = None
         self._subscription: SubscriptionRepository | None = None
         self._webhook_event: WebhookEventRepository | None = None
         self._email_verification_token: EmailVerificationTokenRepository | None = None
@@ -95,6 +97,12 @@ class RepositoryManager:  # pylint: disable=too-many-instance-attributes
         if self._plan_price is None:
             self._plan_price = PlanPriceRepository(self.db)
         return self._plan_price
+
+    @property
+    def plan_feature(self) -> PlanFeatureRepository:
+        if self._plan_feature is None:
+            self._plan_feature = PlanFeatureRepository(self.db)
+        return self._plan_feature
 
     @property
     def subscription(self) -> SubscriptionRepository:

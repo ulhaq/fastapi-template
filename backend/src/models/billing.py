@@ -9,6 +9,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    UniqueConstraint,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -36,6 +37,9 @@ class Plan(Base, DeleteTimestampMixin, TimestampMixin):
     prices: Mapped[list["PlanPrice"]] = relationship(
         back_populates="plan", passive_deletes=True, lazy="selectin"
     )
+    plan_features: Mapped[list["PlanFeature"]] = relationship(
+        back_populates="plan", passive_deletes=True, lazy="selectin"
+    )
 
 
 class PlanPrice(Base, DeleteTimestampMixin, TimestampMixin):
@@ -58,6 +62,24 @@ class PlanPrice(Base, DeleteTimestampMixin, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     plan: Mapped["Plan"] = relationship(back_populates="prices")
+
+
+class PlanFeature(Base, TimestampMixin):
+    __tablename__ = "billing_plan_feature"
+    __table_args__ = (
+        UniqueConstraint("plan_id", "feature", name="uq_billing_plan_feature"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plan_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("billing_plan.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    feature: Mapped[str] = mapped_column(String, nullable=False, index=True)
+
+    plan: Mapped["Plan"] = relationship(back_populates="plan_features")
 
 
 class Subscription(Base, DeleteTimestampMixin, TimestampMixin):

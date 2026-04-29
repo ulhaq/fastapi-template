@@ -3,17 +3,27 @@ from typing import Awaitable, Callable, Sequence
 from pydantic import BaseModel
 
 from src.core.database import Base
-from src.core.exceptions import NotFoundException
+from src.core.exceptions import NotFoundException, PlanFeatureUnavailableException
+from src.enums import PlanFeature
 from src.repositories.abc import ResourceRepositoryABC
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
 
 
-class BaseService:  # pylint: disable=too-few-public-methods
+class BaseService:
     repos: RepositoryManager
 
     def __init__(self, repos: RepositoryManager):
         self.repos = repos
+
+    async def _require_feature(
+        self, feature: PlanFeature, organization_id: int
+    ) -> None:
+        features = await self.repos.plan_feature.get_features_for_organization(
+            organization_id
+        )
+        if feature not in features:
+            raise PlanFeatureUnavailableException
 
 
 class ResourceService[

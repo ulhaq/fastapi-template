@@ -109,6 +109,23 @@ class BillingProviderException(ClientException):
         )
 
 
+class PlanFeatureUnavailableException(ClientException):
+    def __init__(
+        self,
+        detail: Any = "Your current plan does not include this feature",
+        /,
+        *,
+        error_code: ErrorCode = ErrorCode.PLAN_FEATURE_UNAVAILABLE,
+        headers: dict | None = None,
+    ) -> None:
+        super().__init__(
+            status.HTTP_402_PAYMENT_REQUIRED,
+            detail,
+            error_code=error_code,
+            headers=headers,
+        )
+
+
 class BillingWebhookException(ClientException):
     def __init__(
         self,

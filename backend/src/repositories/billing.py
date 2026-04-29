@@ -5,7 +5,7 @@ from sqlalchemy import exists, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
+from src.models.billing import Plan, PlanFeature, PlanPrice, Subscription, WebhookEvent
 from src.repositories.base import OrganizationScopedRepository, SQLResourceRepository
 
 # pylint: disable=too-few-public-methods
@@ -96,6 +96,26 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
         )
         rs = await self.db.execute(stmt)
         return bool(rs.scalar_one())
+
+
+class PlanFeatureRepository(SQLResourceRepository[PlanFeature]):
+    def __init__(self, db: AsyncSession) -> None:
+        super().__init__(PlanFeature, db)
+
+    async def get_features_for_organization(self, organization_id: int) -> set[str]:
+        stmt = (
+            select(PlanFeature.feature)
+            .join(Plan, Plan.id == PlanFeature.plan_id)
+            .join(PlanPrice, PlanPrice.plan_id == Plan.id)
+            .join(Subscription, Subscription.plan_price_id == PlanPrice.id)
+            .where(
+                Subscription.organization_id == organization_id,
+                Subscription.status.in_(["active", "trialing", "past_due", "paused"]),
+                Subscription.deleted_at.is_(None),
+            )
+        )
+        rs = await self.db.execute(stmt)
+        return set(rs.scalars().all())
 
 
 class SubscriptionRepository(OrganizationScopedRepository[Subscription]):

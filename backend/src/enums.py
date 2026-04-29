@@ -76,6 +76,10 @@ class ErrorCode(Enum):
         "last_owner_removal",
         "Cannot remove the last Owner from an organization",
     )
+    PLAN_FEATURE_UNAVAILABLE = (
+        "plan_feature_unavailable",
+        "Your current plan does not include this feature",
+    )
 
     def __init__(self, code: str, description: str):
         self.code = code
@@ -149,3 +153,7 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
         "Allows the user to create and manage their own API tokens."
     ),
 }
+
+
+class PlanFeature(StrEnum):
+    API_ACCESS = "api_access"

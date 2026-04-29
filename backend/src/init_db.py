@@ -11,11 +11,16 @@ from alembic.config import Config
 from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_secret
-from src.enums import DEFAULT_ROLES, OWNER_ROLE_NAME, Permission
+from src.enums import DEFAULT_ROLES, OWNER_ROLE_NAME, Permission, PlanFeature
 from sqlalchemy import select
 
 from src.models.api_token import ApiToken  # pylint: disable=unused-import
-from src.models.billing import Plan, PlanPrice, Subscription
+from src.models.billing import (
+    Plan,
+    PlanFeature as PlanFeatureModel,
+    PlanPrice,
+    Subscription,
+)
 from src.models.organization import Organization
 from src.models.permission import Permission as PermissionModel
 from src.models.role import Role
@@ -173,8 +178,15 @@ async def up() -> None:
             )
         session.add_all(user_organizations)
 
+        result = await session.execute(select(Plan).where(Plan.name == "Free"))
+        free_plan = result.scalars().one()
+
+        session.add(
+            PlanFeatureModel(plan_id=free_plan.id, feature=PlanFeature.API_ACCESS)
+        )
+
         result = await session.execute(
-            select(PlanPrice).join(Plan).where(Plan.name == "Free")
+            select(PlanPrice).where(PlanPrice.plan_id == free_plan.id)
         )
         free_price = result.scalars().one()
 
