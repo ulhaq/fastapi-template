@@ -33,6 +33,9 @@ dev = [
     "ruff>=0.14.11",
 ]
 
+[tool.ruff]
+include = ["src/**"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4", "ASYNC", "RUF"]
 

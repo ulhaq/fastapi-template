@@ -3,17 +3,15 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.core.database import Base
-from src.models.mixins import TimestampMixin
+from src.models.mixins import ResourceModel
 
 
-class UserOrganization(Base, TimestampMixin):
+class UserOrganization(ResourceModel):
     __tablename__ = "user_organization"
     __table_args__ = (
         UniqueConstraint("user_id", "organization_id", name="uq_user_organization"),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )

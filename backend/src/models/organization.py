@@ -1,10 +1,9 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Integer, String, and_
+from sqlalchemy import Boolean, String, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
-from src.models.mixins import DeleteTimestampMixin, TimestampMixin
+from src.models.mixins import ResourceModel
 from src.models.user import User
 from src.models.user_organization import UserOrganization
 
@@ -12,10 +11,9 @@ if TYPE_CHECKING:
     from src.models.role import Role
 
 
-class Organization(Base, DeleteTimestampMixin, TimestampMixin):
+class Organization(ResourceModel):
     __tablename__ = "organization"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     external_customer_id: Mapped[str | None] = mapped_column(
         String, nullable=True, index=True, unique=True

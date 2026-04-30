@@ -14,17 +14,15 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
-from src.models.mixins import DeleteTimestampMixin, TimestampMixin
+from src.models.mixins import ResourceModel
 
 if TYPE_CHECKING:
     from src.models.organization import Organization
 
 
-class Plan(Base, DeleteTimestampMixin, TimestampMixin):
+class Plan(ResourceModel):
     __tablename__ = "billing_plan"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     external_product_id: Mapped[str | None] = mapped_column(
@@ -40,10 +38,9 @@ class Plan(Base, DeleteTimestampMixin, TimestampMixin):
     )
 
 
-class PlanPrice(Base, DeleteTimestampMixin, TimestampMixin):
+class PlanPrice(ResourceModel):
     __tablename__ = "billing_plan_price"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     plan_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("billing_plan.id", ondelete="CASCADE"),
@@ -62,13 +59,12 @@ class PlanPrice(Base, DeleteTimestampMixin, TimestampMixin):
     plan: Mapped["Plan"] = relationship(back_populates="prices")
 
 
-class PlanFeature(Base, TimestampMixin):
+class PlanFeature(ResourceModel):
     __tablename__ = "billing_plan_feature"
     __table_args__ = (
         UniqueConstraint("plan_id", "feature", name="uq_billing_plan_feature"),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     plan_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("billing_plan.id", ondelete="CASCADE"),
@@ -80,7 +76,7 @@ class PlanFeature(Base, TimestampMixin):
     plan: Mapped["Plan"] = relationship(back_populates="plan_features")
 
 
-class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
+class Subscription(ResourceModel):
     __tablename__ = "billing_subscription"
     __table_args__ = (
         CheckConstraint(
@@ -95,7 +91,6 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
         ),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     organization_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("organization.id", ondelete="CASCADE"),
@@ -134,10 +129,9 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
     plan_price: Mapped["PlanPrice | None"] = relationship(lazy="selectin")
 
 
-class WebhookEvent(Base, TimestampMixin):
+class WebhookEvent(ResourceModel):
     __tablename__ = "billing_webhook_event"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     external_event_id: Mapped[str] = mapped_column(
         String, unique=True, nullable=False, index=True
     )

@@ -4,16 +4,15 @@ from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-from src.models.mixins import DeleteTimestampMixin, TimestampMixin
+from src.models.mixins import ResourceModel, TimestampMixin
 
 if TYPE_CHECKING:
     from src.models.role import Role
 
 
-class Permission(Base, DeleteTimestampMixin, TimestampMixin):
+class Permission(ResourceModel):
     __tablename__ = "permission"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, unique=True, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
 

@@ -1,10 +1,9 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, String, and_
+from sqlalchemy import String, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
-from src.models.mixins import DeleteTimestampMixin, TimestampMixin
+from src.models.mixins import ResourceModel
 from src.models.role import Role, UserRole
 
 if TYPE_CHECKING:
@@ -14,10 +13,9 @@ if TYPE_CHECKING:
     from src.models.refresh_token import RefreshToken
 
 
-class User(Base, DeleteTimestampMixin, TimestampMixin):
+class User(ResourceModel):
     __tablename__ = "user"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)

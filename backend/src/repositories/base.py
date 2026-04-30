@@ -7,14 +7,14 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import UnaryExpression
 
-from src.core.database import Base
 from src.core.exceptions import NotFoundException
 from src.enums import ComparisonOperator
+from src.models.mixins import ResourceModel
 from src.repositories import utils
 from src.repositories.abc import ResourceRepositoryABC
 
 
-class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]):
+class SQLResourceRepository[ModelType: ResourceModel](ResourceRepositoryABC[ModelType]):
     async def get_one(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType:
@@ -43,7 +43,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]):
     async def get_one_by_name(
         self, name: str, include_deleted: bool = False
     ) -> ModelType | None:
-        stmt = select(self.model).filter(self.model.name == name)
+        stmt = select(self.model).filter(self.model.name == name)  # type: ignore[attr-defined]
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -310,7 +310,9 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]):
         return stmt
 
 
-class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
+class OrganizationScopedRepository[ModelType: ResourceModel](
+    SQLResourceRepository[ModelType]
+):
     _organization_id: int | None = None
 
     def set_organization_scope(self, organization_id: int) -> None:
@@ -318,7 +320,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
 
     def _apply_organization_scope(self, stmt: Select) -> Select:
         if self._organization_id is not None:
-            return stmt.filter(self.model.organization_id == self._organization_id)
+            return stmt.filter(self.model.organization_id == self._organization_id)  # type: ignore[attr-defined]
         return stmt
 
     async def get_one(
@@ -349,7 +351,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
     async def get_one_by_name(
         self, name: str, include_deleted: bool = False
     ) -> ModelType | None:
-        stmt = select(self.model).filter(self.model.name == name)
+        stmt = select(self.model).filter(self.model.name == name)  # type: ignore[attr-defined]
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 

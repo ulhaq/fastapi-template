@@ -6,18 +6,17 @@ Create Date: 2025-06-22 15:58:50.524796
 
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-
 from src.enums import PERMISSION_DESCRIPTIONS, Permission
 
 revision: str = "2c3b2ee136dc"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 _SUBSCRIPTION_STATUSES = (
     "incomplete",
@@ -47,7 +46,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("external_customer_id", sa.String(), nullable=True),
-        sa.Column("has_payment_method", sa.Boolean(), nullable=False, server_default="0"),
+        sa.Column(
+            "has_payment_method", sa.Boolean(), nullable=False, server_default="0"
+        ),
         sa.Column("trial_used", sa.Boolean(), nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
@@ -120,8 +121,11 @@ def upgrade() -> None:
         sa.Column("last_active_at", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["organization_id"], ["organization.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["organization_id"], ["organization.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("user_id", "organization_id", name="uq_user_organization"),
     )
@@ -147,7 +151,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(["role_id"], ["role.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["permission_id"], ["permission.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["permission_id"], ["permission.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("role_id", "permission_id", name="uq_role_permission"),
     )
@@ -192,13 +198,19 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["organization_id"], ["organization.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["organization_id"], ["organization.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("token_hash"),
     )
-    op.create_index(op.f("ix_api_token_token_hash"), "api_token", ["token_hash"], unique=True)
+    op.create_index(
+        op.f("ix_api_token_token_hash"), "api_token", ["token_hash"], unique=True
+    )
     op.create_index(op.f("ix_api_token_user_id"), "api_token", ["user_id"])
-    op.create_index(op.f("ix_api_token_organization_id"), "api_token", ["organization_id"])
+    op.create_index(
+        op.f("ix_api_token_organization_id"), "api_token", ["organization_id"]
+    )
 
     op.create_table(
         "invite_token",
@@ -210,7 +222,9 @@ def upgrade() -> None:
         sa.UniqueConstraint("email"),
         sa.UniqueConstraint("token"),
     )
-    op.create_index(op.f("ix_invite_token_email"), "invite_token", ["email"], unique=True)
+    op.create_index(
+        op.f("ix_invite_token_email"), "invite_token", ["email"], unique=True
+    )
 
     op.create_table(
         "email_verification_token",
@@ -342,6 +356,7 @@ def upgrade() -> None:
         sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("deleted_at", sa.DateTime(), nullable=True),
     )
     op.create_index(
         "ix_billing_webhook_event_external_event_id",
@@ -362,10 +377,15 @@ def upgrade() -> None:
         sa.Column("feature", sa.String(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.UniqueConstraint("plan_id", "feature", name="uq_billing_plan_feature"),
     )
-    op.create_index("ix_billing_plan_feature_plan_id", "billing_plan_feature", ["plan_id"])
-    op.create_index("ix_billing_plan_feature_feature", "billing_plan_feature", ["feature"])
+    op.create_index(
+        "ix_billing_plan_feature_plan_id", "billing_plan_feature", ["plan_id"]
+    )
+    op.create_index(
+        "ix_billing_plan_feature_feature", "billing_plan_feature", ["feature"]
+    )
 
     # ── seed all permissions ───────────────────────────────────────────────────
 

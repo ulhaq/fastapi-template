@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint, a
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-from src.models.mixins import DeleteTimestampMixin, TimestampMixin
+from src.models.mixins import ResourceModel, TimestampMixin
 from src.models.permission import Permission, RolePermission
 
 if TYPE_CHECKING:
@@ -12,10 +12,9 @@ if TYPE_CHECKING:
     from src.models.user import User
 
 
-class Role(Base, DeleteTimestampMixin, TimestampMixin):
+class Role(ResourceModel):
     __tablename__ = "role"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
     organization_id: Mapped[int] = mapped_column(
