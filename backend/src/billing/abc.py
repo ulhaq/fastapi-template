@@ -9,8 +9,6 @@ from src.billing.types import (
     WebhookPayload,
 )
 
-# pylint: disable=too-few-public-methods,too-many-arguments,too-many-positional-arguments
-
 
 class BillingProviderABC(ABC):
     @abstractmethod

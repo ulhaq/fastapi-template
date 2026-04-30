@@ -11,8 +11,6 @@ if TYPE_CHECKING:
     from src.models.organization import Organization
     from src.models.user import User
 
-# pylint: disable=too-few-public-methods
-
 
 class ApiToken(Base, TimestampMixin):
     __tablename__ = "api_token"

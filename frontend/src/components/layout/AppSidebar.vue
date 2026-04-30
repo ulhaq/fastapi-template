@@ -94,7 +94,6 @@ import { useProfileStore } from '@/stores/profile'
 import { useOrganizationStore } from '@/stores/organization'
 import { useSessionStore } from '@/stores/session'
 import { useToast } from '@/composables/useToast'
-import { usePermission } from '@/composables/usePermission'
 
 const authStore = useAuthStore()
 const profileStore = useProfileStore()
@@ -103,7 +102,6 @@ const sessionStore = useSessionStore()
 const route = useRoute()
 const { toast } = useToast()
 const { t } = useI18n()
-const { hasPermission } = usePermission()
 
 const user = computed(() => profileStore.user)
 const organizations = computed(() => organizationStore.organizations)

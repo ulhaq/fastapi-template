@@ -44,7 +44,7 @@ if not settings.app_debug and not settings.auth_enabled:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # pylint: disable=redefined-outer-name,unused-argument
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     cleanup_task = asyncio.create_task(
         run_stale_checkout_cleanup_loop(ASYNC_SESSION_LOCAL)
     )
@@ -278,4 +278,4 @@ def custom_openapi() -> dict[str, Any]:
     return app.openapi_schema
 
 
-setattr(app, "openapi", custom_openapi)
+app.openapi = custom_openapi

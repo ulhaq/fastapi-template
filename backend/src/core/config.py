@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_origins(self) -> list[str]:
-        return _parse_comma_list(self.raw_allow_origins)  # pylint: disable=no-member
+        return _parse_comma_list(self.raw_allow_origins)
 
     allow_credentials: bool = True
 
@@ -44,14 +44,14 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_methods(self) -> list[str]:
-        return _parse_comma_list(self.raw_allow_methods)  # pylint: disable=no-member
+        return _parse_comma_list(self.raw_allow_methods)
 
     raw_allow_headers: str = Field(default="*", validation_alias="allow_headers")
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_headers(self) -> list[str]:
-        return _parse_comma_list(self.raw_allow_headers)  # pylint: disable=no-member
+        return _parse_comma_list(self.raw_allow_headers)
 
     email_host: str = ""
     email_user: str = ""

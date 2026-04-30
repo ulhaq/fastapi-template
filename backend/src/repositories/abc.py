@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Sequence
-
-
-# pylint: disable=invalid-name,too-few-public-methods
+from collections.abc import Sequence
+from typing import Any
 
 
 class RepositoryABC[ModelType](ABC):
@@ -59,7 +57,7 @@ class ResourceRepositoryABC[ModelType](RepositoryABC[ModelType], ABC):
     async def force_delete(self, model: ModelType) -> None: ...
 
     @abstractmethod
-    async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def paginate(
         self,
         sort: list[str],
         filters: dict[str, dict],

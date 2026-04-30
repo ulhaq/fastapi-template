@@ -39,7 +39,6 @@ import { Button } from '@/components/ui/button'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { organizationsApi } from '@/api/organizations'
 import { useAuthStore } from '@/stores/auth'
-import { useProfileStore } from '@/stores/profile'
 import { useSessionStore } from '@/stores/session'
 import { useOrganizationStore } from '@/stores/organization'
 import { useConfirm } from '@/composables/useConfirm'
@@ -49,7 +48,6 @@ import { usePermission } from '@/composables/usePermission'
 const router = useRouter()
 const { t } = useI18n()
 const auth = useAuthStore()
-const profile = useProfileStore()
 const session = useSessionStore()
 const orgStore = useOrganizationStore()
 const { confirm } = useConfirm()

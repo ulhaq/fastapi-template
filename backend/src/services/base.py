@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 
 from pydantic import BaseModel
 
@@ -26,10 +26,10 @@ class BaseService:
 
 
 class ResourceService[
-    ResourceRepositoryType: ResourceRepositoryABC,  # pylint: disable=invalid-name
-    BaseType,  # pylint: disable=invalid-name
-    SchemaInType: BaseModel,  # pylint: disable=invalid-name
-    SchemaOutType: BaseModel,  # pylint: disable=invalid-name
+    ResourceRepositoryType: ResourceRepositoryABC,
+    BaseType,
+    SchemaInType: BaseModel,
+    SchemaOutType: BaseModel,
 ](BaseService):
     repo: ResourceRepositoryType
 

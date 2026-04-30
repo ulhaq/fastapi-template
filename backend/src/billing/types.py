@@ -24,7 +24,7 @@ class CustomerPortalResult:
 
 
 @dataclass
-class ExternalSubscription:  # pylint: disable=too-many-instance-attributes
+class ExternalSubscription:
     external_subscription_id: str
     external_customer_id: str
     status: str

@@ -102,7 +102,7 @@ def send_email(
             smtp.send_message(msg)
 
         log.info("Email sent. [template=%s, ctx=%s]", email_template, data)
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception:
         log.exception(
             "Failed to send email. [template=%s, address=%s]", email_template, address
         )

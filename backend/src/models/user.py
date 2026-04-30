@@ -14,9 +14,6 @@ if TYPE_CHECKING:
     from src.models.refresh_token import RefreshToken
 
 
-# pylint: disable=too-few-public-methods
-
-
 class User(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "user"
 

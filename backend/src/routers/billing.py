@@ -48,7 +48,7 @@ async def retrieve_a_plan(
 @subscription_router.post("/checkout", status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
 async def start_checkout(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[SubscriptionService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_SUBSCRIPTION))],
     checkout_in: CheckoutIn,
@@ -59,7 +59,7 @@ async def start_checkout(
 @subscription_router.post("/trial", status_code=status.HTTP_200_OK)
 @limiter.limit("3/minute")
 async def start_trial(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[SubscriptionService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_SUBSCRIPTION))],
     trial_in: StartTrialIn,
@@ -78,7 +78,7 @@ async def get_current_subscription(
 @subscription_router.post("/current/cancel", status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
 async def cancel_subscription(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[SubscriptionService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_SUBSCRIPTION))],
 ) -> SubscriptionOut:
@@ -88,7 +88,7 @@ async def cancel_subscription(
 @subscription_router.post("/current/resume", status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
 async def resume_subscription(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[SubscriptionService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_SUBSCRIPTION))],
 ) -> SubscriptionOut:
@@ -98,7 +98,7 @@ async def resume_subscription(
 @subscription_router.post("/current/switch-plan", status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
 async def switch_plan(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[SubscriptionService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_SUBSCRIPTION))],
     switch_in: SwitchPlanIn,

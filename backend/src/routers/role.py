@@ -15,8 +15,6 @@ from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.role import RoleIn, RoleOut, RolePatch, RolePermissionIn
 from src.services.role import RoleService
 
-# pylint: disable=too-many-arguments
-
 router = APIRouter(prefix="/roles")
 
 

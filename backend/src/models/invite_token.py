@@ -5,8 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
 
-# pylint: disable=too-few-public-methods
-
 
 class InviteToken(Base):
     __tablename__ = "invite_token"

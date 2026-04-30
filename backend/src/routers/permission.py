@@ -15,8 +15,6 @@ from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.permission import PermissionOut
 from src.services.permission import PermissionService
 
-# pylint: disable=too-many-arguments
-
 router = APIRouter(prefix="/permissions")
 
 

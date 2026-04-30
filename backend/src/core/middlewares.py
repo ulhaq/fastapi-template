@@ -34,11 +34,11 @@ class ErrorHandlingMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
             return
-        except Exception as exc:  # pylint: disable=broad-exception-caught
+        except Exception as exc:
             await self.process_exception(scope, receive, send, response_started, exc)
             return
 
-    async def process_exception(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def process_exception(
         self,
         scope: Scope,
         receive: Receive,

@@ -22,8 +22,6 @@ from src.schemas.organization import (
 from src.schemas.user import UserOut
 from src.services.organization import OrganizationService
 
-# pylint: disable=too-many-arguments
-
 router = APIRouter(prefix="/organizations")
 
 

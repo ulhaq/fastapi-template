@@ -24,7 +24,7 @@ from src.repositories.user import UserRepository
 from src.repositories.user_organization import UserOrganizationRepository
 
 
-class RepositoryManager:  # pylint: disable=too-many-instance-attributes
+class RepositoryManager:
     db: AsyncSession
 
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> None:

@@ -7,19 +7,20 @@ from datetime import UTC, datetime
 
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
+from sqlalchemy import select
 
 from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.logging import LOGGING_CONFIG
 from src.core.security import hash_secret
 from src.enums import DEFAULT_ROLES, OWNER_ROLE_NAME, Permission, PlanFeature
-from sqlalchemy import select
-
-from src.models.api_token import ApiToken  # pylint: disable=unused-import
+from src.models.api_token import ApiToken  # noqa: F401
 from src.models.billing import (
     Plan,
-    PlanFeature as PlanFeatureModel,
     PlanPrice,
     Subscription,
+)
+from src.models.billing import (
+    PlanFeature as PlanFeatureModel,
 )
 from src.models.organization import Organization
 from src.models.permission import Permission as PermissionModel
@@ -168,7 +169,7 @@ async def up() -> None:
         await session.flush()
 
         user_organizations = []
-        for user_data, user in zip(INIT_AUTH_DATA["users"], users):
+        for user_data, user in zip(INIT_AUTH_DATA["users"], users, strict=False):
             user_organizations.append(
                 UserOrganization(
                     user_id=user.id,

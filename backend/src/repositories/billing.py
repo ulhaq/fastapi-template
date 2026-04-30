@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Sequence
 
 from sqlalchemy import exists, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -10,8 +10,6 @@ from src.models.billing import Plan, PlanFeature, PlanPrice, Subscription, Webho
 from src.repositories.base import OrganizationScopedRepository, SQLResourceRepository
 
 _CHECKOUT_LOCK_NS = 0x62696C6C  # "bill" in ASCII - namespaces checkout advisory locks
-
-# pylint: disable=too-few-public-methods
 
 
 class PlanRepository(SQLResourceRepository[Plan]):

@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api-tokens")
 @router.get("", status_code=status.HTTP_200_OK)
 @limiter.limit("60/minute")
 async def list_api_tokens(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[ApiTokenService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_API_TOKEN))],
 ) -> list[ApiTokenResponse]:
@@ -29,7 +29,7 @@ async def list_api_tokens(
 @router.post("", status_code=status.HTTP_201_CREATED)
 @limiter.limit("10/minute")
 async def create_api_token(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[ApiTokenService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_API_TOKEN))],
     token_in: ApiTokenCreate,
@@ -40,7 +40,7 @@ async def create_api_token(
 @router.delete("/{token_id}", status_code=status.HTTP_204_NO_CONTENT)
 @limiter.limit("20/minute")
 async def revoke_api_token(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[ApiTokenService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_API_TOKEN))],
     token_id: Annotated[int, Path()],

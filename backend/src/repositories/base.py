@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Any, Literal, Sequence, overload
+from typing import Any, Literal, overload
 
 from sqlalchemy import BinaryExpression, Select, exists, func, or_, select
 from sqlalchemy.exc import NoResultFound
@@ -13,11 +14,11 @@ from src.repositories import utils
 from src.repositories.abc import ResourceRepositoryABC
 
 
-class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]):  # pylint: disable=invalid-name
+class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]):
     async def get_one(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType:
-        stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
+        stmt = select(self.model).filter(self.model.id == identifier)
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -32,7 +33,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
     async def get(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType | None:
-        stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
+        stmt = select(self.model).filter(self.model.id == identifier)
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -42,7 +43,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
     async def get_one_by_name(
         self, name: str, include_deleted: bool = False
     ) -> ModelType | None:
-        stmt = select(self.model).filter(getattr(self.model, "name") == name)
+        stmt = select(self.model).filter(self.model.name == name)
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -70,7 +71,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
     async def filter_by_ids(
         self, identifiers: list[int], include_deleted: bool = False
     ) -> Sequence[ModelType]:
-        stmt = select(self.model).filter(getattr(self.model, "id").in_(identifiers))
+        stmt = select(self.model).filter(self.model.id.in_(identifiers))
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -78,7 +79,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
         return rs.unique().scalars().all()
 
     async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
-        stmt = select(exists().filter(getattr(self.model, "id") == identifier))
+        stmt = select(exists().filter(self.model.id == identifier))
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -88,8 +89,8 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
     async def create(self, **kwargs: Any) -> ModelType:
         instance = self.model(**kwargs)
 
-        setattr(instance, "created_at", datetime.now(UTC))
-        setattr(instance, "updated_at", datetime.now(UTC))
+        instance.created_at = datetime.now(UTC)
+        instance.updated_at = datetime.now(UTC)
 
         self.db.add(instance)
 
@@ -98,20 +99,20 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
     async def update(self, model: ModelType, **kwargs: Any) -> ModelType:
         for attr, value in kwargs.items():
             setattr(model, attr, value)
-        setattr(model, "updated_at", datetime.now(UTC))
+        model.updated_at = datetime.now(UTC)
 
         self.db.add(model)
 
         return await self.save(model)
 
     async def delete(self, model: ModelType) -> None:
-        setattr(model, "deleted_at", datetime.now(UTC))
+        model.deleted_at = datetime.now(UTC)
 
         await self.save()
 
     async def restore(self, model: ModelType) -> ModelType:
-        setattr(model, "deleted_at", None)
-        setattr(model, "updated_at", datetime.now(UTC))
+        model.deleted_at = None
+        model.updated_at = datetime.now(UTC)
         self.db.add(model)
         return await self.save(model)
 
@@ -120,7 +121,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
 
         await self.save()
 
-    async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def paginate(
         self,
         sort: list[str],
         filters: dict[str, dict],
@@ -156,9 +157,7 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
     async def get_total(
         self, *filter_expressions: BinaryExpression, include_deleted: bool = False
     ) -> int:
-        stmt = select(
-            func.count()  # pylint: disable=not-callable
-        ).select_from(self.model)
+        stmt = select(func.count()).select_from(self.model)
 
         if filter_expressions:
             stmt = stmt.filter(or_(*filter_expressions))
@@ -307,11 +306,11 @@ class SQLResourceRepository[ModelType: Base](ResourceRepositoryABC[ModelType]): 
 
     def _include_deleted(self, stmt: Select, include_deleted: bool = False) -> Select:
         if include_deleted is False:
-            return stmt.filter(getattr(self.model, "deleted_at").is_(None))
+            return stmt.filter(self.model.deleted_at.is_(None))
         return stmt
 
 
-class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):  # pylint: disable=invalid-name
+class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelType]):
     _organization_id: int | None = None
 
     def set_organization_scope(self, organization_id: int) -> None:
@@ -319,15 +318,13 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
 
     def _apply_organization_scope(self, stmt: Select) -> Select:
         if self._organization_id is not None:
-            return stmt.filter(
-                getattr(self.model, "organization_id") == self._organization_id
-            )
+            return stmt.filter(self.model.organization_id == self._organization_id)
         return stmt
 
     async def get_one(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType:
-        stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
+        stmt = select(self.model).filter(self.model.id == identifier)
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -342,7 +339,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
     async def get(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType | None:
-        stmt = select(self.model).filter(getattr(self.model, "id") == identifier)
+        stmt = select(self.model).filter(self.model.id == identifier)
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -352,7 +349,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
     async def get_one_by_name(
         self, name: str, include_deleted: bool = False
     ) -> ModelType | None:
-        stmt = select(self.model).filter(getattr(self.model, "name") == name)
+        stmt = select(self.model).filter(self.model.name == name)
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -380,7 +377,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
     async def filter_by_ids(
         self, identifiers: list[int], include_deleted: bool = False
     ) -> Sequence[ModelType]:
-        stmt = select(self.model).filter(getattr(self.model, "id").in_(identifiers))
+        stmt = select(self.model).filter(self.model.id.in_(identifiers))
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -388,7 +385,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
         return rs.unique().scalars().all()
 
     async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
-        stmt = select(exists().where(getattr(self.model, "id") == identifier))
+        stmt = select(exists().where(self.model.id == identifier))
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -400,7 +397,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
             kwargs.setdefault("organization_id", self._organization_id)
         return await super().create(**kwargs)
 
-    async def paginate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def paginate(
         self,
         sort: list[str],
         filters: dict[str, dict],
@@ -437,9 +434,7 @@ class OrganizationScopedRepository[ModelType: Base](SQLResourceRepository[ModelT
     async def get_total(
         self, *filter_expressions: BinaryExpression, include_deleted: bool = False
     ) -> int:
-        stmt = select(
-            func.count()  # pylint: disable=not-callable
-        ).select_from(self.model)
+        stmt = select(func.count()).select_from(self.model)
 
         stmt = self._apply_organization_scope(stmt)
 

@@ -20,8 +20,6 @@ from src.models.mixins import DeleteTimestampMixin, TimestampMixin
 if TYPE_CHECKING:
     from src.models.organization import Organization
 
-# pylint: disable=too-few-public-methods
-
 
 class Plan(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "billing_plan"
@@ -86,7 +84,7 @@ class Subscription(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "billing_subscription"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('incomplete', 'incomplete_expired', 'active', 'trialing', 'past_due', 'canceled', 'unpaid', 'paused')",  # pylint: disable=line-too-long
+            "status IN ('incomplete', 'incomplete_expired', 'active', 'trialing', 'past_due', 'canceled', 'unpaid', 'paused')",  # noqa: E501
             name="ck_billing_subscription_status",
         ),
         Index(

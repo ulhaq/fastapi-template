@@ -12,9 +12,6 @@ if TYPE_CHECKING:
     from src.models.user import User
 
 
-# pylint: disable=too-few-public-methods
-
-
 class Role(Base, DeleteTimestampMixin, TimestampMixin):
     __tablename__ = "role"
 

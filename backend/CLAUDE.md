@@ -60,7 +60,7 @@ Prefer adding to an existing staged migration file over creating a new one.
 # Format code
 ./scripts/format.sh
 
-# Lint (mypy + ruff + pylint)
+# Lint (mypy + ruff)
 ./scripts/lint.sh
 
 # Run all tests

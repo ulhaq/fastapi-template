@@ -1,4 +1,3 @@
-# pylint: disable=too-many-lines
 import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
@@ -34,7 +33,6 @@ from src.services.utils import send_email
 
 log = logging.getLogger(__name__)
 
-# pylint: disable=too-many-arguments,too-many-positional-arguments
 
 def _ts(ts: int | None) -> datetime | None:
     return datetime.fromtimestamp(ts, tz=UTC) if ts else None
@@ -395,7 +393,7 @@ class SubscriptionService(BaseService):
         return sub
 
 
-class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
+class WebhookService(BaseService):
     def __init__(
         self,
         repos: Annotated[RepositoryManager, Depends()],
@@ -426,7 +424,7 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
             # Transient provider error - let Stripe retry
             await self.repos.webhook_event.mark_failed(event_record, str(exc))
             return False
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:
             # Permanent error (bug, unexpected data)
             # log and ack to stop infinite retries
             log.error(
@@ -740,8 +738,7 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
                     )
                 )
                 if organization:
-                    # pylint: disable=line-too-long
-                    sub = await self.repos.subscription.get_active_for_organization_locked(
+                    sub = await self.repos.subscription.get_active_for_organization_locked(  # noqa: E501
                         organization.id
                     )
                     if not sub:
@@ -1068,7 +1065,6 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
             await self.repos.plan_price.update(price, is_active=obj["active"])
 
 
-# pylint: disable=too-few-public-methods
 class BillingMaintenanceService(BaseService):
     def __init__(self, repos: Annotated[RepositoryManager, Depends()]) -> None:
         super().__init__(repos)
@@ -1107,5 +1103,5 @@ async def run_stale_checkout_cleanup_loop(session_factory: Any) -> None:
                         "Stale checkout cleanup: %d subscription(s) canceled",
                         count,
                     )
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:
             log.error("Stale checkout cleanup loop error: %s", exc, exc_info=True)

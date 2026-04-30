@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
-from typing import Annotated, Any, Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime
+from typing import Annotated, Any
 
 from fastapi import Request
 from fastapi.encoders import jsonable_encoder
@@ -20,7 +21,7 @@ class ErrorResponse(BaseModel):
         self, request: Request, error_code: ErrorCode, msg: str, **kwargs: Any
     ) -> None:
         super().__init__(
-            time=datetime.now(timezone.utc),
+            time=datetime.now(UTC),
             path=str(request.url),
             method=request.method,
             error_code=error_code.code,
@@ -68,7 +69,7 @@ class NameDescriptionOut(BaseModel):
     description: str | None = None
 
 
-class PaginatedResponse[SchemaOutType: BaseModel](BaseModel):  # pylint: disable=invalid-name
+class PaginatedResponse[SchemaOutType: BaseModel](BaseModel):
     items: Sequence[SchemaOutType]
     page_number: int
     page_size: int

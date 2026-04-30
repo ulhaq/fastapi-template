@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
@@ -8,8 +8,6 @@ from src.core.database import Base
 
 if TYPE_CHECKING:
     from src.models.user import User
-
-# pylint: disable=too-few-public-methods
 
 
 class PasswordResetToken(Base):
@@ -21,7 +19,7 @@ class PasswordResetToken(Base):
     )
     token: Mapped[str] = mapped_column(String, unique=True)
     created_at: Mapped[DateTime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc), nullable=False
+        DateTime, default=datetime.now(UTC), nullable=False
     )
 
     user: Mapped["User"] = relationship(

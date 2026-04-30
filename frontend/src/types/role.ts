@@ -5,7 +5,7 @@ export interface RoleBase {
   description?: string | null
 }
 
-export interface RoleIn extends RoleBase {}
+export type RoleIn = RoleBase
 
 export interface RolePatch {
   name?: string

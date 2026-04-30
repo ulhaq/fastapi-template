@@ -48,7 +48,7 @@ def _delete_refresh_token_cookie(response: Response) -> None:
 @router.post("/register", status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit("5/minute")
 async def create_an_account(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
     email_in: EmailIn,
@@ -59,7 +59,7 @@ async def create_an_account(
 @router.post("/verify-email", status_code=status.HTTP_200_OK)
 @limiter.limit("10/minute")
 async def verify_email(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[AuthService, Depends()],
     schema_in: VerifyEmailIn,
 ) -> SetupTokenOut:
@@ -69,7 +69,7 @@ async def verify_email(
 @router.post("/complete-registration", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def complete_registration(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
@@ -83,7 +83,7 @@ async def complete_registration(
 @router.post("/token", status_code=status.HTTP_200_OK)
 @limiter.limit("10/minute")
 async def get_access_token(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     response: Response,
     auth_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     service: Annotated[AuthService, Depends()],
@@ -118,7 +118,7 @@ async def logout(
 @router.post("/reset-password/request", status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit("5/minute")
 async def request_password_reset(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],
     email_in: EmailIn,
@@ -129,7 +129,7 @@ async def request_password_reset(
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 @limiter.limit("5/minute")
 async def reset_password(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[AuthService, Depends()],
     reset_password_in: ResetPasswordIn,
 ) -> None:
@@ -139,7 +139,7 @@ async def reset_password(
 @router.post("/invite-status", status_code=status.HTTP_200_OK)
 @limiter.limit("10/minute")
 async def get_invite_status(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     service: Annotated[AuthService, Depends()],
     schema_in: InviteStatusIn,
 ) -> InviteStatusOut:
@@ -149,7 +149,7 @@ async def get_invite_status(
 @router.post("/complete-invite", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def complete_invite(
-    request: Request,  # pylint: disable=unused-argument
+    request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
     service: Annotated[AuthService, Depends()],

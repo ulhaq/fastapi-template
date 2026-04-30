@@ -9,8 +9,6 @@ from src.core.database import Base
 if TYPE_CHECKING:
     from src.models.user import User
 
-# pylint: disable=too-few-public-methods
-
 
 class RefreshToken(Base):
     __tablename__ = "refresh_token"

@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 from dateutil import parser
 from sqlalchemy import String, cast

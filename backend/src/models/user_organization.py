@@ -6,8 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.core.database import Base
 from src.models.mixins import TimestampMixin
 
-# pylint: disable=too-few-public-methods
-
 
 class UserOrganization(Base, TimestampMixin):
     __tablename__ = "user_organization"

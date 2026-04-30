@@ -96,7 +96,7 @@ class StripeProvider(BillingProviderABC):
         except stripe.StripeError as exc:
             raise BillingProviderException(str(exc)) from exc
 
-    async def create_price(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def create_price(
         self,
         external_product_id: str,
         amount: int,
@@ -171,7 +171,7 @@ class StripeProvider(BillingProviderABC):
         except stripe.StripeError as exc:
             raise BillingProviderException(str(exc)) from exc
 
-    async def create_checkout_session(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def create_checkout_session(
         self,
         external_customer_id: str | None,
         external_price_id: str,

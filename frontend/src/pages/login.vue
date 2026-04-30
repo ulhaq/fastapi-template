@@ -66,7 +66,6 @@ meta:
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
 import {
   Card,
@@ -86,7 +85,6 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const { resolveError } = useErrorHandler()
-const { t } = useI18n()
 
 const email = ref('')
 const password = ref('')

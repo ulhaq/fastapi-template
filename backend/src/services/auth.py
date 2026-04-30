@@ -448,7 +448,7 @@ class AuthService(BaseService):
                 user_id = int(payload.get("sub", 0))
                 if user_id and (user := await self.repos.user.get(user_id)):
                     await self.repos.refresh_token.delete_by_user(user)
-            except Exception:  # pylint: disable=broad-except
+            except Exception:
                 pass
 
     async def request_password_reset(

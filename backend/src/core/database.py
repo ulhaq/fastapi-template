@@ -9,7 +9,7 @@ engine = create_async_engine(settings.db_connection, echo=settings.sqlalchemy_ec
 ASYNC_SESSION_LOCAL = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-class Base(DeclarativeBase): ...  # pylint: disable=too-few-public-methods
+class Base(DeclarativeBase): ...
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
