@@ -21,7 +21,7 @@ meta:
           <p class="text-muted-foreground text-sm mt-0.5">{{ $t('subscription.incompleteNotice') }}</p>
         </div>
 
-        <div v-if="subscription.plan_price" class="text-2xl font-bold">
+        <div v-if="subscription.plan_price" class="text-xl font-semibold">
           {{ formatPrice(subscription.plan_price) }}
           <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
         </div>
@@ -40,18 +40,18 @@ meta:
       <div class="rounded-lg border p-6 space-y-4">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h3 class="font-semibold text-lg">{{ $t('subscription.currentPlan') }}</h3>
-            <p class="text-muted-foreground text-sm mt-0.5">
-              <Skeleton v-if="plansLoading" class="h-4 w-16 inline-block" />
+            <h3 class="font-semibold text-lg">
+              <Skeleton v-if="plansLoading" class="h-5 w-24 inline-block" />
               <span v-else>{{ planName(subscription.plan_price) || $t('subscription.free') }}</span>
-            </p>
+            </h3>
+            <p class="text-sm text-muted-foreground mt-0.5">{{ $t('subscription.currentPlan') }}</p>
           </div>
           <Badge :class="statusBadgeClass('active')" variant="outline">
             {{ $t('subscription.status.active') }}
           </Badge>
         </div>
 
-        <div v-if="subscription.plan_price" class="text-2xl font-bold">
+        <div v-if="subscription.plan_price" class="text-xl font-semibold">
           {{ formatPrice(subscription.plan_price) }}
           <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
         </div>
@@ -99,11 +99,11 @@ meta:
       <div v-if="plansLoading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Skeleton v-for="n in 3" :key="n" class="h-36 w-full rounded-lg" />
       </div>
-      <div v-else-if="availablePlans.filter(p => p.prices.some(pr => pr.is_active)).length > 0" class="space-y-3">
+      <div v-else-if="paidPlans.length > 0" class="space-y-3">
         <h3 class="font-semibold">{{ $t('subscription.availablePlans') }}</h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
-            v-for="plan in availablePlans.filter(p => p.prices.some(pr => pr.is_active))"
+            v-for="plan in paidPlans"
             :key="plan.id"
             class="rounded-lg border p-4 space-y-3"
           >
@@ -161,11 +161,12 @@ meta:
         <div>
           <h3 class="font-semibold text-lg">{{ $t('subscription.trialEndedTitle') }}</h3>
           <p class="text-muted-foreground text-sm mt-0.5">
-            {{ $t('subscription.trialEndedDescription', { plan: planName(subscription.plan_price) }) }}
+            <Skeleton v-if="plansLoading" class="h-4 w-96 inline-block" />
+            <span v-else>{{ $t('subscription.trialEndedDescription', { plan: planName(subscription.plan_price) }) }}</span>
           </p>
         </div>
 
-        <div v-if="subscription.plan_price" class="text-2xl font-bold">
+        <div v-if="subscription.plan_price" class="text-xl font-semibold">
           {{ formatPrice(subscription.plan_price) }}
           <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
         </div>
@@ -219,10 +220,11 @@ meta:
       <div class="rounded-lg border p-6 space-y-4">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h3 class="font-semibold text-lg">{{ $t('subscription.currentPlan') }}</h3>
-            <p class="text-muted-foreground text-sm mt-0.5">
-              {{ subscription.plan_price ? planName(subscription.plan_price) : $t('subscription.unknownPlan') }}
-            </p>
+            <h3 class="font-semibold text-lg">
+              <Skeleton v-if="plansLoading" class="h-5 w-24 inline-block" />
+              <span v-else>{{ subscription.plan_price ? planName(subscription.plan_price) : $t('subscription.unknownPlan') }}</span>
+            </h3>
+            <p class="text-sm text-muted-foreground mt-0.5">{{ $t('subscription.currentPlan') }}</p>
           </div>
           <Badge :class="statusBadgeClass(subscription.status)" class="shrink-0 border" variant="outline">
             {{ $t(`subscription.status.${subscription.status}`) }}
@@ -262,7 +264,7 @@ meta:
           </PermissionGuard>
         </div>
 
-        <div v-if="subscription.plan_price" class="text-2xl font-bold">
+        <div v-if="subscription.plan_price" class="text-xl font-semibold">
           {{ formatPrice(subscription.plan_price) }}
           <span class="text-sm font-normal text-muted-foreground">/ {{ subscription.plan_price.interval }}</span>
         </div>
