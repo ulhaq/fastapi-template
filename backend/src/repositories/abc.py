@@ -1,24 +1,20 @@
 from abc import ABC, abstractmethod
 from typing import Any, Sequence
 
-from sqlalchemy import BinaryExpression
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.core.database import Base
 
 # pylint: disable=invalid-name,too-few-public-methods
 
 
-class RepositoryABC[ModelType: Base](ABC):
+class RepositoryABC[ModelType](ABC):
     model: type[ModelType]
-    db: AsyncSession
+    db: Any
 
-    def __init__(self, model: type[ModelType], db: AsyncSession) -> None:
+    def __init__(self, model: type[ModelType], db: Any) -> None:
         self.model = model
         self.db = db
 
 
-class ResourceRepositoryABC[ModelType: Base](RepositoryABC[ModelType], ABC):
+class ResourceRepositoryABC[ModelType](RepositoryABC[ModelType], ABC):
     @abstractmethod
     async def get_one(
         self, identifier: int, include_deleted: bool = False
@@ -74,22 +70,5 @@ class ResourceRepositoryABC[ModelType: Base](RepositoryABC[ModelType], ABC):
 
     @abstractmethod
     async def get_total(
-        self, *filter_expressions: BinaryExpression, include_deleted: bool = False
+        self, *filter_expressions: Any, include_deleted: bool = False
     ) -> int: ...
-
-    @abstractmethod
-    async def add_relationship(
-        self,
-        target_model: ModelType,
-        related_model: Any,
-        relationship_attr: str,
-        *related_ids: int,
-    ) -> None: ...
-
-    @abstractmethod
-    async def remove_relationship(
-        self,
-        target_model: ModelType,
-        relationship_attr: str,
-        *related_ids: int,
-    ) -> None: ...

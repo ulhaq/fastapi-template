@@ -12,9 +12,8 @@ from src.core.exceptions import (
     PermissionDeniedException,
 )
 from src.core.security import Auth
-from src.enums import DEFAULT_ROLES, OWNER_ROLE_NAME, ErrorCode
+from src.enums import OWNER_ROLE_NAME, ErrorCode
 from src.models.organization import Organization
-from src.models.user import User
 from src.repositories.organization import OrganizationRepository
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
@@ -27,53 +26,9 @@ from src.schemas.organization import (
 )
 from src.schemas.user import UserOut
 from src.services.base import ResourceService
+from src.services.utils import setup_new_organization
 
 log = logging.getLogger(__name__)
-
-
-async def _setup_new_organization(
-    repos: RepositoryManager,
-    organization: Organization,
-    user: User,
-) -> None:
-    permissions = await repos.permission.get_all()
-    permission_map = {p.name: p.id for p in permissions}
-
-    owner_role = await repos.role.create(
-        name=OWNER_ROLE_NAME,
-        description="Full access to all system features and settings.",
-        is_protected=True,
-        organization=organization,
-    )
-    await repos.role.add_permissions(owner_role, *permission_map.values())
-    await repos.user.add_roles(user, owner_role.id)
-
-    for role_name, role_description, role_permissions in DEFAULT_ROLES:
-        role = await repos.role.create(
-            name=role_name,
-            description=role_description,
-            is_protected=False,
-            organization=organization,
-        )
-        await repos.role.add_permissions(
-            role, *[permission_map[p] for p in role_permissions if p in permission_map]
-        )
-
-    # Create a local active free subscription. No Stripe customer or subscription
-    # is created here - the free plan is local-only. A Stripe customer is created
-    # when the user starts a trial or paid checkout.
-    free_price = await repos.plan_price.get_free_price()
-    if free_price:
-        await repos.subscription.create(
-            organization_id=organization.id,
-            plan_price_id=free_price.id,
-            status="active",
-        )
-    else:
-        log.warning(
-            "No free plan found - skipping auto-subscription for organization %s",
-            organization.id,
-        )
 
 
 class OrganizationService(
@@ -160,7 +115,7 @@ class OrganizationService(
         )
 
         user = await self.repos.user.get_one(self.current_user.id)
-        await _setup_new_organization(self.repos, organization, user)
+        await setup_new_organization(self.repos, organization, user)
 
         return OrganizationOut.model_validate(organization)
 

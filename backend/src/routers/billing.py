@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
+from fastapi import APIRouter, Depends, Path, Request, status
 
 from src.core.dependencies import authenticate, require_permission
+from src.core.exceptions import BillingWebhookException
 from src.core.limiter import limiter
 from src.core.security import Auth
 from src.enums import Permission
@@ -126,8 +127,5 @@ async def billing_webhook(
     sig_header = request.headers.get("stripe-signature", "")
     success = await service.process_webhook(payload, sig_header)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Webhook processing failed",
-        )
+        raise BillingWebhookException
     return {"received": True}

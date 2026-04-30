@@ -172,7 +172,7 @@ def mock_pg_advisory_lock(mocker):  # type: ignore[no-untyped-def]
             return _text("SELECT 1")
         return _text(clause)
 
-    mocker.patch("src.services.billing.text", side_effect=_patched_text)
+    mocker.patch("src.repositories.billing.text", side_effect=_patched_text)
 
 
 @pytest.fixture(autouse=True)

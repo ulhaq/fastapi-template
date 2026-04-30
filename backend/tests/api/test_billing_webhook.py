@@ -865,7 +865,7 @@ def test_webhook_uncollectible_falls_back_gracefully_on_provider_error(
     resp = admin_authenticated.post(
         "/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "s"}
     )
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
     # Local state must be unchanged - subscription still on the paid plan
     # with external_subscription_id intact for retry

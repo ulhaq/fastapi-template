@@ -1,12 +1,15 @@
 from datetime import UTC, datetime
 from typing import Sequence
 
-from sqlalchemy import exists, select, update
+from sqlalchemy import exists, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.billing import Plan, PlanFeature, PlanPrice, Subscription, WebhookEvent
 from src.repositories.base import OrganizationScopedRepository, SQLResourceRepository
+
+_CHECKOUT_LOCK_NS = 0x62696C6C  # "bill" in ASCII - namespaces checkout advisory locks
 
 # pylint: disable=too-few-public-methods
 
@@ -223,6 +226,28 @@ class SubscriptionRepository(OrganizationScopedRepository[Subscription]):
         )
         rs = await self.db.execute(stmt)
         return rs.rowcount  # type: ignore[attr-defined]
+
+    async def acquire_checkout_lock(self, organization_id: int) -> None:
+        await self.db.execute(
+            text("SELECT pg_advisory_xact_lock(:tid)"),
+            {"tid": organization_id ^ _CHECKOUT_LOCK_NS},
+        )
+
+    async def create_or_get_active(
+        self,
+        organization_id: int,
+        plan_price_id: int | None,
+        status: str,
+    ) -> Subscription | None:
+        try:
+            async with self.db.begin_nested():
+                return await self.create(
+                    organization_id=organization_id,
+                    plan_price_id=plan_price_id,
+                    status=status,
+                )
+        except IntegrityError:
+            return await self.get_active_for_organization_locked(organization_id)
 
 
 class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):

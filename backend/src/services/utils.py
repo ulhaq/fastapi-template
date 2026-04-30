@@ -5,8 +5,57 @@ from smtplib import SMTP
 
 from src.core.config import settings
 from src.core.template import templates
+from src.enums import DEFAULT_ROLES, OWNER_ROLE_NAME
+from src.models.organization import Organization
+from src.models.user import User
+from src.repositories.repository_manager import RepositoryManager
 
 log = logging.getLogger(__name__)
+
+
+async def setup_new_organization(
+    repos: RepositoryManager,
+    organization: Organization,
+    user: User,
+) -> None:
+    permissions = await repos.permission.get_all()
+    permission_map = {p.name: p.id for p in permissions}
+
+    owner_role = await repos.role.create(
+        name=OWNER_ROLE_NAME,
+        description="Full access to all system features and settings.",
+        is_protected=True,
+        organization=organization,
+    )
+    await repos.role.add_permissions(owner_role, *permission_map.values())
+    await repos.user.add_roles(user, owner_role.id)
+
+    for role_name, role_description, role_permissions in DEFAULT_ROLES:
+        role = await repos.role.create(
+            name=role_name,
+            description=role_description,
+            is_protected=False,
+            organization=organization,
+        )
+        await repos.role.add_permissions(
+            role, *[permission_map[p] for p in role_permissions if p in permission_map]
+        )
+
+    # Create a local active free subscription. No Stripe customer or subscription
+    # is created here - the free plan is local-only. A Stripe customer is created
+    # when the user starts a trial or paid checkout.
+    free_price = await repos.plan_price.get_free_price()
+    if free_price:
+        await repos.subscription.create(
+            organization_id=organization.id,
+            plan_price_id=free_price.id,
+            status="active",
+        )
+    else:
+        log.warning(
+            "No free plan found - skipping auto-subscription for organization %s",
+            organization.id,
+        )
 
 
 def send_email(

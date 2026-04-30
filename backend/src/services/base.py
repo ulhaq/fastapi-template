@@ -2,7 +2,6 @@ from typing import Awaitable, Callable, Sequence
 
 from pydantic import BaseModel
 
-from src.core.database import Base
 from src.core.exceptions import NotFoundException, PlanFeatureUnavailableException
 from src.enums import PlanFeature
 from src.repositories.abc import ResourceRepositoryABC
@@ -28,7 +27,7 @@ class BaseService:
 
 class ResourceService[
     ResourceRepositoryType: ResourceRepositoryABC,  # pylint: disable=invalid-name
-    BaseType: Base,  # pylint: disable=invalid-name
+    BaseType,  # pylint: disable=invalid-name
     SchemaInType: BaseModel,  # pylint: disable=invalid-name
     SchemaOutType: BaseModel,  # pylint: disable=invalid-name
 ](BaseService):

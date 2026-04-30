@@ -40,8 +40,7 @@ from src.schemas.user import (
     VerifyEmailIn,
 )
 from src.services.base import BaseService
-from src.services.organization import _setup_new_organization
-from src.services.utils import send_email
+from src.services.utils import send_email, setup_new_organization
 
 log = logging.getLogger(__name__)
 
@@ -145,9 +144,9 @@ class AuthService(BaseService):
             last_active_at=datetime.now(UTC),
         )
 
-        await _setup_new_organization(self.repos, organization, user)
+        await setup_new_organization(self.repos, organization, user)
 
-        # Re-fetch user so roles assigned by _setup_new_organization are loaded
+        # Re-fetch user so roles assigned by setup_new_organization are loaded
         user = await self.repos.user.get_one(user.id)
 
         schedule_task(

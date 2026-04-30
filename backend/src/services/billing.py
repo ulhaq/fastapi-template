@@ -5,8 +5,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import Depends
-from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
 
 from src.billing.dependencies import BillingProviderDep
 from src.core.config import settings
@@ -37,9 +35,6 @@ from src.services.utils import send_email
 log = logging.getLogger(__name__)
 
 # pylint: disable=too-many-arguments,too-many-positional-arguments
-
-_CHECKOUT_LOCK_NS = 0x62696C6C  # "bill" in ASCII - namespaces checkout advisory locks
-
 
 def _ts(ts: int | None) -> datetime | None:
     return datetime.fromtimestamp(ts, tz=UTC) if ts else None
@@ -386,10 +381,7 @@ class SubscriptionService(BaseService):
         return CustomerPortalOut(portal_url=result.portal_url)
 
     async def _acquire_checkout_lock(self, organization_id: int) -> None:
-        await self.repos.subscription.db.execute(
-            text("SELECT pg_advisory_xact_lock(:tid)"),
-            {"tid": organization_id ^ _CHECKOUT_LOCK_NS},
-        )
+        await self.repos.subscription.acquire_checkout_lock(organization_id)
 
     async def _get_active_subscription(self) -> Subscription:
         sub = await self.repos.subscription.get_active_for_organization_locked(
@@ -756,17 +748,11 @@ class WebhookService(BaseService):  # pylint: disable=too-few-public-methods
                         # Edge case: no active subscription exists (e.g. free plan
                         # seed failed at registration). Create one now so the
                         # Stripe subscription is tracked locally.
-                        try:
-                            sub = await self.repos.subscription.create(
-                                organization_id=organization.id,
-                                plan_price_id=None,
-                                status="incomplete",
-                            )
-                        except IntegrityError:
-                            # pylint: disable=line-too-long
-                            sub = await self.repos.subscription.get_active_for_organization_locked(
-                                organization.id
-                            )
+                        sub = await self.repos.subscription.create_or_get_active(
+                            organization_id=organization.id,
+                            plan_price_id=None,
+                            status="incomplete",
+                        )
         if not sub:
             return
 
