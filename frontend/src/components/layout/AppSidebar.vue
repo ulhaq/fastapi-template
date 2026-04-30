@@ -9,7 +9,7 @@
     </div>
 
     <!-- Organization Switcher -->
-    <div class="px-3 py-3 border-b border-sidebar-border" v-if="organizations.length > 1">
+    <div v-if="organizations.length > 1" class="px-3 py-3 border-b border-sidebar-border">
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <button
@@ -21,13 +21,15 @@
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent class="w-52" align="start">
-          <DropdownMenuLabel class="text-xs text-muted-foreground">{{ $t('nav.switchOrganization') }}</DropdownMenuLabel>
+          <DropdownMenuLabel class="text-xs text-muted-foreground">{{
+            $t('nav.switchOrganization')
+          }}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             v-for="organization in organizations"
             :key="organization.id"
-            @click="handleSwitchOrganization(organization.id)"
             class="cursor-pointer"
+            @click="handleSwitchOrganization(organization.id)"
           >
             <Check v-if="currentOrganizationId === organization.id" class="w-4 h-4 mr-2" />
             <span v-else class="w-4 h-4 mr-2" />
@@ -44,20 +46,23 @@
         :key="item.to"
         :to="item.to"
         class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-        :class="isActive(item.to)
-          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'"
+        :class="
+          isActive(item.to)
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+        "
       >
         <component :is="item.icon" class="w-4 h-4 shrink-0" />
         {{ item.label }}
       </RouterLink>
-
     </nav>
 
     <!-- User -->
     <div class="px-3 py-3 border-t border-sidebar-border">
       <div class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground/70">
-        <div class="w-7 h-7 rounded-full bg-sidebar-primary flex items-center justify-center shrink-0">
+        <div
+          class="w-7 h-7 rounded-full bg-sidebar-primary flex items-center justify-center shrink-0"
+        >
           <span class="text-sidebar-primary-foreground text-xs font-semibold">
             {{ userInitials }}
           </span>
@@ -75,12 +80,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  LayoutDashboard,
-  Settings,
-  Check,
-  ChevronsUpDown,
-} from 'lucide-vue-next'
+import { LayoutDashboard, Settings, Check, ChevronsUpDown } from 'lucide-vue-next'
 import {
   DropdownMenu,
   DropdownMenuContent,

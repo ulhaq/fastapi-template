@@ -6,7 +6,10 @@ meta:
 
 <template>
   <div class="max-w-3xl animate-fade-in">
-    <PageHeader :title="$t('settings.apiTokens')" :description="$t('settings.apiTokensDescription')">
+    <PageHeader
+      :title="$t('settings.apiTokens')"
+      :description="$t('settings.apiTokensDescription')"
+    >
       <template #actions>
         <Button size="sm" @click="openCreate">
           <Plus class="w-4 h-4 mr-2" />
@@ -46,7 +49,12 @@ meta:
               </TableCell>
               <TableCell>
                 <div class="flex flex-wrap gap-1">
-                  <Badge v-for="perm in token.permissions.slice(0, BADGE_MAX)" :key="perm" variant="outline" class="text-xs">
+                  <Badge
+                    v-for="perm in token.permissions.slice(0, BADGE_MAX)"
+                    :key="perm"
+                    variant="outline"
+                    class="text-xs"
+                  >
                     {{ perm }}
                   </Badge>
                   <TooltipProvider v-if="token.permissions.length > BADGE_MAX">
@@ -58,7 +66,9 @@ meta:
                       </TooltipTrigger>
                       <TooltipContent class="max-w-xs">
                         <div class="flex flex-col gap-1 font-mono text-xs">
-                          <span v-for="perm in token.permissions.slice(BADGE_MAX)" :key="perm">{{ perm }}</span>
+                          <span v-for="perm in token.permissions.slice(BADGE_MAX)" :key="perm">{{
+                            perm
+                          }}</span>
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -71,12 +81,20 @@ meta:
               <TableCell class="text-xs text-muted-foreground">
                 <span v-if="token.is_expired" class="inline-flex items-center gap-1.5">
                   {{ formatDate(token.expires_at!) }}
-                  <Badge variant="destructive" class="text-[10px] px-1 py-0">{{ $t('settings.tokenExpired') }}</Badge>
+                  <Badge variant="destructive" class="text-[10px] px-1 py-0">{{
+                    $t('settings.tokenExpired')
+                  }}</Badge>
                 </span>
-                <span v-else>{{ token.expires_at ? formatDate(token.expires_at) : $t('settings.tokenNeverExpires') }}</span>
+                <span v-else>{{
+                  token.expires_at ? formatDate(token.expires_at) : $t('settings.tokenNeverExpires')
+                }}</span>
               </TableCell>
               <TableCell class="text-xs text-muted-foreground">
-                {{ token.last_used_at ? formatDate(token.last_used_at) : $t('settings.tokenNeverUsed') }}
+                {{
+                  token.last_used_at
+                    ? formatDate(token.last_used_at)
+                    : $t('settings.tokenNeverUsed')
+                }}
               </TableCell>
               <TableCell class="text-right">
                 <Button
@@ -102,7 +120,7 @@ meta:
         <DialogHeader>
           <DialogTitle>{{ $t('settings.createToken') }}</DialogTitle>
         </DialogHeader>
-        <form @submit.prevent="submitCreate" class="space-y-4 mt-2">
+        <form class="space-y-4 mt-2" @submit.prevent="submitCreate">
           <div class="space-y-2">
             <Label>{{ $t('settings.tokenName') }}</Label>
             <Input
@@ -139,7 +157,9 @@ meta:
           </div>
           <div class="space-y-2">
             <Label>{{ $t('settings.tokenPermissions') }}</Label>
-            <p class="text-xs text-muted-foreground">{{ $t('settings.tokenPermissionsDescription') }}</p>
+            <p class="text-xs text-muted-foreground">
+              {{ $t('settings.tokenPermissionsDescription') }}
+            </p>
             <div class="border rounded-md divide-y max-h-48 overflow-y-auto">
               <div
                 v-for="perm in profile.permissions"
@@ -148,17 +168,29 @@ meta:
                 :class="{ 'opacity-50 cursor-not-allowed': creating }"
                 @click="togglePermission(perm)"
               >
-                <div class="h-4 w-4 shrink-0 rounded-sm border border-primary grid place-content-center transition-colors"
-                     :class="form.permissions.includes(perm) ? 'bg-primary' : 'bg-background'">
-                  <Check v-if="form.permissions.includes(perm)" class="h-3 w-3 text-primary-foreground" />
+                <div
+                  class="h-4 w-4 shrink-0 rounded-sm border border-primary grid place-content-center transition-colors"
+                  :class="form.permissions.includes(perm) ? 'bg-primary' : 'bg-background'"
+                >
+                  <Check
+                    v-if="form.permissions.includes(perm)"
+                    class="h-3 w-3 text-primary-foreground"
+                  />
                 </div>
                 <span class="font-mono text-xs select-none">{{ perm }}</span>
               </div>
             </div>
-            <p v-if="formErrors.permissions" class="text-xs text-destructive">{{ formErrors.permissions }}</p>
+            <p v-if="formErrors.permissions" class="text-xs text-destructive">
+              {{ formErrors.permissions }}
+            </p>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" :disabled="creating" @click="createOpen = false">
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="creating"
+              @click="createOpen = false"
+            >
               {{ $t('common.cancel') }}
             </Button>
             <Button type="submit" :disabled="creating">
@@ -179,7 +211,10 @@ meta:
         </DialogHeader>
         <div class="space-y-3 mt-2">
           <div class="flex items-center gap-2">
-            <code ref="tokenCodeEl" class="flex-1 bg-muted rounded px-3 py-2 text-sm font-mono break-all select-all">
+            <code
+              ref="tokenCodeEl"
+              class="flex-1 bg-muted rounded px-3 py-2 text-sm font-mono break-all select-all"
+            >
               {{ newToken }}
             </code>
             <Button variant="outline" size="sm" @click="copyToken">
@@ -199,7 +234,9 @@ meta:
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ $t('settings.revokeTokenTitle') }}</AlertDialogTitle>
-          <AlertDialogDescription>{{ $t('settings.revokeTokenDescription') }}</AlertDialogDescription>
+          <AlertDialogDescription>{{
+            $t('settings.revokeTokenDescription')
+          }}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{{ $t('common.cancel') }}</AlertDialogCancel>
@@ -223,10 +260,39 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog'
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog'
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -252,7 +318,12 @@ const copied = ref(false)
 const tokenCodeEl = ref<HTMLElement | null>(null)
 const tokenToRevoke = ref<ApiTokenResponse | null>(null)
 
-const form = reactive({ name: '', expiryPreset: 'never', customDate: '', permissions: [] as string[] })
+const form = reactive({
+  name: '',
+  expiryPreset: 'never',
+  customDate: '',
+  permissions: [] as string[],
+})
 const formErrors = reactive({ name: '', customDate: '', permissions: '' })
 
 const minCustomDate = computed(() => {
@@ -283,7 +354,7 @@ function formatDate(iso: string): string {
 function togglePermission(perm: string) {
   if (creating.value) return
   form.permissions = form.permissions.includes(perm)
-    ? form.permissions.filter(p => p !== perm)
+    ? form.permissions.filter((p) => p !== perm)
     : [...form.permissions, perm]
 }
 
@@ -300,8 +371,10 @@ function openCreate() {
 
 async function submitCreate() {
   formErrors.name = form.name.trim() ? '' : t('common.nameRequired')
-  formErrors.customDate = form.expiryPreset === 'custom' && !form.customDate ? t('settings.customDateRequired') : ''
-  formErrors.permissions = form.permissions.length === 0 ? t('settings.tokenPermissionsRequired') : ''
+  formErrors.customDate =
+    form.expiryPreset === 'custom' && !form.customDate ? t('settings.customDateRequired') : ''
+  formErrors.permissions =
+    form.permissions.length === 0 ? t('settings.tokenPermissionsRequired') : ''
   if (formErrors.name || formErrors.customDate || formErrors.permissions) return
 
   creating.value = true
@@ -340,7 +413,9 @@ watch(showTokenOpen, async (open) => {
 async function copyToken() {
   await navigator.clipboard.writeText(newToken.value)
   copied.value = true
-  setTimeout(() => { copied.value = false }, 2000)
+  setTimeout(() => {
+    copied.value = false
+  }, 2000)
   toast({ title: t('settings.tokenCopied') })
 }
 

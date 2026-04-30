@@ -23,7 +23,10 @@ test.describe('Roles settings', () => {
     await page.getByRole('button', { name: 'Add role' }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
-    await dialog.locator('input[id="name"], input[placeholder*="Manager"], input[placeholder*="role"]').first().fill(roleName)
+    await dialog
+      .locator('input[id="name"], input[placeholder*="Manager"], input[placeholder*="role"]')
+      .first()
+      .fill(roleName)
     await dialog.getByRole('button', { name: 'Create' }).click()
     await expect(page.getByText(roleName)).toBeVisible({ timeout: 5000 })
   })
@@ -78,7 +81,9 @@ test.describe('Roles settings', () => {
         await row.getByRole('button').last().click()
         await page.getByRole('menuitem', { name: 'Manage permissions' }).click()
         await expect(page.getByRole('dialog')).toBeVisible()
-        await expect(page.getByRole('dialog').getByRole('heading', { name: 'Manage permissions' })).toBeVisible()
+        await expect(
+          page.getByRole('dialog').getByRole('heading', { name: 'Manage permissions' }),
+        ).toBeVisible()
         await page.keyboard.press('Escape')
         break
       }

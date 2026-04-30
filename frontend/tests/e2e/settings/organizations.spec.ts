@@ -14,7 +14,9 @@ test.describe('Organizations settings', () => {
     await expect(page.getByRole('button', { name: 'Create organization' })).toBeVisible()
   })
 
-  test('create organization: form opens and submitting valid name adds org to list', async ({ page }) => {
+  test('create organization: form opens and submitting valid name adds org to list', async ({
+    page,
+  }) => {
     const orgName = `E2E Org ${Date.now()}`
     await page.getByRole('button', { name: 'Create organization' }).click()
     const dialog = page.getByRole('dialog')
@@ -30,7 +32,9 @@ test.describe('Organizations settings', () => {
     await rows.first().getByRole('button').last().click()
     await page.getByRole('menuitem', { name: 'View members' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
-    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Organization users' })).toBeVisible()
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: 'Organization users' }),
+    ).toBeVisible()
     await page.keyboard.press('Escape')
   })
 })

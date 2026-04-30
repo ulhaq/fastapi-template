@@ -6,22 +6,36 @@
         <DialogDescription>{{ $t('users.form.editDescription') }}</DialogDescription>
       </DialogHeader>
 
-      <form @submit.prevent="onSubmit" class="space-y-4">
+      <form class="space-y-4" @submit.prevent="onSubmit">
         <div class="space-y-2">
           <Label>{{ $t('common.name') }}</Label>
-          <Input v-model="form.name" :placeholder="$t('users.form.namePlaceholder')" :disabled="isLoading" />
+          <Input
+            v-model="form.name"
+            :placeholder="$t('users.form.namePlaceholder')"
+            :disabled="isLoading"
+          />
           <p v-if="errors.name" class="text-xs text-destructive">{{ errors.name }}</p>
         </div>
         <div class="space-y-2">
           <Label>{{ $t('common.email') }}</Label>
-          <Input v-model="form.email" type="text" :placeholder="$t('users.form.emailPlaceholder')" :disabled="isLoading" />
+          <Input
+            v-model="form.email"
+            type="text"
+            :placeholder="$t('users.form.emailPlaceholder')"
+            :disabled="isLoading"
+          />
           <p v-if="errors.email" class="text-xs text-destructive">{{ errors.email }}</p>
         </div>
 
         <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
 
         <DialogFooter>
-          <Button type="button" variant="outline" @click="$emit('update:open', false)" :disabled="isLoading">
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="isLoading"
+            @click="$emit('update:open', false)"
+          >
             {{ $t('common.cancel') }}
           </Button>
           <Button type="submit" :disabled="isLoading">
@@ -38,7 +52,12 @@
 import { ref, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

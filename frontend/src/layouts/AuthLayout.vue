@@ -1,5 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
+  <div
+    class="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4"
+  >
     <div class="w-full max-w-md animate-fade-in">
       <div class="mb-8 text-center">
         <div class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary mb-4">

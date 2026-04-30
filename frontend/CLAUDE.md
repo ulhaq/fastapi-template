@@ -41,9 +41,9 @@ Route metadata is declared with YAML frontmatter in each page file:
 ```vue
 <route lang="yaml">
 meta:
-  layout: dashboard        # 'dashboard' | 'auth'
+  layout: dashboard # 'dashboard' | 'auth'
   requiresAuth: true
-  permission: users:read   # optional - guards the route
+  permission: users:read # optional - guards the route
   breadcrumb: nav.users
 </route>
 ```
@@ -53,17 +53,20 @@ The router guard in `src/router/index.ts` enforces `requiresAuth`, `guestOnly`, 
 ## State Management
 
 **`stores/auth.ts`** - Auth + authorization:
+
 - `user`, `accessToken`, `permissions[]`, `organizations[]`
 - `initialize()` - silent refresh from httponly cookie (called once on app load)
 - `login()` / `logout()` / `switchOrganization()`
 - `hasPermission(name)` - checks flattened permissions from user roles
 
 **`stores/ui.ts`** - UI state:
+
 - `sidebarOpen` - mobile sidebar toggle
 
 ## API Layer
 
 `src/api/client.ts` - Axios instance with:
+
 - Request interceptor: attaches `Authorization: Bearer <token>`
 - Response interceptor: on 401, queues concurrent requests, refreshes token, retries - or clears session and redirects to login on failure
 - `withCredentials: true` for httponly refresh token cookie
@@ -73,9 +76,11 @@ API modules (`api/auth.ts`, `api/users.ts`, etc.) export plain functions that ca
 ## Components
 
 ### UI Components (`components/ui/`)
+
 Headless Reka UI + Radix Vue primitives styled with Tailwind. Do not modify these unless fixing a bug - treat as a library.
 
 ### Common Components
+
 - **`DataTable`** - generic paginated table. Use with `useDataTable` composable for fetch/sort/filter/pagination logic
 - **`PageHeader`** - standard page title + action slot
 - **`ConfirmDialog`** - global confirmation modal, triggered via `useConfirm()`
@@ -83,6 +88,7 @@ Headless Reka UI + Radix Vue primitives styled with Tailwind. Do not modify thes
 - **`EmptyState`** - empty list state with title + description
 
 ### Writing Components
+
 - Use `<script setup lang="ts">` exclusively
 - Props: `defineProps<{ ... }>()`
 - Emit types: `defineEmits<{ (e: 'update', val: string): void }>()`

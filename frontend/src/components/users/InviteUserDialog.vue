@@ -6,7 +6,7 @@
         <DialogDescription>{{ $t('users.invite.dialogDescription') }}</DialogDescription>
       </DialogHeader>
 
-      <form @submit.prevent="onSubmit" class="space-y-4">
+      <form class="space-y-4" @submit.prevent="onSubmit">
         <div class="space-y-2">
           <Label for="invite-email">{{ $t('common.email') }}</Label>
           <Input
@@ -21,7 +21,10 @@
         </div>
 
         <div class="space-y-2">
-          <Label>{{ $t('users.invite.roles') }} <span class="text-muted-foreground text-xs">({{ $t('common.optional') }})</span></Label>
+          <Label
+            >{{ $t('users.invite.roles') }}
+            <span class="text-muted-foreground text-xs">({{ $t('common.optional') }})</span></Label
+          >
           <div v-if="loadingRoles" class="py-2 space-y-2">
             <Skeleton v-for="n in 3" :key="n" class="h-9 w-full" />
           </div>
@@ -55,9 +58,10 @@
           <Button
             type="button"
             variant="outline"
-            @click="$emit('update:open', false)"
             :disabled="isLoading"
-          >{{ $t('common.cancel') }}</Button>
+            @click="$emit('update:open', false)"
+            >{{ $t('common.cancel') }}</Button
+          >
           <Button type="submit" :disabled="isLoading">
             <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
             {{ $t('users.invite.send') }}
@@ -142,7 +146,10 @@ async function onSubmit() {
     await usersApi.invite({ email: form.email.trim(), role_ids: selectedRoleIds.value })
     emit('update:open', false)
     emit('invited')
-    toast({ title: t('users.invite.sent'), description: t('users.invite.sentDescription', { email: form.email.trim() }) })
+    toast({
+      title: t('users.invite.sent'),
+      description: t('users.invite.sentDescription', { email: form.email.trim() }),
+    })
   } catch (err: unknown) {
     const fieldErrors = resolveFieldErrors(err)
     if (fieldErrors['body__email']) {

@@ -15,11 +15,7 @@ const AUTH_DIR = path.join(__dirname, '../.auth')
  * the most-recently-active org on login). Running once per test suite means the
  * switch-organization DB write is made exactly once instead of once per test.
  */
-async function acquireToken(
-  baseURL: string,
-  email: string,
-  password: string,
-): Promise<string> {
+async function acquireToken(baseURL: string, email: string, password: string): Promise<string> {
   const ctx = await request.newContext({ baseURL })
 
   try {
@@ -59,9 +55,7 @@ async function acquireToken(
 
     const { access_token } = (await switchRes.json()) as { access_token: string }
     if (!access_token) {
-      throw new Error(
-        `[global-setup] switch-organization for ${email} returned no access_token`,
-      )
+      throw new Error(`[global-setup] switch-organization for ${email} returned no access_token`)
     }
 
     return access_token

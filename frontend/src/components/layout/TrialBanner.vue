@@ -27,7 +27,9 @@ const { locale } = useI18n()
 const subscriptionStore = useSubscriptionStore()
 
 const showBanner = computed(
-  () => subscriptionStore.subscriptionStatus === 'trialing' && subscriptionStore.subscriptionTrialEnd !== null,
+  () =>
+    subscriptionStore.subscriptionStatus === 'trialing' &&
+    subscriptionStore.subscriptionTrialEnd !== null,
 )
 
 const timeRemaining = computed(() => {

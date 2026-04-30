@@ -8,8 +8,8 @@
         variant="outline"
         size="sm"
         :disabled="page <= 1"
-        @click="$emit('update:page', 1)"
         class="h-8 w-8 p-0"
+        @click="$emit('update:page', 1)"
       >
         <ChevronsLeft class="w-3.5 h-3.5" />
       </Button>
@@ -17,8 +17,8 @@
         variant="outline"
         size="sm"
         :disabled="page <= 1"
-        @click="$emit('update:page', page - 1)"
         class="h-8 w-8 p-0"
+        @click="$emit('update:page', page - 1)"
       >
         <ChevronLeft class="w-3.5 h-3.5" />
       </Button>
@@ -29,8 +29,8 @@
         variant="outline"
         size="sm"
         :disabled="page >= totalPages"
-        @click="$emit('update:page', page + 1)"
         class="h-8 w-8 p-0"
+        @click="$emit('update:page', page + 1)"
       >
         <ChevronRight class="w-3.5 h-3.5" />
       </Button>
@@ -38,8 +38,8 @@
         variant="outline"
         size="sm"
         :disabled="page >= totalPages"
-        @click="$emit('update:page', totalPages)"
         class="h-8 w-8 p-0"
+        @click="$emit('update:page', totalPages)"
       >
         <ChevronsRight class="w-3.5 h-3.5" />
       </Button>

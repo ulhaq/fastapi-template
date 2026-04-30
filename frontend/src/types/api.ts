@@ -52,4 +52,3 @@ export interface FieldError {
 export interface ApiErrorResponse extends ApiError {
   errors?: FieldError[]
 }
-

@@ -18,11 +18,14 @@ meta:
           <CheckCircle2 v-else class="w-5 h-5 text-primary" />
         </div>
         <p class="text-sm text-muted-foreground">{{ responseMessage }}</p>
-        <RouterLink to="/login" class="text-sm text-foreground font-medium hover:underline block mt-4">
+        <RouterLink
+          to="/login"
+          class="text-sm text-foreground font-medium hover:underline block mt-4"
+        >
           {{ $t('auth.backToSignIn') }}
         </RouterLink>
       </div>
-      <form v-else @submit.prevent="onSubmit" class="space-y-4">
+      <form v-else class="space-y-4" @submit.prevent="onSubmit">
         <div class="space-y-2">
           <Label for="email">{{ $t('common.email') }}</Label>
           <Input
@@ -57,7 +60,14 @@ meta:
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Loader2, MailCheck, CheckCircle2 } from 'lucide-vue-next'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'

@@ -13,7 +13,9 @@ test.describe('API Tokens', () => {
   test('Create Token button opens dialog', async ({ page }) => {
     await page.getByRole('button', { name: 'Create token' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
-    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Create token' })).toBeVisible()
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: 'Create token' }),
+    ).toBeVisible()
   })
 
   test('submitting empty name shows validation error', async ({ page }) => {
@@ -76,7 +78,10 @@ test.describe('API Tokens', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).first().click()
 
     // Revoke the specific token we just created
-    await page.getByRole('row', { name: new RegExp(tokenName) }).getByRole('button', { name: 'Revoke' }).click()
+    await page
+      .getByRole('row', { name: new RegExp(tokenName) })
+      .getByRole('button', { name: 'Revoke' })
+      .click()
     await expect(page.getByRole('alertdialog')).toBeVisible()
     await page.getByRole('alertdialog').getByRole('button', { name: 'Revoke' }).click()
 
@@ -97,7 +102,10 @@ test.describe('API Tokens', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).first().click()
 
     // Open revoke for the specific token, then cancel
-    await page.getByRole('row', { name: new RegExp(tokenName) }).getByRole('button', { name: 'Revoke' }).click()
+    await page
+      .getByRole('row', { name: new RegExp(tokenName) })
+      .getByRole('button', { name: 'Revoke' })
+      .click()
     await expect(page.getByRole('alertdialog')).toBeVisible()
     await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click()
 

@@ -5,8 +5,9 @@ import { OWNER_ROLE_NAME } from '@/constants'
 export function usePermission() {
   const profileStore = useProfileStore()
 
-  const isOwner = computed(() =>
-    profileStore.user?.roles.some((r) => r.is_protected && r.name === OWNER_ROLE_NAME) ?? false
+  const isOwner = computed(
+    () =>
+      profileStore.user?.roles.some((r) => r.is_protected && r.name === OWNER_ROLE_NAME) ?? false,
   )
 
   function hasPermission(permission: string): boolean {

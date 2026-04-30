@@ -20,9 +20,7 @@ export function useErrorHandler() {
   function resolveFieldError(fe: FieldError): string {
     const fieldLabel = resolveField(fe.field)
     const apiKey = `errors.api.${fe.error_code}`
-    return te(apiKey)
-      ? t(apiKey, { field: fieldLabel, msg: fe.msg, ...fe.ctx })
-      : fe.msg
+    return te(apiKey) ? t(apiKey, { field: fieldLabel, msg: fe.msg, ...fe.ctx }) : fe.msg
   }
 
   /** Translate the first/most relevant error to a display string. */

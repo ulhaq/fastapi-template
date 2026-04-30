@@ -45,7 +45,9 @@ meta:
       <template #row="{ item }">
         <TableCell>
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div
+              class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
+            >
               <span class="text-xs font-medium text-primary">{{ initials(item.name) }}</span>
             </div>
             <div>
@@ -82,13 +84,13 @@ meta:
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <PermissionGuard permission="manage:organization_user">
-              <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
+              <DropdownMenuItem class="cursor-pointer" @click="openEdit(item)">
                 <Pencil class="w-4 h-4 mr-2" />
                 {{ $t('common.edit') }}
               </DropdownMenuItem>
             </PermissionGuard>
             <PermissionGuard permission="manage:user_role">
-              <DropdownMenuItem @click="openRoles(item)" class="cursor-pointer">
+              <DropdownMenuItem class="cursor-pointer" @click="openRoles(item)">
                 <Shield class="w-4 h-4 mr-2" />
                 {{ $t('users.manageRoles') }}
               </DropdownMenuItem>
@@ -96,8 +98,8 @@ meta:
             <PermissionGuard permission="manage:organization_user">
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                @click="handleDelete(item)"
                 class="cursor-pointer text-destructive focus:text-destructive"
+                @click="handleDelete(item)"
               >
                 <Trash2 class="w-4 h-4 mr-2" />
                 {{ $t('common.delete') }}
@@ -108,20 +110,9 @@ meta:
       </template>
     </DataTable>
 
-    <UserForm
-      v-model:open="showForm"
-      :user="selectedUser"
-      @saved="refresh"
-    />
-    <UserRoleDialog
-      v-model:open="showRoles"
-      :user="selectedUser"
-      @saved="refresh"
-    />
-    <InviteUserDialog
-      v-model:open="showInvite"
-      @invited="refresh"
-    />
+    <UserForm v-model:open="showForm" :user="selectedUser" @saved="refresh" />
+    <UserRoleDialog v-model:open="showRoles" :user="selectedUser" @saved="refresh" />
+    <InviteUserDialog v-model:open="showInvite" @invited="refresh" />
   </div>
 </template>
 
@@ -134,8 +125,11 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataTable from '@/components/common/DataTable.vue'
@@ -162,8 +156,18 @@ const columns = [
   { key: 'created_at', label: t('users.columns.created'), sortable: true },
 ]
 
-const { items, total, isLoading, totalPages, pagination, goToPage, setPageSize, setSort, setFilter, refresh } =
-  useDataTable<UserOut>({ fetcher: usersApi.list })
+const {
+  items,
+  total,
+  isLoading,
+  totalPages,
+  pagination,
+  goToPage,
+  setPageSize,
+  setSort,
+  setFilter,
+  refresh,
+} = useDataTable<UserOut>({ fetcher: usersApi.list })
 
 const searchQuery = ref('')
 let searchTimeout: ReturnType<typeof setTimeout>
@@ -179,7 +183,6 @@ function clearSearch() {
   searchQuery.value = ''
   setFilter('name', [], 'ico')
 }
-
 
 const showForm = ref(false)
 const showRoles = ref(false)
@@ -217,10 +220,19 @@ async function handleDelete(user: UserOut) {
 }
 
 function initials(name: string) {
-  return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 </script>

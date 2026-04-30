@@ -12,7 +12,9 @@ meta:
     <div class="rounded-lg border p-6 space-y-4">
       <div>
         <h3 class="font-semibold text-lg">{{ $t('subscription.checkoutCancelled') }}</h3>
-        <p class="text-muted-foreground text-sm mt-0.5">{{ $t('subscription.checkoutCancelledDescription') }}</p>
+        <p class="text-muted-foreground text-sm mt-0.5">
+          {{ $t('subscription.checkoutCancelledDescription') }}
+        </p>
       </div>
       <Button variant="outline" @click="router.push('/settings/billing')">
         {{ $t('subscription.returnToBilling') }}

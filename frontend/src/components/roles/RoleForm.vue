@@ -2,27 +2,47 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ isEdit ? $t('roles.form.editTitle') : $t('roles.form.createTitle') }}</DialogTitle>
+        <DialogTitle>{{
+          isEdit ? $t('roles.form.editTitle') : $t('roles.form.createTitle')
+        }}</DialogTitle>
         <DialogDescription>
           {{ isEdit ? $t('roles.form.editDescription') : $t('roles.form.createDescription') }}
         </DialogDescription>
       </DialogHeader>
 
-      <form @submit.prevent="onSubmit" class="space-y-4">
+      <form class="space-y-4" @submit.prevent="onSubmit">
         <div class="space-y-2">
           <Label>{{ $t('common.name') }}</Label>
-          <Input v-model="form.name" :placeholder="$t('roles.form.namePlaceholder')" :disabled="isLoading" />
+          <Input
+            v-model="form.name"
+            :placeholder="$t('roles.form.namePlaceholder')"
+            :disabled="isLoading"
+          />
           <p v-if="errors.name" class="text-xs text-destructive">{{ errors.name }}</p>
         </div>
         <div class="space-y-2">
-          <Label>{{ $t('common.description') }} <span class="text-muted-foreground">({{ $t('common.optional') }})</span></Label>
-          <Textarea v-model="form.description" :placeholder="$t('roles.form.descriptionPlaceholder')" :disabled="isLoading" rows="3" />
+          <Label
+            >{{ $t('common.description') }}
+            <span class="text-muted-foreground">({{ $t('common.optional') }})</span></Label
+          >
+          <Textarea
+            v-model="form.description"
+            :placeholder="$t('roles.form.descriptionPlaceholder')"
+            :disabled="isLoading"
+            rows="3"
+          />
         </div>
 
         <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
 
         <DialogFooter>
-          <Button type="button" variant="outline" @click="$emit('update:open', false)" :disabled="isLoading">{{ $t('common.cancel') }}</Button>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="isLoading"
+            @click="$emit('update:open', false)"
+            >{{ $t('common.cancel') }}</Button
+          >
           <Button type="submit" :disabled="isLoading">
             <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
             {{ isEdit ? $t('common.saveChanges') : $t('common.create') }}
@@ -36,7 +56,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -60,12 +87,16 @@ const { form, errors, validate, clearErrors } = useValidation({
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-watch(() => props.role, (r) => {
-  form.name = r?.name ?? ''
-  form.description = r?.description ?? ''
-  clearErrors()
-  errorMessage.value = ''
-}, { immediate: true })
+watch(
+  () => props.role,
+  (r) => {
+    form.name = r?.name ?? ''
+    form.description = r?.description ?? ''
+    clearErrors()
+    errorMessage.value = ''
+  },
+  { immediate: true },
+)
 
 async function onSubmit() {
   if (!validate()) return

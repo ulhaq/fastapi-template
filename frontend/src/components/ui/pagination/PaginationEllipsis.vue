@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import type { PaginationEllipsisProps } from "reka-ui"
-import type { HTMLAttributes } from "vue"
-import { reactiveOmit } from "@vueuse/core"
-import { MoreHorizontal } from "lucide-vue-next"
-import { PaginationEllipsis } from "reka-ui"
-import { useI18n } from "vue-i18n"
-import { cn } from "@/lib/utils"
+import type { PaginationEllipsisProps } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+import { reactiveOmit } from '@vueuse/core'
+import { MoreHorizontal } from 'lucide-vue-next'
+import { PaginationEllipsis } from 'reka-ui'
+import { useI18n } from 'vue-i18n'
+import { cn } from '@/lib/utils'
 
 const { t } = useI18n()
 
-const props = defineProps<PaginationEllipsisProps & { class?: HTMLAttributes["class"] }>()
+const props = defineProps<PaginationEllipsisProps & { class?: HTMLAttributes['class'] }>()
 
-const delegatedProps = reactiveOmit(props, "class")
+const delegatedProps = reactiveOmit(props, 'class')
 </script>
 
 <template>

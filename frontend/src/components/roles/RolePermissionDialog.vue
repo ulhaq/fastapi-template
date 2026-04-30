@@ -2,8 +2,14 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ readonly ? $t('roles.viewPermissions') : $t('roles.permissionDialog.title') }}</DialogTitle>
-        <DialogDescription>{{ readonly ? $t('roles.permissionDialog.viewDescription', { name: role?.name }) : $t('roles.permissionDialog.description', { name: role?.name }) }}</DialogDescription>
+        <DialogTitle>{{
+          readonly ? $t('roles.viewPermissions') : $t('roles.permissionDialog.title')
+        }}</DialogTitle>
+        <DialogDescription>{{
+          readonly
+            ? $t('roles.permissionDialog.viewDescription', { name: role?.name })
+            : $t('roles.permissionDialog.description', { name: role?.name })
+        }}</DialogDescription>
       </DialogHeader>
 
       <div v-if="loadingPerms" class="py-4 space-y-2">
@@ -11,13 +17,18 @@
       </div>
       <div v-else class="space-y-1 max-h-72 overflow-y-auto py-1">
         <template v-for="(group, category) in grouped" :key="category">
-          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mt-3 first:mt-0">
+          <p
+            class="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mt-3 first:mt-0"
+          >
             {{ category }}
           </p>
           <div
             v-for="perm in group"
             :key="perm.id"
-            :class="['flex items-center gap-3 px-2 py-1.5 rounded-md', readonly ? '' : 'hover:bg-muted cursor-pointer']"
+            :class="[
+              'flex items-center gap-3 px-2 py-1.5 rounded-md',
+              readonly ? '' : 'hover:bg-muted cursor-pointer',
+            ]"
             @click="!readonly && togglePerm(perm.id)"
           >
             <Checkbox
@@ -27,17 +38,23 @@
             />
             <div>
               <p class="text-sm font-medium">{{ perm.name }}</p>
-              <p v-if="perm.description" class="text-xs text-muted-foreground">{{ perm.description }}</p>
+              <p v-if="perm.description" class="text-xs text-muted-foreground">
+                {{ perm.description }}
+              </p>
             </div>
           </div>
         </template>
       </div>
 
       <DialogFooter>
-        <Button v-if="readonly" @click="$emit('update:open', false)">{{ $t('common.close') }}</Button>
+        <Button v-if="readonly" @click="$emit('update:open', false)">{{
+          $t('common.close')
+        }}</Button>
         <template v-else>
-          <Button variant="outline" @click="$emit('update:open', false)" :disabled="isLoading">{{ $t('common.cancel') }}</Button>
-          <Button @click="onSave" :disabled="isLoading">
+          <Button variant="outline" :disabled="isLoading" @click="$emit('update:open', false)">{{
+            $t('common.cancel')
+          }}</Button>
+          <Button :disabled="isLoading" @click="onSave">
             <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
             {{ $t('common.save') }}
           </Button>
@@ -51,7 +68,14 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -81,24 +105,26 @@ const grouped = computed(() => {
   return map
 })
 
-watch(() => props.open, async (open) => {
-  if (!open || !props.role) return
-  loadingPerms.value = true
-  try {
-    const { data } = await permissionsApi.list({ page_size: PAGE_SIZE })
-    allPerms.value = data.items
-    selectedIds.value = props.role.permissions.map((p) => p.id)
-  } finally {
-    loadingPerms.value = false
-  }
-})
+watch(
+  () => props.open,
+  async (open) => {
+    if (!open || !props.role) return
+    loadingPerms.value = true
+    try {
+      const { data } = await permissionsApi.list({ page_size: PAGE_SIZE })
+      allPerms.value = data.items
+      selectedIds.value = props.role.permissions.map((p) => p.id)
+    } finally {
+      loadingPerms.value = false
+    }
+  },
+)
 
 function togglePerm(id: number) {
   const idx = selectedIds.value.indexOf(id)
   if (idx >= 0) {
     selectedIds.value.splice(idx, 1)
-  }
-  else {
+  } else {
     selectedIds.value.push(id)
   }
 }

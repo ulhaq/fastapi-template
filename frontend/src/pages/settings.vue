@@ -17,9 +17,11 @@ meta:
         :key="item.to"
         :to="item.to"
         class="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors"
-        :class="isActive(item.to, item.exact)
-          ? 'bg-accent text-accent-foreground font-medium'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
+        :class="
+          isActive(item.to, item.exact)
+            ? 'bg-accent text-accent-foreground font-medium'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+        "
       >
         <component :is="item.icon" class="w-4 h-4 shrink-0" />
         {{ item.label }}
@@ -34,9 +36,11 @@ meta:
           :key="item.to"
           :to="item.to"
           class="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors"
-          :class="isActive(item.to)
-            ? 'bg-accent text-accent-foreground font-medium'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
+          :class="
+            isActive(item.to)
+              ? 'bg-accent text-accent-foreground font-medium'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+          "
         >
           <component :is="item.icon" class="w-4 h-4 shrink-0" />
           {{ item.label }}
@@ -52,9 +56,11 @@ meta:
           :key="item.to"
           :to="item.to"
           class="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors"
-          :class="isActive(item.to)
-            ? 'bg-accent text-accent-foreground font-medium'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
+          :class="
+            isActive(item.to)
+              ? 'bg-accent text-accent-foreground font-medium'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+          "
         >
           <component :is="item.icon" class="w-4 h-4 shrink-0" />
           {{ item.label }}
@@ -82,14 +88,24 @@ const { hasPermission, isOwner } = usePermission()
 const accountItems = computed(() => [
   { to: '/settings', label: t('settings.profile'), icon: User, exact: true },
   { to: '/settings/security', label: t('settings.security'), icon: Lock },
-  ...(hasPermission('manage:api_token') ? [{ to: '/settings/api', label: t('settings.api'), icon: KeyRound }] : []),
+  ...(hasPermission('manage:api_token')
+    ? [{ to: '/settings/api', label: t('settings.api'), icon: KeyRound }]
+    : []),
 ])
 
 const workspaceItems = computed(() => [
-  ...(isOwner.value ? [{ to: '/settings/general', label: t('settings.general'), icon: Settings2 }] : []),
-  ...(hasPermission('read:user') ? [{ to: '/settings/users', label: t('nav.users'), icon: Users }] : []),
-  ...(hasPermission('read:role') ? [{ to: '/settings/roles', label: t('nav.roles'), icon: Shield }] : []),
-  ...(hasPermission('manage:subscription') ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }] : []),
+  ...(isOwner.value
+    ? [{ to: '/settings/general', label: t('settings.general'), icon: Settings2 }]
+    : []),
+  ...(hasPermission('read:user')
+    ? [{ to: '/settings/users', label: t('nav.users'), icon: Users }]
+    : []),
+  ...(hasPermission('read:role')
+    ? [{ to: '/settings/roles', label: t('nav.roles'), icon: Shield }]
+    : []),
+  ...(hasPermission('manage:subscription')
+    ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }]
+    : []),
 ])
 
 const adminItems = computed(() => [

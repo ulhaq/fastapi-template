@@ -31,7 +31,9 @@ meta:
             {{ getOrgRole(item) }}
           </Badge>
         </TableCell>
-        <TableCell class="text-muted-foreground text-xs">{{ formatDate(item.created_at) }}</TableCell>
+        <TableCell class="text-muted-foreground text-xs">{{
+          formatDate(item.created_at)
+        }}</TableCell>
       </template>
       <template #actions="{ item }">
         <DropdownMenu v-if="hasAnyOrgAction(item)">
@@ -42,25 +44,28 @@ meta:
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <PermissionGuard permission="read:user">
-              <DropdownMenuItem @click="openUsers(item)" class="cursor-pointer">
+              <DropdownMenuItem class="cursor-pointer" @click="openUsers(item)">
                 <Users class="w-4 h-4 mr-2" />{{ $t('organizations.viewMembers') }}
               </DropdownMenuItem>
             </PermissionGuard>
             <template v-if="isActiveOrg(item.id)">
               <PermissionGuard permission="update:organization">
-                <DropdownMenuItem @click="openEdit(item)" class="cursor-pointer">
+                <DropdownMenuItem class="cursor-pointer" @click="openEdit(item)">
                   <Pencil class="w-4 h-4 mr-2" />{{ $t('common.edit') }}
                 </DropdownMenuItem>
               </PermissionGuard>
               <template v-if="isOwner">
                 <DropdownMenuSeparator />
-                <DropdownMenuItem @click="openTransferOwnership(item)" class="cursor-pointer">
+                <DropdownMenuItem class="cursor-pointer" @click="openTransferOwnership(item)">
                   <ArrowRightLeft class="w-4 h-4 mr-2" />{{ $t('organizations.transferOwnership') }}
                 </DropdownMenuItem>
               </template>
               <PermissionGuard permission="delete:organization">
                 <DropdownMenuSeparator />
-                <DropdownMenuItem @click="handleDelete(item)" class="cursor-pointer text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                  class="cursor-pointer text-destructive focus:text-destructive"
+                  @click="handleDelete(item)"
+                >
                   <Trash2 class="w-4 h-4 mr-2" />{{ $t('common.delete') }}
                 </DropdownMenuItem>
               </PermissionGuard>
@@ -70,9 +75,17 @@ meta:
       </template>
     </DataTable>
 
-    <OrganizationForm v-model:open="showForm" :organization="selectedOrganization" @saved="refresh" />
+    <OrganizationForm
+      v-model:open="showForm"
+      :organization="selectedOrganization"
+      @saved="refresh"
+    />
     <OrganizationUsersDialog v-model:open="showUsers" :organization="selectedOrganization" />
-    <TransferOwnershipDialog v-model:open="showTransfer" :organization="selectedOrganization" @saved="handleOwnershipTransferred" />
+    <TransferOwnershipDialog
+      v-model:open="showTransfer"
+      :organization="selectedOrganization"
+      @saved="handleOwnershipTransferred"
+    />
   </div>
 </template>
 
@@ -83,7 +96,13 @@ import { Plus, MoreHorizontal, Pencil, Trash2, Users, ArrowRightLeft } from 'luc
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import PermissionGuard from '@/components/common/PermissionGuard.vue'
@@ -116,10 +135,12 @@ function isActiveOrg(orgId: number): boolean {
 
 function hasAnyOrgAction(item: OrganizationOut): boolean {
   const active = isActiveOrg(item.id)
-  return hasPermission('read:user')
-    || (active && hasPermission('update:organization'))
-    || (active && isOwner.value)
-    || (active && hasPermission('delete:organization'))
+  return (
+    hasPermission('read:user') ||
+    (active && hasPermission('update:organization')) ||
+    (active && isOwner.value) ||
+    (active && hasPermission('delete:organization'))
+  )
 }
 
 const columns = [
@@ -134,21 +155,42 @@ function getOrgRole(item: OrganizationOut): string {
 
 async function fetchOrganizations() {
   const { data } = await usersApi.getMyOrganizations()
-  return { data: { items: data, total: data.length, page_number: 1, page_size: data.length } as PaginatedResponse<OrganizationOut> }
+  return {
+    data: {
+      items: data,
+      total: data.length,
+      page_number: 1,
+      page_size: data.length,
+    } as PaginatedResponse<OrganizationOut>,
+  }
 }
 
-const { items, total, isLoading, setSort, refresh } =
-  useDataTable<OrganizationOut>({ fetcher: fetchOrganizations, defaultPageSize: PAGE_SIZE })
+const { items, total, isLoading, setSort, refresh } = useDataTable<OrganizationOut>({
+  fetcher: fetchOrganizations,
+  defaultPageSize: PAGE_SIZE,
+})
 
 const showForm = ref(false)
 const showUsers = ref(false)
 const showTransfer = ref(false)
 const selectedOrganization = ref<OrganizationOut | null>(null)
 
-function openCreate() { selectedOrganization.value = null; showForm.value = true }
-function openEdit(organization: OrganizationOut) { selectedOrganization.value = organization; showForm.value = true }
-function openUsers(organization: OrganizationOut) { selectedOrganization.value = organization; showUsers.value = true }
-function openTransferOwnership(organization: OrganizationOut) { selectedOrganization.value = organization; showTransfer.value = true }
+function openCreate() {
+  selectedOrganization.value = null
+  showForm.value = true
+}
+function openEdit(organization: OrganizationOut) {
+  selectedOrganization.value = organization
+  showForm.value = true
+}
+function openUsers(organization: OrganizationOut) {
+  selectedOrganization.value = organization
+  showUsers.value = true
+}
+function openTransferOwnership(organization: OrganizationOut) {
+  selectedOrganization.value = organization
+  showTransfer.value = true
+}
 
 async function handleOwnershipTransferred() {
   await profile.fetchMe()
@@ -172,6 +214,10 @@ async function handleDelete(organization: OrganizationOut) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 </script>

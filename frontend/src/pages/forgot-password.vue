@@ -22,11 +22,14 @@ meta:
         <p class="text-sm text-muted-foreground">
           {{ $t('auth.resetLinkSent') }}
         </p>
-        <RouterLink to="/login" class="text-sm text-foreground font-medium hover:underline block mt-4">
+        <RouterLink
+          to="/login"
+          class="text-sm text-foreground font-medium hover:underline block mt-4"
+        >
           {{ $t('auth.backToSignIn') }}
         </RouterLink>
       </div>
-      <form v-else @submit.prevent="onSubmit" class="space-y-4">
+      <form v-else class="space-y-4" @submit.prevent="onSubmit">
         <div class="space-y-2">
           <Label for="email">{{ $t('common.email') }}</Label>
           <Input

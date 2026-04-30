@@ -3,7 +3,9 @@
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>{{ $t('organizations.transferOwnershipDialog.title') }}</DialogTitle>
-        <DialogDescription>{{ $t('organizations.transferOwnershipDialog.description', { name: organization?.name }) }}</DialogDescription>
+        <DialogDescription>{{
+          $t('organizations.transferOwnershipDialog.description', { name: organization?.name })
+        }}</DialogDescription>
       </DialogHeader>
 
       <div v-if="loading" class="py-4 space-y-2">
@@ -15,13 +17,13 @@
           :key="user.id"
           :class="[
             'flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors',
-            selectedUserId === user.id
-              ? 'bg-primary/10 ring-1 ring-primary'
-              : 'hover:bg-muted',
+            selectedUserId === user.id ? 'bg-primary/10 ring-1 ring-primary' : 'hover:bg-muted',
           ]"
           @click="selectedUserId = user.id"
         >
-          <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <div
+            class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"
+          >
             <span class="text-xs font-medium text-primary">{{ initials(user.name) }}</span>
           </div>
           <div class="min-w-0">
@@ -37,12 +39,10 @@
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="$emit('update:open', false)">{{ $t('common.cancel') }}</Button>
-        <Button
-          variant="destructive"
-          :disabled="!selectedUserId || saving"
-          @click="submit"
-        >
+        <Button variant="outline" @click="$emit('update:open', false)">{{
+          $t('common.cancel')
+        }}</Button>
+        <Button variant="destructive" :disabled="!selectedUserId || saving" @click="submit">
           <Loader2 v-if="saving" class="w-4 h-4 mr-2 animate-spin" />
           {{ $t('organizations.transferOwnershipDialog.confirm') }}
         </Button>
@@ -55,7 +55,14 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -76,17 +83,20 @@ const saving = ref(false)
 const candidates = ref<UserOut[]>([])
 const selectedUserId = ref<number | null>(null)
 
-watch(() => props.open, async (open) => {
-  if (!open || !props.organization) return
-  selectedUserId.value = null
-  loading.value = true
-  try {
-    const { data } = await organizationsApi.getUsers(props.organization.id)
-    candidates.value = data.items.filter((u) => u.id !== profile.user?.id)
-  } finally {
-    loading.value = false
-  }
-})
+watch(
+  () => props.open,
+  async (open) => {
+    if (!open || !props.organization) return
+    selectedUserId.value = null
+    loading.value = true
+    try {
+      const { data } = await organizationsApi.getUsers(props.organization.id)
+      candidates.value = data.items.filter((u) => u.id !== profile.user?.id)
+    } finally {
+      loading.value = false
+    }
+  },
+)
 
 async function submit() {
   if (!props.organization || !selectedUserId.value) return
@@ -94,7 +104,9 @@ async function submit() {
   try {
     await organizationsApi.transferOwnership(props.organization.id, selectedUserId.value)
     const newOwner = candidates.value.find((u) => u.id === selectedUserId.value)
-    toast({ title: t('organizations.transferOwnershipDialog.success', { name: newOwner?.name ?? '' }) })
+    toast({
+      title: t('organizations.transferOwnershipDialog.success', { name: newOwner?.name ?? '' }),
+    })
     emit('update:open', false)
     emit('saved')
   } catch {
@@ -105,6 +117,11 @@ async function submit() {
 }
 
 function initials(name: string) {
-  return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 }
 </script>

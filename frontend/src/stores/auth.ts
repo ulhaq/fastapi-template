@@ -32,7 +32,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data: token } = await authApi.refresh()
       session.setToken(token.access_token)
-      await Promise.all([profile.fetchMe(), organizationStore.fetchOrganizations(), subscription.fetchSubscriptionStatus()])
+      await Promise.all([
+        profile.fetchMe(),
+        organizationStore.fetchOrganizations(),
+        subscription.fetchSubscriptionStatus(),
+      ])
     } catch {
       // No valid session cookie - proceed as unauthenticated.
     }
@@ -42,7 +46,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email: string, password: string): Promise<void> {
     const { data: token } = await authApi.login(email, password)
     setSession(token)
-    await Promise.all([profile.fetchMe(), organizationStore.fetchOrganizations(), subscription.fetchSubscriptionStatus()])
+    await Promise.all([
+      profile.fetchMe(),
+      organizationStore.fetchOrganizations(),
+      subscription.fetchSubscriptionStatus(),
+    ])
   }
 
   async function logout(): Promise<void> {
@@ -54,14 +62,22 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession()
   }
 
-  async function completeRegistration(setupToken: string, name: string, password: string): Promise<void> {
+  async function completeRegistration(
+    setupToken: string,
+    name: string,
+    password: string,
+  ): Promise<void> {
     const { data: token } = await authApi.completeRegistration({
       setup_token: setupToken,
       name,
       password,
     })
     setSession(token)
-    await Promise.all([profile.fetchMe(), organizationStore.fetchOrganizations(), subscription.fetchSubscriptionStatus()])
+    await Promise.all([
+      profile.fetchMe(),
+      organizationStore.fetchOrganizations(),
+      subscription.fetchSubscriptionStatus(),
+    ])
   }
 
   async function switchOrganization(organizationId: number): Promise<void> {

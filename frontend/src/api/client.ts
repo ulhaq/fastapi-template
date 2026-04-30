@@ -47,11 +47,7 @@ apiClient.interceptors.response.use(
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
     // Only handle 401 on non-auth endpoints and non-retried requests
-    if (
-      error.response?.status === 401 &&
-      !original._retry &&
-      !original.url?.includes('/auth/')
-    ) {
+    if (error.response?.status === 401 && !original._retry && !original.url?.includes('/auth/')) {
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject })

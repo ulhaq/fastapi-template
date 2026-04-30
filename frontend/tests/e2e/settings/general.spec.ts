@@ -22,7 +22,10 @@ adminTest.describe('General settings — owner (Alice)', () => {
   adminTest('cancelling the confirm dialog closes it without navigating', async ({ page }) => {
     await page.getByRole('button', { name: /delete organization/i }).click()
     await expect(page.getByRole('alertdialog')).toBeVisible()
-    await page.getByRole('alertdialog').getByRole('button', { name: /cancel/i }).click()
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', { name: /cancel/i })
+      .click()
     await expect(page.getByRole('alertdialog')).not.toBeVisible()
     await expect(page).toHaveURL('/settings/general')
   })

@@ -5,8 +5,8 @@ import { billingApi } from '@/api/billing'
 export const useSubscriptionStore = defineStore('subscription', () => {
   const subscriptionStatus = ref<string | null>(null)
   const subscriptionTrialEnd = ref<string | null>(null)
-  const hasActiveSubscription = computed(() =>
-    subscriptionStatus.value === 'active' || subscriptionStatus.value === 'trialing',
+  const hasActiveSubscription = computed(
+    () => subscriptionStatus.value === 'active' || subscriptionStatus.value === 'trialing',
   )
 
   async function fetchSubscriptionStatus(): Promise<void> {
@@ -25,5 +25,11 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     subscriptionTrialEnd.value = null
   }
 
-  return { subscriptionStatus, subscriptionTrialEnd, hasActiveSubscription, fetchSubscriptionStatus, clear }
+  return {
+    subscriptionStatus,
+    subscriptionTrialEnd,
+    hasActiveSubscription,
+    fetchSubscriptionStatus,
+    clear,
+  }
 })

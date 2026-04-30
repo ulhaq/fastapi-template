@@ -2,8 +2,8 @@
   <header class="h-14 border-b border-border bg-background flex items-center px-4 gap-4 shrink-0">
     <!-- Mobile menu button -->
     <button
-      @click="uiStore.toggleSidebar()"
       class="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      @click="uiStore.toggleSidebar()"
     >
       <Menu class="w-5 h-5" />
     </button>
@@ -19,8 +19,8 @@
     <div class="flex items-center gap-2">
       <!-- Dark mode toggle -->
       <button
-        @click="toggleDark()"
         class="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        @click="toggleDark()"
       >
         <Sun v-if="isDark" class="w-4 h-4" />
         <Moon v-else class="w-4 h-4" />
@@ -28,8 +28,8 @@
 
       <!-- Language toggle -->
       <button
-        @click="toggleLocale()"
         class="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-xs font-medium"
+        @click="toggleLocale()"
       >
         {{ locale.toUpperCase() }}
       </button>
@@ -37,7 +37,9 @@
       <!-- User menu -->
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <button class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors">
+          <button
+            class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors"
+          >
             <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
               <span class="text-primary-foreground text-xs font-semibold">{{ userInitials }}</span>
             </div>
@@ -57,7 +59,10 @@
             </RouterLink>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleLogout" class="text-destructive cursor-pointer focus:text-destructive">
+          <DropdownMenuItem
+            class="text-destructive cursor-pointer focus:text-destructive"
+            @click="handleLogout"
+          >
             <LogOut class="w-4 h-4 mr-2" />
             {{ $t('nav.logOut') }}
           </DropdownMenuItem>

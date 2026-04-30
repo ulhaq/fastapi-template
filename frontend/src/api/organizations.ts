@@ -1,5 +1,11 @@
 import { apiClient } from './client'
-import type { PaginatedResponse, OrganizationOut, OrganizationBase, OrganizationPatch, UserOut } from '@/types'
+import type {
+  PaginatedResponse,
+  OrganizationOut,
+  OrganizationBase,
+  OrganizationPatch,
+  UserOut,
+} from '@/types'
 
 export const organizationsApi = {
   list() {
@@ -27,6 +33,8 @@ export const organizationsApi = {
   },
 
   transferOwnership(organizationId: number, userId: number) {
-    return apiClient.post(`/organizations/${organizationId}/transfer-ownership`, { user_id: userId })
+    return apiClient.post(`/organizations/${organizationId}/transfer-ownership`, {
+      user_id: userId,
+    })
   },
 }

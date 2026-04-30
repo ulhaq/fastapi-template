@@ -25,13 +25,16 @@ meta:
       <!-- Error state -->
       <div v-else-if="error" class="text-center py-4 space-y-2">
         <p class="text-sm text-destructive">{{ $t('auth.invalidVerifyLink') }}</p>
-        <RouterLink to="/register" class="text-sm text-foreground font-medium hover:underline block mt-2">
+        <RouterLink
+          to="/register"
+          class="text-sm text-foreground font-medium hover:underline block mt-2"
+        >
           {{ $t('auth.registerAgain') }}
         </RouterLink>
       </div>
 
       <!-- Complete profile form -->
-      <form v-else-if="setupToken" @submit.prevent="onSubmit" class="space-y-4">
+      <form v-else-if="setupToken" class="space-y-4" @submit.prevent="onSubmit">
         <div class="space-y-2">
           <Label for="name">{{ $t('common.name') }}</Label>
           <Input

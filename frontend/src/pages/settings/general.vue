@@ -19,12 +19,7 @@ meta:
               {{ $t('settings.deleteOrganizationDescription') }}
             </p>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            :disabled="deleting"
-            @click="handleDeleteOrg"
-          >
+          <Button variant="destructive" size="sm" :disabled="deleting" @click="handleDeleteOrg">
             <Loader2 v-if="deleting" class="w-4 h-4 mr-2 animate-spin" />
             {{ $t('settings.deleteOrganization') }}
           </Button>
@@ -64,7 +59,7 @@ const { isOwner } = usePermission()
 const deleting = ref(false)
 
 const activeOrgName = computed(() => {
-  const org = orgStore.organizations.find(o => o.id === session.activeOrganizationId)
+  const org = orgStore.organizations.find((o) => o.id === session.activeOrganizationId)
   return org?.name ?? ''
 })
 

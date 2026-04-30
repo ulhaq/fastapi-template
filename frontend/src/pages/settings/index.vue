@@ -5,20 +5,27 @@ meta:
 
 <template>
   <div class="max-w-2xl">
-    <PageHeader :title="$t('settings.profileInfo')" :description="$t('settings.profileInfoDescription')" />
+    <PageHeader
+      :title="$t('settings.profileInfo')"
+      :description="$t('settings.profileInfoDescription')"
+    />
 
     <Card>
       <CardContent class="pt-6">
-        <form @submit.prevent="saveProfile" class="space-y-4">
+        <form class="space-y-4" @submit.prevent="saveProfile">
           <div class="space-y-2">
             <Label>{{ $t('common.name') }}</Label>
             <Input v-model="profile.name" :disabled="savingProfile" />
-            <p v-if="profileErrors.name" class="text-xs text-destructive">{{ profileErrors.name }}</p>
+            <p v-if="profileErrors.name" class="text-xs text-destructive">
+              {{ profileErrors.name }}
+            </p>
           </div>
           <div class="space-y-2">
             <Label>{{ $t('common.email') }}</Label>
             <Input v-model="profile.email" type="text" :disabled="savingProfile" />
-            <p v-if="profileErrors.email" class="text-xs text-destructive">{{ profileErrors.email }}</p>
+            <p v-if="profileErrors.email" class="text-xs text-destructive">
+              {{ profileErrors.email }}
+            </p>
           </div>
           <p v-if="profileError" class="text-sm text-destructive">{{ profileError }}</p>
           <div class="flex justify-end">

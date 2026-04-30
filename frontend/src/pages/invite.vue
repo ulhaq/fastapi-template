@@ -28,9 +28,11 @@ meta:
 
       <!-- Logged in as wrong account -->
       <div v-else-if="state === 'wrong-account'" class="text-center py-4 space-y-3">
-        <p class="text-sm text-muted-foreground">{{ $t('auth.invite.wrongAccount', { email: currentUserEmail }) }}</p>
+        <p class="text-sm text-muted-foreground">
+          {{ $t('auth.invite.wrongAccount', { email: currentUserEmail }) }}
+        </p>
         <p class="text-sm text-muted-foreground">{{ $t('auth.invite.logoutFirst') }}</p>
-        <Button class="w-full" @click="onLogout" :disabled="isLoading">
+        <Button class="w-full" :disabled="isLoading" @click="onLogout">
           <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
           {{ $t('auth.invite.logout') }}
         </Button>
@@ -39,14 +41,14 @@ meta:
       <!-- Existing user - accept with one click -->
       <div v-else-if="state === 'existing-user'" class="space-y-4">
         <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
-        <Button class="w-full" @click="onAcceptExisting" :disabled="isLoading">
+        <Button class="w-full" :disabled="isLoading" @click="onAcceptExisting">
           <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
           {{ $t('auth.invite.acceptAs', { email: inviteEmail }) }}
         </Button>
       </div>
 
       <!-- New user - name + password form -->
-      <form v-else-if="state === 'new-user'" @submit.prevent="onSubmitNew" class="space-y-4">
+      <form v-else-if="state === 'new-user'" class="space-y-4" @submit.prevent="onSubmitNew">
         <div class="space-y-2">
           <Label for="name">{{ $t('common.name') }}</Label>
           <Input

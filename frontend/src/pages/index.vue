@@ -61,7 +61,12 @@ import type { OrganizationOut } from '@/types'
 const { hasPermission } = usePermission()
 
 const loading = ref(true)
-const stats = ref<{ users: number | string; organizations: number | string; roles: number | string; permissions: number | string }>({ users: 0, organizations: 0, roles: 0, permissions: 0 })
+const stats = ref<{
+  users: number | string
+  organizations: number | string
+  roles: number | string
+  permissions: number | string
+}>({ users: 0, organizations: 0, roles: 0, permissions: 0 })
 
 onMounted(async () => {
   const requests = []
@@ -73,16 +78,25 @@ onMounted(async () => {
   if (hasPermission('read:role')) requests.push(rolesApi.list({ page_size: PAGE_SIZE_DASHBOARD }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
-  if (hasPermission('read:permission')) requests.push(permissionsApi.list({ page_size: PAGE_SIZE_DASHBOARD }))
+  if (hasPermission('read:permission'))
+    requests.push(permissionsApi.list({ page_size: PAGE_SIZE_DASHBOARD }))
   else requests.push(Promise.resolve({ data: { total: '-' } }))
 
   const [users, organizations, roles, permissions] = await Promise.allSettled(requests)
 
   stats.value = {
-    users: users.status === 'fulfilled' ? (users.value as { data: { total: number } }).data.total : '-',
-    organizations: organizations.status === 'fulfilled' ? (organizations.value as { data: OrganizationOut[] }).data.length : '-',
-    roles: roles.status === 'fulfilled' ? (roles.value as { data: { total: number } }).data.total : '-',
-    permissions: permissions.status === 'fulfilled' ? (permissions.value as { data: { total: number } }).data.total : '-',
+    users:
+      users.status === 'fulfilled' ? (users.value as { data: { total: number } }).data.total : '-',
+    organizations:
+      organizations.status === 'fulfilled'
+        ? (organizations.value as { data: OrganizationOut[] }).data.length
+        : '-',
+    roles:
+      roles.status === 'fulfilled' ? (roles.value as { data: { total: number } }).data.total : '-',
+    permissions:
+      permissions.status === 'fulfilled'
+        ? (permissions.value as { data: { total: number } }).data.total
+        : '-',
   }
   loading.value = false
 })

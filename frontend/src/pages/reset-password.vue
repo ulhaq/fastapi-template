@@ -14,7 +14,10 @@ meta:
     <CardContent>
       <div v-if="!token" class="text-center py-4">
         <p class="text-sm text-destructive">{{ $t('auth.invalidToken') }}</p>
-        <RouterLink to="/forgot-password" class="text-sm text-foreground font-medium hover:underline block mt-2">
+        <RouterLink
+          to="/forgot-password"
+          class="text-sm text-foreground font-medium hover:underline block mt-2"
+        >
           {{ $t('auth.requestNewLink') }}
         </RouterLink>
       </div>
@@ -23,11 +26,14 @@ meta:
           <CheckCircle2 class="w-5 h-5 text-primary" />
         </div>
         <p class="font-medium text-sm">{{ $t('auth.passwordUpdatedSuccess') }}</p>
-        <RouterLink to="/login" class="text-sm text-foreground font-medium hover:underline block mt-4">
+        <RouterLink
+          to="/login"
+          class="text-sm text-foreground font-medium hover:underline block mt-4"
+        >
           {{ $t('auth.signIn') }}
         </RouterLink>
       </div>
-      <form v-else @submit.prevent="onSubmit" class="space-y-4">
+      <form v-else class="space-y-4" @submit.prevent="onSubmit">
         <div class="space-y-2">
           <Label for="password">{{ $t('auth.newPassword') }}</Label>
           <Input

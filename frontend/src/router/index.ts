@@ -43,15 +43,14 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
   const billingPaths = ['/settings/billing', '/billing/success', '/billing/cancel']
   const isBillingRoute = billingPaths.some((p) => to.path.startsWith(p))
   if (
-    authStore.isAuthenticated
-    && !authStore.hasActiveSubscription
-    && to.meta.requiresAuth
-    && !isBillingRoute
-    && profileStore.hasPermission('manage:subscription')
+    authStore.isAuthenticated &&
+    !authStore.hasActiveSubscription &&
+    to.meta.requiresAuth &&
+    !isBillingRoute &&
+    profileStore.hasPermission('manage:subscription')
   ) {
     return { path: '/settings/billing' }
   }
-
 })
 
 export { router }

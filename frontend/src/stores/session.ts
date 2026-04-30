@@ -16,7 +16,7 @@ export const useSessionStore = defineStore('session', () => {
   const isInitialized = ref(false)
   const isAuthenticated = computed(() => !!accessToken.value)
   const activeOrganizationId = computed<number | null>(() =>
-    accessToken.value ? (parseJwtClaim(accessToken.value, 'oid') as number | null) : null
+    accessToken.value ? (parseJwtClaim(accessToken.value, 'oid') as number | null) : null,
   )
 
   function setToken(token: string | null): void {

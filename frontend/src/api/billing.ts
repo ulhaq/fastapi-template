@@ -1,10 +1,5 @@
 import { apiClient } from './client'
-import type {
-  PlanOut,
-  SubscriptionOut,
-  CheckoutOut,
-  CustomerPortalOut,
-} from '@/types'
+import type { PlanOut, SubscriptionOut, CheckoutOut, CustomerPortalOut } from '@/types'
 
 export const billingApi = {
   // Plans

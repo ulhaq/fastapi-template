@@ -8,10 +8,7 @@ import type { Page } from '@playwright/test'
 
 const ADMIN_EMAIL = 'admin@example.org'
 
-function stubInviteStatus(
-  page: Page,
-  response: { email: string; user_exists: boolean },
-) {
+function stubInviteStatus(page: Page, response: { email: string; user_exists: boolean }) {
   return page.route('**/v1/auth/invite-status', (route) =>
     route.fulfill({
       status: 200,

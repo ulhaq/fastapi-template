@@ -13,17 +13,31 @@
             <TableHead
               v-for="col in columns"
               :key="col.key"
-              :class="[col.class, col.sortable && 'cursor-pointer select-none hover:text-foreground']"
+              :class="[
+                col.class,
+                col.sortable && 'cursor-pointer select-none hover:text-foreground',
+              ]"
               @click="col.sortable ? handleSort(col.key) : undefined"
             >
               <div class="flex items-center gap-1">
                 {{ col.label }}
-                <ArrowUp v-if="col.sortable && sortField === col.key && !sortDesc" class="w-3.5 h-3.5" />
-                <ArrowDown v-else-if="col.sortable && sortField === col.key && sortDesc" class="w-3.5 h-3.5" />
-                <ArrowUpDown v-else-if="col.sortable" class="w-3.5 h-3.5 text-muted-foreground/60" />
+                <ArrowUp
+                  v-if="col.sortable && sortField === col.key && !sortDesc"
+                  class="w-3.5 h-3.5"
+                />
+                <ArrowDown
+                  v-else-if="col.sortable && sortField === col.key && sortDesc"
+                  class="w-3.5 h-3.5"
+                />
+                <ArrowUpDown
+                  v-else-if="col.sortable"
+                  class="w-3.5 h-3.5 text-muted-foreground/60"
+                />
               </div>
             </TableHead>
-            <TableHead v-if="$slots.actions" class="w-20 text-right">{{ $t('common.actions') }}</TableHead>
+            <TableHead v-if="$slots.actions" class="w-20 text-right">{{
+              $t('common.actions')
+            }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

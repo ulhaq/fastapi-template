@@ -77,7 +77,9 @@ test.describe('Security settings — change password', () => {
     await inputs.nth(2).fill('newpassword123')
     await page.getByRole('button', { name: /update password/i }).click()
 
-    await expect(page.getByRole('list').getByText(/password.*updated|updated.*password/i)).toBeVisible({
+    await expect(
+      page.getByRole('list').getByText(/password.*updated|updated.*password/i),
+    ).toBeVisible({
       timeout: 5_000,
     })
     // All three fields must be empty after success

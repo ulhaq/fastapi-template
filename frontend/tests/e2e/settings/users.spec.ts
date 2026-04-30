@@ -25,7 +25,9 @@ test.describe('Users settings', () => {
   test('invite dialog: submitting valid email shows success state', async ({ page }) => {
     await page.getByRole('button', { name: 'Invite user' }).click()
     const dialog = page.getByRole('dialog')
-    const emailInput = dialog.locator('input[type="text"], input[placeholder*="email"], input[placeholder*="john"]').first()
+    const emailInput = dialog
+      .locator('input[type="text"], input[placeholder*="email"], input[placeholder*="john"]')
+      .first()
     await emailInput.fill(`e2e-invite-${Date.now()}@test.com`)
     await dialog.getByRole('button', { name: 'Send invitation' }).click()
     await expect(page.getByRole('list').getByText('Invitation sent')).toBeVisible({ timeout: 5000 })

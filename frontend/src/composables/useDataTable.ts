@@ -41,11 +41,10 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
         sort: currentSort.value,
         filters: filtersStr,
       })
-      if(data.items !== undefined){
+      if (data.items !== undefined) {
         items.value = data.items
         total.value = data.total
-      }
-      else{
+      } else {
         items.value = data
       }
     } catch {

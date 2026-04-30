@@ -5,11 +5,14 @@ meta:
 
 <template>
   <div class="max-w-2xl">
-    <PageHeader :title="$t('settings.changePassword')" :description="$t('settings.changePasswordDescription')" />
+    <PageHeader
+      :title="$t('settings.changePassword')"
+      :description="$t('settings.changePasswordDescription')"
+    />
 
     <Card>
       <CardContent class="pt-6">
-        <form @submit.prevent="savePassword" class="space-y-4">
+        <form class="space-y-4" @submit.prevent="savePassword">
           <div class="space-y-2">
             <Label>{{ $t('settings.currentPassword') }}</Label>
             <Input v-model="pwd.current" type="password" :disabled="savingPwd" />
@@ -17,7 +20,12 @@ meta:
           </div>
           <div class="space-y-2">
             <Label>{{ $t('settings.newPassword') }}</Label>
-            <Input v-model="pwd.new" type="password" :placeholder="$t('common.minCharacters')" :disabled="savingPwd" />
+            <Input
+              v-model="pwd.new"
+              type="password"
+              :placeholder="$t('common.minCharacters')"
+              :disabled="savingPwd"
+            />
             <p v-if="pwdErrors.new" class="text-xs text-destructive">{{ pwdErrors.new }}</p>
           </div>
           <div class="space-y-2">
@@ -56,7 +64,11 @@ const { toast } = useToast()
 const { t } = useI18n()
 
 const rules = useRules()
-const { form: pwd, errors: pwdErrors, validate: validatePwd } = useValidation((f) => ({
+const {
+  form: pwd,
+  errors: pwdErrors,
+  validate: validatePwd,
+} = useValidation((f) => ({
   current: rules.required,
   new: rules.password,
   confirm: rules.match(() => f.new),

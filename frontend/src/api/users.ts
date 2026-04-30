@@ -1,5 +1,12 @@
 import { apiClient } from './client'
-import type { PaginatedResponse, UserOut, UserPatch, UserRoleIn, OrganizationOut, ChangePasswordIn } from '@/types'
+import type {
+  PaginatedResponse,
+  UserOut,
+  UserPatch,
+  UserRoleIn,
+  OrganizationOut,
+  ChangePasswordIn,
+} from '@/types'
 
 interface ListParams {
   page_number?: number
