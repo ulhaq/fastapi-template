@@ -2,10 +2,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Request, status
 
-from src.core.dependencies import require_permission
+from src.core.dependencies import require_permission, require_plan_feature
 from src.core.limiter import limiter
 from src.core.security import Auth
-from src.enums import Permission
+from src.enums import Permission, PlanFeature
 from src.schemas.api_token import (
     ApiTokenCreate,
     ApiTokenCreatedResponse,
@@ -22,6 +22,7 @@ async def list_api_tokens(
     request: Request,
     service: Annotated[ApiTokenService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_API_TOKEN))],
+    __: Annotated[Auth, Depends(require_plan_feature(PlanFeature.API_ACCESS))],
 ) -> list[ApiTokenResponse]:
     return await service.list_tokens()
 
@@ -32,6 +33,7 @@ async def create_api_token(
     request: Request,
     service: Annotated[ApiTokenService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_API_TOKEN))],
+    __: Annotated[Auth, Depends(require_plan_feature(PlanFeature.API_ACCESS))],
     token_in: ApiTokenCreate,
 ) -> ApiTokenCreatedResponse:
     return await service.create_token(token_in)
@@ -43,6 +45,7 @@ async def revoke_api_token(
     request: Request,
     service: Annotated[ApiTokenService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_API_TOKEN))],
+    __: Annotated[Auth, Depends(require_plan_feature(PlanFeature.API_ACCESS))],
     token_id: Annotated[int, Path()],
 ) -> None:
     await service.revoke_token(token_id)

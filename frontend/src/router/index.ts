@@ -10,6 +10,7 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     guestOnly?: boolean
     permission?: string
+    planFeature?: string
     breadcrumb?: string
   }
 }

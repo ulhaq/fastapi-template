@@ -4,12 +4,13 @@ os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 from collections.abc import AsyncGenerator, Generator
 from datetime import UTC, datetime
-from httpx import Headers
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, AsyncSession
-from sqlalchemy import StaticPool, text as _text
-
+from httpx import Headers
+from sqlalchemy import StaticPool
+from sqlalchemy import text as _text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from src.billing import (
     BillingProviderABC,
     CheckoutResult,
@@ -21,17 +22,18 @@ from src.billing import (
     get_billing_provider,
 )
 from src.core.database import Base, get_db
-from src.models.billing import Plan, PlanPrice, Subscription
 from src.core.security import hash_secret
-from src.enums import PERMISSION_DESCRIPTIONS
+from src.enums import PERMISSION_DESCRIPTIONS, PlanFeature
 from src.enums import Permission as PermissionEnum
+from src.init_db import INIT_AUTH_DATA
 from src.main import app
+from src.models.billing import Plan, PlanPrice, Subscription
+from src.models.billing import PlanFeature as PlanFeatureModel
 from src.models.organization import Organization
-from src.models.role import Role
 from src.models.permission import Permission
+from src.models.role import Role
 from src.models.user import User
 from src.models.user_organization import UserOrganization
-from src.init_db import INIT_AUTH_DATA
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -107,7 +109,7 @@ async def prepare_database() -> AsyncGenerator[None]:
         await session.flush()
 
         user_organizations = []
-        for user_data, user in zip(INIT_AUTH_DATA["users"], users):
+        for user_data, user in zip(INIT_AUTH_DATA["users"], users, strict=False):
             user_organizations.append(
                 UserOrganization(
                     user_id=user.id,
@@ -136,6 +138,10 @@ async def prepare_database() -> AsyncGenerator[None]:
             is_active=True,
         )
         session.add(free_price)
+        await session.flush()
+        session.add(
+            PlanFeatureModel(plan_id=free_plan.id, feature=PlanFeature.API_ACCESS)
+        )
         await session.flush()
 
         # Seed a free subscription for each test organization, matching what
@@ -273,7 +279,7 @@ async def admin_in_org2() -> None:
 
 
 @pytest.fixture(name="client")
-def _client() -> Generator[TestClient, None, None]:
+def _client() -> Generator[TestClient]:
     with TestClient(app) as c:
         yield c
 
@@ -305,7 +311,7 @@ def standard_authenticated(client: TestClient) -> TestClient:
 
 
 @pytest.fixture
-def organization2_admin_authenticated() -> Generator[TestClient, None, None]:
+def organization2_admin_authenticated() -> Generator[TestClient]:
     with TestClient(app) as c:
         rs = c.post(
             "/v1/auth/token",

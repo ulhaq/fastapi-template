@@ -1,15 +1,15 @@
-
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-from sqlalchemy import select
-from fastapi.testclient import TestClient
-from httpx import Headers
 
+from fastapi.testclient import TestClient
+from httpx import Headers, Response
+from sqlalchemy import delete, select
 from src.main import app
 from src.models.api_token import ApiToken
-from tests.conftest import TestSessionLocal
+from src.models.billing import PlanFeature as PlanFeatureModel
 
+from tests.conftest import TestSessionLocal
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -19,14 +19,13 @@ def _create_token(
     name: str = "test token",
     expires_at: str | None = None,
     permissions: list[str] | None = None,
-) -> dict:
+) -> Response:
     payload: dict = {
         "name": name,
         "expires_at": expires_at,
         "permissions": permissions or ["manage:api_token"],
     }
-    rs = client.post("/v1/api-tokens", json=payload)
-    return rs
+    return client.post("/v1/api-tokens", json=payload)
 
 
 async def _seed_token(
@@ -34,8 +33,8 @@ async def _seed_token(
     organization_id: int,
     name: str = "seeded",
     expires_at: datetime | None = None,
-) -> tuple[ApiToken, str]:
-    """Insert an ApiToken row directly and return (model, plaintext)."""
+) -> tuple[int, str]:
+    """Insert an ApiToken row directly and return (token_id, plaintext)."""
     plaintext = "sk_" + secrets.token_urlsafe(32)
     token_hash = hashlib.sha256(plaintext.encode()).hexdigest()
     prefix_start = len("sk_")
@@ -129,6 +128,43 @@ def test_cannot_manage_tokens_without_permission(
 ) -> None:
     rs = no_roles_authenticated.get("/v1/api-tokens")
     assert rs.status_code == 403
+
+
+# ── plan feature guard ────────────────────────────────────────────────────────
+
+
+async def _remove_api_access_feature() -> None:
+    async with TestSessionLocal() as session:
+        await session.execute(delete(PlanFeatureModel))
+        await session.commit()
+
+
+async def test_list_tokens_blocked_without_api_access_feature(
+    admin_authenticated: TestClient,
+) -> None:
+    await _remove_api_access_feature()
+    rs = admin_authenticated.get("/v1/api-tokens")
+    assert rs.status_code == 402
+    assert rs.json()["error_code"] == "plan_feature_unavailable"
+
+
+async def test_create_token_blocked_without_api_access_feature(
+    admin_authenticated: TestClient,
+) -> None:
+    await _remove_api_access_feature()
+    rs = _create_token(admin_authenticated)
+    assert rs.status_code == 402
+    assert rs.json()["error_code"] == "plan_feature_unavailable"
+
+
+async def test_revoke_token_blocked_without_api_access_feature(
+    admin_authenticated: TestClient,
+) -> None:
+    token_id = _create_token(admin_authenticated).json()["id"]
+    await _remove_api_access_feature()
+    rs = admin_authenticated.delete(f"/v1/api-tokens/{token_id}")
+    assert rs.status_code == 402
+    assert rs.json()["error_code"] == "plan_feature_unavailable"
 
 
 # ── authentication ────────────────────────────────────────────────────────────

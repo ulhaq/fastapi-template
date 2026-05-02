@@ -390,6 +390,10 @@ export default {
       paused: 'Sat på pause',
     },
   },
+  planFeature: {
+    unavailableMessage: 'Denne funktion er ikke tilgængelig på din nuværende plan.',
+    upgradeCta: 'Opgrader din plan',
+  },
   errors: {
     common: 'Noget gik galt. Prøv igen.',
     api: {

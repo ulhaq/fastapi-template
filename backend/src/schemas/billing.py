@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from src.core.config import settings
 
@@ -65,6 +65,7 @@ class SubscriptionOut(BaseModel):
     plan_price: PlanPriceOut | None
     has_payment_method: bool = False
     trial_used: bool = False
+    features: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

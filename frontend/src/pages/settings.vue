@@ -24,7 +24,8 @@ meta:
         "
       >
         <component :is="item.icon" class="w-4 h-4 shrink-0" />
-        {{ item.label }}
+        <span class="flex-1">{{ item.label }}</span>
+        <LockKeyhole v-if="item.locked" class="w-3 h-3 shrink-0 text-foreground" />
       </RouterLink>
 
       <div v-if="workspaceItems.length" class="pt-4 space-y-0.5">
@@ -78,18 +79,38 @@ meta:
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { User, Lock, Users, Shield, Building2, Receipt, Settings2, KeyRound } from 'lucide-vue-next'
+import {
+  User,
+  Lock,
+  Users,
+  Shield,
+  Building2,
+  Receipt,
+  Settings2,
+  KeyRound,
+  LockKeyhole,
+} from 'lucide-vue-next'
 import { usePermission } from '@/composables/usePermission'
+import { usePlanFeature } from '@/composables/usePlanFeature'
+import { PlanFeature } from '@/constants'
 
 const route = useRoute()
 const { t } = useI18n()
 const { hasPermission, isOwner } = usePermission()
+const { hasFeature } = usePlanFeature()
 
 const accountItems = computed(() => [
   { to: '/settings', label: t('settings.profile'), icon: User, exact: true },
   { to: '/settings/security', label: t('settings.security'), icon: Lock },
   ...(hasPermission('manage:api_token')
-    ? [{ to: '/settings/api', label: t('settings.api'), icon: KeyRound }]
+    ? [
+        {
+          to: '/settings/api',
+          label: t('settings.api'),
+          icon: KeyRound,
+          locked: !hasFeature(PlanFeature.API_ACCESS),
+        },
+      ]
     : []),
 ])
 

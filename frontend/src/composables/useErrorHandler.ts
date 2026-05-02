@@ -66,10 +66,15 @@ export function useErrorHandler() {
     return result
   }
 
+  function isPlanFeatureError(err: unknown): boolean {
+    return toAxiosError(err)?.response?.data?.error_code === 'plan_feature_unavailable'
+  }
+
   /** Show a destructive toast with the translated error. */
   function handleError(err: unknown): void {
+    if (isPlanFeatureError(err)) return
     toast({ title: resolveError(err), variant: 'destructive' })
   }
 
-  return { handleError, resolveError, resolveFieldErrors }
+  return { handleError, resolveError, resolveFieldErrors, isPlanFeatureError }
 }

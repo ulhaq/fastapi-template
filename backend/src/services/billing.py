@@ -284,6 +284,10 @@ class SubscriptionService(BaseService):
         if organization:
             result.has_payment_method = organization.has_payment_method
             result.trial_used = organization.trial_used
+        features = await self.repos.plan_feature.get_features_for_organization(
+            self.current_user.organization_id
+        )
+        result.features = sorted(features)
         return result
 
     async def cancel_subscription(self) -> SubscriptionOut:

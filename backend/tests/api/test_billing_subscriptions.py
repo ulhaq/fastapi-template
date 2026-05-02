@@ -3,10 +3,10 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 from httpx import Headers
 from sqlalchemy import select
-
 from src.billing.types import WebhookPayload
 from src.models.billing import Plan, PlanPrice, Subscription
 from src.models.organization import Organization
+
 from tests.conftest import TestSessionLocal
 
 
@@ -69,6 +69,29 @@ def test_get_current_subscription(admin_authenticated: TestClient) -> None:
     assert rs["status"] == "active"
     assert rs["plan_price"]["amount"] == 0
     assert rs["has_payment_method"] is False
+    assert rs["features"] == ["api_access"]
+
+
+def test_get_current_subscription_features_empty_without_plan_features(
+    admin_authenticated: TestClient,
+) -> None:
+    import asyncio
+
+    from sqlalchemy import delete
+    from src.models.billing import PlanFeature as PlanFeatureModel
+
+    from tests.conftest import TestSessionLocal
+
+    async def _remove_features() -> None:
+        async with TestSessionLocal() as session:
+            await session.execute(delete(PlanFeatureModel))
+            await session.commit()
+
+    asyncio.get_event_loop().run_until_complete(_remove_features())
+
+    response = admin_authenticated.get("/v1/billing/subscriptions/current")
+    assert response.status_code == 200
+    assert response.json()["features"] == []
 
 
 def test_cannot_checkout_when_already_active(
@@ -350,7 +373,11 @@ async def test_switch_plan_no_external_subscription_id(
             await session.execute(select(PlanPrice).where(PlanPrice.amount == 0))
         ).scalar_one()
         # Update existing subscription to incomplete (no INSERT to avoid unique constraint)
-        sub = (await session.execute(select(Subscription).where(Subscription.organization_id == 1))).scalar_one()
+        sub = (
+            await session.execute(
+                select(Subscription).where(Subscription.organization_id == 1)
+            )
+        ).scalar_one()
         sub.plan_price_id = free_price.id
         sub.status = "incomplete"
         sub.external_subscription_id = None
@@ -528,7 +555,9 @@ async def test_start_trial_fails_when_already_trialing(
     assert response.status_code == 409
 
 
-def test_start_trial_requires_permission(client: TestClient, plan_with_price: dict) -> None:
+def test_start_trial_requires_permission(
+    client: TestClient, plan_with_price: dict
+) -> None:
     rs = client.post(
         "/v1/auth/token",
         data={"username": "standard@example.org", "password": "password"},
@@ -551,10 +580,16 @@ def test_subscription_organization_isolation(
     price_id = plan_with_price["price"]["id"]
 
     # Activate a paid subscription for organization 1
-    _activate_subscription(admin_authenticated, price_id, mock_billing_provider, "evt_iso")
+    _activate_subscription(
+        admin_authenticated, price_id, mock_billing_provider, "evt_iso"
+    )
 
     # Organization 2 should still see only its own free subscription, not organization 1's paid one
-    response = organization2_admin_authenticated.get("/v1/billing/subscriptions/current")
+    response = organization2_admin_authenticated.get(
+        "/v1/billing/subscriptions/current"
+    )
     assert response.status_code == 200
     sub = response.json()
-    assert sub["plan_price"]["amount"] == 0  # organization 2 is on free, not organization 1's paid plan
+    assert (
+        sub["plan_price"]["amount"] == 0
+    )  # organization 2 is on free, not organization 1's paid plan

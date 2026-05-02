@@ -35,6 +35,7 @@ export interface SubscriptionOut {
   plan_price: PlanPriceOut | null
   has_payment_method: boolean
   trial_used: boolean
+  features: string[]
   created_at: string
   updated_at: string
 }

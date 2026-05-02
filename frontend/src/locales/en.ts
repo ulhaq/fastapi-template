@@ -384,6 +384,10 @@ export default {
       paused: 'Paused',
     },
   },
+  planFeature: {
+    unavailableMessage: 'This feature is not available on your current plan.',
+    upgradeCta: 'Upgrade your plan',
+  },
   errors: {
     common: 'Something went wrong. Please try again.',
     api: {
