@@ -7,12 +7,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.billing import Plan, PlanFeature, PlanPrice, Subscription, WebhookEvent
-from src.repositories.base import OrganizationScopedRepository, SQLResourceRepository
+from src.repositories.base import OrganizationScopedRepository, SoftDeleteRepository
 
 _CHECKOUT_LOCK_NS = 0x62696C6C  # "bill" in ASCII - namespaces checkout advisory locks
 
 
-class PlanRepository(SQLResourceRepository[Plan]):
+class PlanRepository(SoftDeleteRepository[Plan]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Plan, db)
 
@@ -29,7 +29,7 @@ class PlanRepository(SQLResourceRepository[Plan]):
         return rs.unique().scalars().all()
 
 
-class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
+class PlanPriceRepository(SoftDeleteRepository[PlanPrice]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(PlanPrice, db)
 
@@ -99,7 +99,7 @@ class PlanPriceRepository(SQLResourceRepository[PlanPrice]):
         return bool(rs.scalar_one())
 
 
-class PlanFeatureRepository(SQLResourceRepository[PlanFeature]):
+class PlanFeatureRepository(SoftDeleteRepository[PlanFeature]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(PlanFeature, db)
 
@@ -248,7 +248,7 @@ class SubscriptionRepository(OrganizationScopedRepository[Subscription]):
             return await self.get_active_for_organization_locked(organization_id)
 
 
-class WebhookEventRepository(SQLResourceRepository[WebhookEvent]):
+class WebhookEventRepository(SoftDeleteRepository[WebhookEvent]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(WebhookEvent, db)
 

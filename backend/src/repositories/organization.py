@@ -4,15 +4,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.organization import Organization
-from src.repositories.abc import ResourceRepositoryABC
-from src.repositories.base import SQLResourceRepository
+from src.repositories.abc import SoftDeleteRepositoryABC
+from src.repositories.base import SoftDeleteRepository
 
 
-class OrganizationRepositoryABC(ResourceRepositoryABC[Organization], ABC): ...
+class OrganizationRepositoryABC(SoftDeleteRepositoryABC[Organization], ABC): ...
 
 
 class OrganizationRepository(
-    SQLResourceRepository[Organization], OrganizationRepositoryABC
+    SoftDeleteRepository[Organization], OrganizationRepositoryABC
 ):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Organization, db)

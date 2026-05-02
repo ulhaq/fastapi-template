@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
+from src.models.mixins import ResourceModel
+
 
 class RepositoryABC[ModelType](ABC):
     model: type[ModelType]
@@ -51,9 +53,6 @@ class ResourceRepositoryABC[ModelType](RepositoryABC[ModelType], ABC):
     async def update(self, model: ModelType, **kwargs: Any) -> ModelType: ...
 
     @abstractmethod
-    async def delete(self, model: ModelType) -> None: ...
-
-    @abstractmethod
     async def force_delete(self, model: ModelType) -> None: ...
 
     @abstractmethod
@@ -70,3 +69,13 @@ class ResourceRepositoryABC[ModelType](RepositoryABC[ModelType], ABC):
     async def get_total(
         self, *filter_expressions: Any, include_deleted: bool = False
     ) -> int: ...
+
+
+class SoftDeleteRepositoryABC[ModelType: ResourceModel](
+    ResourceRepositoryABC[ModelType], ABC
+):
+    @abstractmethod
+    async def delete(self, model: ModelType) -> None: ...
+
+    @abstractmethod
+    async def restore(self, model: ModelType) -> ModelType: ...

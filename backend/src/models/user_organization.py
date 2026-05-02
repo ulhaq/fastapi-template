@@ -3,10 +3,10 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.models.mixins import ResourceModel
+from src.models.mixins import ResourceModelBase
 
 
-class UserOrganization(ResourceModel):
+class UserOrganization(ResourceModelBase):
     __tablename__ = "user_organization"
     __table_args__ = (
         UniqueConstraint("user_id", "organization_id", name="uq_user_organization"),

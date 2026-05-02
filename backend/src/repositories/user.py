@@ -11,11 +11,11 @@ from src.models.permission import Permission
 from src.models.role import Role
 from src.models.user import User
 from src.models.user_organization import UserOrganization
-from src.repositories.abc import ResourceRepositoryABC
+from src.repositories.abc import SoftDeleteRepositoryABC
 from src.repositories.base import OrganizationScopedRepository, SQLResourceRepository
 
 
-class UserRepositoryABC(ResourceRepositoryABC[User], ABC):
+class UserRepositoryABC(SoftDeleteRepositoryABC[User], ABC):
     @abstractmethod
     async def get_by_email(
         self, email: str, include_deleted: bool = False

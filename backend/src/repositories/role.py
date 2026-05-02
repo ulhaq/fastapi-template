@@ -4,11 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.permission import Permission
 from src.models.role import Role
-from src.repositories.abc import ResourceRepositoryABC
+from src.repositories.abc import SoftDeleteRepositoryABC
 from src.repositories.base import OrganizationScopedRepository
 
 
-class RoleRepositoryABC(ResourceRepositoryABC[Role], ABC):
+class RoleRepositoryABC(SoftDeleteRepositoryABC[Role], ABC):
     @abstractmethod
     async def add_permissions(self, role: Role, *permission_ids: int) -> None: ...
 

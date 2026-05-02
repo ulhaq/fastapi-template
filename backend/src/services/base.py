@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from src.core.exceptions import NotFoundException, PlanFeatureUnavailableException
 from src.enums import PlanFeature
-from src.repositories.abc import ResourceRepositoryABC
+from src.repositories.abc import SoftDeleteRepositoryABC
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.common import PageQueryParams, PaginatedResponse
 
@@ -26,7 +26,7 @@ class BaseService:
 
 
 class ResourceService[
-    ResourceRepositoryType: ResourceRepositoryABC,
+    ResourceRepositoryType: SoftDeleteRepositoryABC,
     BaseType,
     SchemaInType: BaseModel,
     SchemaOutType: BaseModel,

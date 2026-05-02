@@ -9,12 +9,14 @@ from sqlalchemy.sql.elements import UnaryExpression
 
 from src.core.exceptions import NotFoundException
 from src.enums import ComparisonOperator
-from src.models.mixins import ResourceModel
+from src.models.mixins import ResourceModel, ResourceModelBase
 from src.repositories import utils
-from src.repositories.abc import ResourceRepositoryABC
+from src.repositories.abc import ResourceRepositoryABC, SoftDeleteRepositoryABC
 
 
-class SQLResourceRepository[ModelType: ResourceModel](ResourceRepositoryABC[ModelType]):
+class SQLResourceRepository[ModelType: ResourceModelBase](
+    ResourceRepositoryABC[ModelType]
+):
     async def get_one(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType:
@@ -103,17 +105,6 @@ class SQLResourceRepository[ModelType: ResourceModel](ResourceRepositoryABC[Mode
 
         self.db.add(model)
 
-        return await self.save(model)
-
-    async def delete(self, model: ModelType) -> None:
-        model.deleted_at = datetime.now(UTC)
-
-        await self.save()
-
-    async def restore(self, model: ModelType) -> ModelType:
-        model.deleted_at = None
-        model.updated_at = datetime.now(UTC)
-        self.db.add(model)
         return await self.save(model)
 
     async def force_delete(self, model: ModelType) -> None:
@@ -305,13 +296,28 @@ class SQLResourceRepository[ModelType: ResourceModel](ResourceRepositoryABC[Mode
         return filters
 
     def _include_deleted(self, stmt: Select, include_deleted: bool = False) -> Select:
-        if include_deleted is False:
-            return stmt.filter(self.model.deleted_at.is_(None))
+        deleted_at = getattr(self.model, "deleted_at", None)
+        if include_deleted is False and deleted_at is not None:
+            return stmt.filter(deleted_at.is_(None))
         return stmt
 
 
+class SoftDeleteRepository[ModelType: ResourceModel](
+    SQLResourceRepository[ModelType], SoftDeleteRepositoryABC[ModelType]
+):
+    async def delete(self, model: ModelType) -> None:
+        model.deleted_at = datetime.now(UTC)
+        await self.save()
+
+    async def restore(self, model: ModelType) -> ModelType:
+        model.deleted_at = None
+        model.updated_at = datetime.now(UTC)
+        self.db.add(model)
+        return await self.save(model)
+
+
 class OrganizationScopedRepository[ModelType: ResourceModel](
-    SQLResourceRepository[ModelType]
+    SoftDeleteRepository[ModelType]
 ):
     _organization_id: int | None = None
 
