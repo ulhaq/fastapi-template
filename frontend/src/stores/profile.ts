@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { usersApi } from '@/api/users'
 import type { UserOut } from '@/types'
 
 export const useProfileStore = defineStore('profile', () => {
   const user = ref<UserOut | null>(null)
   const permissions = ref<string[]>([])
+
+  const isSuperAdmin = computed(() => user.value?.is_superadmin ?? false)
 
   function hasPermission(permission: string): boolean {
     return permissions.value.includes(permission)
@@ -22,5 +24,5 @@ export const useProfileStore = defineStore('profile', () => {
     permissions.value = []
   }
 
-  return { user, permissions, hasPermission, fetchMe, clear }
+  return { user, permissions, isSuperAdmin, hasPermission, fetchMe, clear }
 })

@@ -36,3 +36,21 @@ class AuditLogService:
             page_number=page_number,
             total=total,
         )
+
+    async def paginate_all(
+        self,
+        page_size: int,
+        page_number: int,
+        action_filter: str | None = None,
+    ) -> PaginatedResponse[AuditLogOut]:
+        items, total = await self.repos.audit_log.paginate_all(
+            page_size=page_size,
+            page_number=page_number,
+            action_filter=action_filter,
+        )
+        return PaginatedResponse(
+            items=[AuditLogOut.model_validate(item) for item in items],
+            page_size=page_size,
+            page_number=page_number,
+            total=total,
+        )

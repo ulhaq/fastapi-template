@@ -9,6 +9,7 @@ declare module 'vue-router' {
     layout?: 'auth' | 'dashboard'
     requiresAuth?: boolean
     guestOnly?: boolean
+    requiresSuperAdmin?: boolean
     permission?: string
     planFeature?: string
     breadcrumb?: string
@@ -38,6 +39,10 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
   const profileStore = useProfileStore()
 
   if (to.meta.permission && !profileStore.hasPermission(to.meta.permission)) {
+    return { path: '/' }
+  }
+
+  if (to.matched.some((r) => r.meta.requiresSuperAdmin) && !profileStore.isSuperAdmin) {
     return { path: '/' }
   }
 

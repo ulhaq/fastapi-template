@@ -20,7 +20,7 @@ async def list_audit_logs(
     page_size: PageSizeQuery = 25,
     page_number: PageNumberQuery = 1,
     action: Annotated[
-        AuditAction | None, Query(default=None, description="Filter by action type")
+        AuditAction | None, Query(description="Filter by action type")
     ] = None,
 ) -> PaginatedResponse[AuditLogOut]:
     return await service.paginate(

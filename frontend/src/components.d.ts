@@ -8,6 +8,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AddPermissionToRoleTable: typeof import('./components/roles/AddPermissionToRoleTable.vue')['default']
+    AdminOrganizationForm: typeof import('./components/admin/AdminOrganizationForm.vue')['default']
+    AdminOrgMembersDialog: typeof import('./components/admin/AdminOrgMembersDialog.vue')['default']
+    AdminUserForm: typeof import('./components/admin/AdminUserForm.vue')['default']
     AlertDialog: typeof import('./components/ui/alert-dialog/AlertDialog.vue')['default']
     AlertDialogAction: typeof import('./components/ui/alert-dialog/AlertDialogAction.vue')['default']
     AlertDialogCancel: typeof import('./components/ui/alert-dialog/AlertDialogCancel.vue')['default']

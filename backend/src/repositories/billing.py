@@ -5,6 +5,7 @@ from sqlalchemy import exists, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.models.billing import Plan, PlanFeature, PlanPrice, Subscription, WebhookEvent
 from src.repositories.base import OrganizationScopedRepository, SoftDeleteRepository
@@ -141,6 +142,27 @@ class SubscriptionRepository(OrganizationScopedRepository[Subscription]):
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
+    async def get_for_organizations(
+        self, org_ids: list[int]
+    ) -> dict[int, Subscription]:
+        stmt = (
+            select(self.model)
+            .options(selectinload(self.model.plan_price).selectinload(PlanPrice.plan))
+            .filter(
+                self.model.organization_id.in_(org_ids),
+                self.model.status.in_(
+                    ["active", "trialing", "past_due", "incomplete", "paused"]
+                ),
+                self.model.deleted_at.is_(None),
+            )
+            .order_by(self.model.id.desc())
+        )
+        rs = await self.db.execute(stmt)
+        result: dict[int, Subscription] = {}
+        for sub in rs.unique().scalars().all():
+            result.setdefault(sub.organization_id, sub)
+        return result
+
     async def get_active_for_organization_locked(
         self, organization_id: int
     ) -> Subscription | None:
@@ -230,6 +252,19 @@ class SubscriptionRepository(OrganizationScopedRepository[Subscription]):
             text("SELECT pg_advisory_xact_lock(:tid)"),
             {"tid": organization_id ^ _CHECKOUT_LOCK_NS},
         )
+
+    async def cancel_all_for_organization(self, organization_id: int) -> None:
+        now = datetime.now(UTC)
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.organization_id == organization_id,
+                self.model.status != "canceled",
+                self.model.deleted_at.is_(None),
+            )
+            .values(status="canceled", canceled_at=now)
+        )
+        await self.db.execute(stmt)
 
     async def create_or_get_active(
         self,

@@ -24,6 +24,7 @@ class UserBase(BaseModel):
 
 class UserOut(UserBase, Timestamp):
     id: int
+    is_superadmin: bool = False
     roles: Annotated[list[RoleOut], AfterValidator(sort_by_id)] = Field(
         default_factory=list
     )

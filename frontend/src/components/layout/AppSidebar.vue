@@ -80,7 +80,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { LayoutDashboard, Settings, Check, ChevronsUpDown } from 'lucide-vue-next'
+import { LayoutDashboard, Settings, ShieldAlert, Check, ChevronsUpDown } from 'lucide-vue-next'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,6 +93,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
 import { useOrganizationStore } from '@/stores/organization'
 import { useSessionStore } from '@/stores/session'
+import { usePermission } from '@/composables/usePermission'
 import { useToast } from '@/composables/useToast'
 
 const authStore = useAuthStore()
@@ -102,6 +103,7 @@ const sessionStore = useSessionStore()
 const route = useRoute()
 const { toast } = useToast()
 const { t } = useI18n()
+const { isSuperAdmin } = usePermission()
 
 const user = computed(() => profileStore.user)
 const organizations = computed(() => organizationStore.organizations)
@@ -135,6 +137,7 @@ const currentOrganizationName = computed(() => {
 const navItems = computed(() => [
   { to: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
   { to: '/settings', label: t('nav.settings'), icon: Settings },
+  ...(isSuperAdmin.value ? [{ to: '/admin', label: t('nav.admin'), icon: ShieldAlert }] : []),
 ])
 
 function isActive(path: string): boolean {

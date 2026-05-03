@@ -66,3 +66,28 @@ class AuditLogRepository(RepositoryABC[AuditLog]):
         total = int(count_rs.scalar_one())
 
         return items, total
+
+    async def paginate_all(
+        self,
+        page_size: int,
+        page_number: int,
+        action_filter: str | None = None,
+    ) -> tuple[Sequence[AuditLog], int]:
+        stmt = select(AuditLog)
+        if action_filter:
+            stmt = stmt.where(AuditLog.action == action_filter)
+        stmt = (
+            stmt.order_by(AuditLog.created_at.desc())
+            .offset((page_number - 1) * page_size)
+            .limit(page_size)
+        )
+        rs = await self.db.execute(stmt)
+        items = rs.scalars().all()
+
+        count_stmt = select(func.count()).select_from(AuditLog)
+        if action_filter:
+            count_stmt = count_stmt.where(AuditLog.action == action_filter)
+        count_rs = await self.db.execute(count_stmt)
+        total = int(count_rs.scalar_one())
+
+        return items, total

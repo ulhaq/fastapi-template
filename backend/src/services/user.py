@@ -53,6 +53,11 @@ class UserService(
             for r in user.roles
             if r.organization_id == self.current_user.organization_id
         ]
+        is_superadmin = (
+            bool(settings.super_admin_email)
+            and user.email == self.current_user.email
+            and self.current_user.email == settings.super_admin_email
+        )
         return UserOut.model_validate(
             {
                 "id": user.id,
@@ -61,6 +66,7 @@ class UserService(
                 "created_at": user.created_at,
                 "updated_at": user.updated_at,
                 "roles": organization_roles,
+                "is_superadmin": is_superadmin,
             }
         )
 

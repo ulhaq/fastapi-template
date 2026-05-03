@@ -124,3 +124,19 @@ def require_owner() -> Callable:
         raise PermissionDeniedException
 
     return _check
+
+
+def require_superadmin() -> Callable:
+    async def _check(
+        current_user: Annotated[Auth, Depends(authenticate)],
+    ) -> Auth:
+        if not settings.auth_enabled:
+            return current_user
+        if (
+            not settings.super_admin_email
+            or current_user.email != settings.super_admin_email
+        ):
+            raise PermissionDeniedException
+        return current_user
+
+    return _check

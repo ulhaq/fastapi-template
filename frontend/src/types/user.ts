@@ -16,6 +16,7 @@ export interface UserRoleIn {
 
 export interface UserOut extends UserBase {
   id: number
+  is_superadmin?: boolean
   roles: RoleOut[]
   created_at: string
   updated_at: string

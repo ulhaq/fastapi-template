@@ -76,6 +76,8 @@ class Settings(BaseSettings):
     billing_automatic_tax: bool = False
     billing_trial_period_days: int = 14
 
+    super_admin_email: str | None = None
+
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False
 

@@ -10,6 +10,8 @@ export function usePermission() {
       profileStore.user?.roles.some((r) => r.is_protected && r.name === OWNER_ROLE_NAME) ?? false,
   )
 
+  const isSuperAdmin = computed(() => profileStore.isSuperAdmin)
+
   function hasPermission(permission: string): boolean {
     return profileStore.hasPermission(permission)
   }
@@ -18,5 +20,5 @@ export function usePermission() {
     return permissions.some((p) => profileStore.hasPermission(p))
   }
 
-  return { hasPermission, hasAnyPermission, isOwner }
+  return { hasPermission, hasAnyPermission, isOwner, isSuperAdmin }
 }

@@ -33,3 +33,4 @@ export type {
   CustomerPortalOut,
 } from './billing'
 export type { ApiTokenCreate, ApiTokenResponse, ApiTokenCreatedResponse } from './apiToken'
+export type { OrgMemberOut, AdminUserOut, AdminOrganizationOut, AuditLogOut } from './admin'

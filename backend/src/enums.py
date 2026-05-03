@@ -107,6 +107,7 @@ class AuditAction(StrEnum):
     AUTH_LOGIN = "auth.login"
     AUTH_REGISTER = "auth.register"
     AUTH_PASSWORD_RESET = "auth.password_reset"
+    AUTH_FORCE_PASSWORD_RESET = "auth.force_password_reset"
     USER_INVITE = "user.invite"
     USER_UPDATE = "user.update"
     USER_DELETE = "user.delete"
@@ -117,7 +118,11 @@ class AuditAction(StrEnum):
     ROLE_PERMISSION_ASSIGN = "role.permission_assign"
     API_TOKEN_CREATE = "api_token.create"
     API_TOKEN_DELETE = "api_token.delete"
+    ORG_CREATE = "org.create"
     ORG_UPDATE = "org.update"
+    ORG_DELETE = "org.delete"
+    MEMBER_ADD = "member.add"
+    MEMBER_REMOVE = "member.remove"
 
 
 DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [

@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 async def setup_new_organization(
     repos: RepositoryManager,
     organization: Organization,
-    user: User,
+    user: User | None = None,
 ) -> None:
     permissions = await repos.permission.get_all()
     permission_map = {p.name: p.id for p in permissions}
@@ -28,7 +28,8 @@ async def setup_new_organization(
         organization=organization,
     )
     await repos.role.add_permissions(owner_role, *permission_map.values())
-    await repos.user.add_roles(user, owner_role.id)
+    if user is not None:
+        await repos.user.add_roles(user, owner_role.id)
 
     for role_name, role_description, role_permissions in DEFAULT_ROLES:
         role = await repos.role.create(
