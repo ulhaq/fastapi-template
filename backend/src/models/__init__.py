@@ -1,3 +1,4 @@
+from src.models.audit_log import AuditLog
 from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
 from src.models.email_verification_token import EmailVerificationToken
 from src.models.invite_token import InviteToken
@@ -10,6 +11,7 @@ from src.models.user import User
 from src.models.user_organization import UserOrganization
 
 __all__ = [
+    "AuditLog",
     "EmailVerificationToken",
     "InviteToken",
     "Organization",

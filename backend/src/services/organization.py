@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from src.billing.dependencies import BillingProviderDep
+from src.core.context import client_ip_var
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
@@ -12,7 +13,7 @@ from src.core.exceptions import (
     PermissionDeniedException,
 )
 from src.core.security import Auth
-from src.enums import OWNER_ROLE_NAME, ErrorCode
+from src.enums import OWNER_ROLE_NAME, AuditAction, ErrorCode
 from src.models.organization import Organization
 from src.repositories.organization import OrganizationRepository
 from src.repositories.repository_manager import RepositoryManager
@@ -135,9 +136,16 @@ class OrganizationService(
                         f"Organization already exists. [name={schema_in.name}]"
                     )
 
-        return OrganizationOut.model_validate(
-            await super().patch(identifier, schema_in, validate)
+        updated = await super().patch(identifier, schema_in, validate)
+        await self.repos.audit_log.create(
+            action=AuditAction.ORG_UPDATE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="organization",
+            resource_id=identifier,
+            ip_address=client_ip_var.get(),
         )
+        return OrganizationOut.model_validate(updated)
 
     async def get_organization(self, identifier: int) -> OrganizationOut:
         return OrganizationOut.model_validate(await self.get(identifier))

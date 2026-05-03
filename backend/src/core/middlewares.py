@@ -6,10 +6,37 @@ from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.core.config import settings
+from src.core.context import client_ip_var
 from src.enums import ErrorCode
 from src.schemas.common import ErrorResponse
 
 log = logging.getLogger(__name__)
+
+
+class AuditContextMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        forwarded_for = headers.get(b"x-forwarded-for", b"").decode(
+            "utf-8", errors="ignore"
+        )
+        if forwarded_for:
+            ip = forwarded_for.split(",")[0].strip()
+        else:
+            client = scope.get("client")
+            ip = client[0] if client else "unknown"
+
+        token = client_ip_var.set(ip)
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            client_ip_var.reset(token)
 
 
 class ErrorHandlingMiddleware:

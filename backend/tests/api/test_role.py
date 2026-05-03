@@ -53,7 +53,7 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
         == "Access to manage users, roles, organization settings, and billing."
     )
     assert rs["items"][1]["is_protected"] is False
-    assert len(rs["items"][1]["permissions"]) == 12
+    assert len(rs["items"][1]["permissions"]) == 13
     assert rs["items"][1]["created_at"]
     assert rs["items"][1]["updated_at"]
 

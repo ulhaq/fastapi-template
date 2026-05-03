@@ -100,6 +100,24 @@ class Permission(StrEnum):
     MANAGE_ROLE_PERMISSION = "manage:role_permission"
     MANAGE_SUBSCRIPTION = "manage:subscription"
     MANAGE_API_TOKEN = "manage:api_token"
+    READ_AUDIT_LOG = "read:audit_log"
+
+
+class AuditAction(StrEnum):
+    AUTH_LOGIN = "auth.login"
+    AUTH_REGISTER = "auth.register"
+    AUTH_PASSWORD_RESET = "auth.password_reset"
+    USER_INVITE = "user.invite"
+    USER_UPDATE = "user.update"
+    USER_DELETE = "user.delete"
+    USER_ROLE_ASSIGN = "user.role_assign"
+    ROLE_CREATE = "role.create"
+    ROLE_UPDATE = "role.update"
+    ROLE_DELETE = "role.delete"
+    ROLE_PERMISSION_ASSIGN = "role.permission_assign"
+    API_TOKEN_CREATE = "api_token.create"
+    API_TOKEN_DELETE = "api_token.delete"
+    ORG_UPDATE = "org.update"
 
 
 DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
@@ -119,6 +137,7 @@ DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [
             Permission.MANAGE_ROLE_PERMISSION,
             Permission.MANAGE_SUBSCRIPTION,
             Permission.MANAGE_API_TOKEN,
+            Permission.READ_AUDIT_LOG,
         ],
     ),
     (
@@ -152,6 +171,7 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.MANAGE_API_TOKEN: (
         "Allows the user to create and manage their own API tokens."
     ),
+    Permission.READ_AUDIT_LOG: "Allows the user to read the organization's audit log.",
 }
 
 

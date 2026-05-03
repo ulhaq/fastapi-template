@@ -4,11 +4,12 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.api_token import ApiToken
+from src.repositories.abc import RepositoryABC
 
 
-class ApiTokenRepository:
+class ApiTokenRepository(RepositoryABC[ApiToken]):
     def __init__(self, db: AsyncSession) -> None:
-        self.db = db
+        super().__init__(ApiToken, db)
 
     async def create(
         self,

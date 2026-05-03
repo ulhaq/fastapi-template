@@ -5,6 +5,7 @@ from fastapi import Depends
 
 from src.billing.dependencies import BillingProviderDep
 from src.core.config import settings
+from src.core.context import client_ip_var
 from src.core.dependencies import authenticate
 from src.core.exceptions import (
     AlreadyExistsException,
@@ -12,7 +13,7 @@ from src.core.exceptions import (
     PermissionDeniedException,
 )
 from src.core.security import Auth, authenticate_user, hash_secret, sign
-from src.enums import OWNER_ROLE_NAME, ErrorCode, Permission
+from src.enums import OWNER_ROLE_NAME, AuditAction, ErrorCode, Permission
 from src.models.role import Role
 from src.models.user import User
 from src.repositories.repository_manager import RepositoryManager
@@ -165,6 +166,15 @@ class UserService(
 
         updated = await super().patch(identifier, schema_in, validate)
 
+        await self.repos.audit_log.create(
+            action=AuditAction.USER_UPDATE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="user",
+            resource_id=identifier,
+            ip_address=client_ip_var.get(),
+        )
+
         if schema_in.email:
             organization_roles = [
                 r
@@ -231,6 +241,15 @@ class UserService(
             email=invite_in.email, token=hash_secret(token)
         )
 
+        await self.repos.audit_log.create(
+            action=AuditAction.USER_INVITE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="user",
+            ip_address=client_ip_var.get(),
+            details={"email": invite_in.email},
+        )
+
         organization = await self.repos.organization.get(
             self.current_user.organization_id
         )
@@ -284,6 +303,15 @@ class UserService(
         remaining = await self.repos.user_organization.get_all_for_user(identifier)
         if not remaining:
             await self.repo.delete(user)
+
+        await self.repos.audit_log.create(
+            action=AuditAction.USER_DELETE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="user",
+            resource_id=identifier,
+            ip_address=client_ip_var.get(),
+        )
 
     async def manage_roles(self, identifier: int, schema_in: UserRoleIn) -> UserOut:
         if self.current_user.id == identifier:
@@ -341,5 +369,19 @@ class UserService(
 
         if roles_to_remove := current_roles - schema_in_role_ids:
             await self.repo.remove_roles(user, *roles_to_remove)
+
+        if roles_to_add or roles_to_remove:
+            await self.repos.audit_log.create(
+                action=AuditAction.USER_ROLE_ASSIGN,
+                organization_id=self.current_user.organization_id,
+                user_id=self.current_user.id,
+                resource_type="user",
+                resource_id=identifier,
+                ip_address=client_ip_var.get(),
+                details={
+                    "added": list(roles_to_add),
+                    "removed": list(roles_to_remove),
+                },
+            )
 
         return self._user_out(user)

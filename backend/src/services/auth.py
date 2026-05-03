@@ -7,6 +7,7 @@ from fastapi import Depends
 
 from src.billing.dependencies import BillingProviderDep
 from src.core.config import settings
+from src.core.context import client_ip_var
 from src.core.exceptions import (
     AlreadyExistsException,
     NotAuthenticatedException,
@@ -26,7 +27,7 @@ from src.core.security import (
     unsign,
     verify_secret,
 )
-from src.enums import OWNER_ROLE_NAME, ErrorCode
+from src.enums import OWNER_ROLE_NAME, AuditAction, ErrorCode
 from src.models.role import Role
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.user import (
@@ -148,6 +149,13 @@ class AuthService(BaseService):
 
         # Re-fetch user so roles assigned by setup_new_organization are loaded
         user = await self.repos.user.get_one(user.id)
+
+        await self.repos.audit_log.create(
+            action=AuditAction.AUTH_REGISTER,
+            organization_id=organization.id,
+            user_id=user.id,
+            ip_address=client_ip_var.get(),
+        )
 
         schedule_task(
             send_email,
@@ -355,6 +363,13 @@ class AuthService(BaseService):
             user, hash_secret(refresh_token), expires_at
         )
 
+        await self.repos.audit_log.create(
+            action=AuditAction.AUTH_LOGIN,
+            organization_id=membership.organization_id,
+            user_id=user.id,
+            ip_address=client_ip_var.get(),
+        )
+
         return Token(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -504,6 +519,12 @@ class AuthService(BaseService):
             hashed_pw = hash_secret(reset_password_in.password)
 
             await self.repos.user.update(user, password=hashed_pw)
+
+            await self.repos.audit_log.create(
+                action=AuditAction.AUTH_PASSWORD_RESET,
+                user_id=user.id,
+                ip_address=client_ip_var.get(),
+            )
 
             return None
 

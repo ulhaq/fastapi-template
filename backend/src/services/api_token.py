@@ -4,10 +4,11 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from src.core.context import client_ip_var
 from src.core.dependencies import authenticate
 from src.core.exceptions import NotFoundException, ValidationException
 from src.core.security import Auth
-from src.enums import ErrorCode
+from src.enums import AuditAction, ErrorCode
 from src.repositories.repository_manager import RepositoryManager
 from src.schemas.api_token import (
     ApiTokenCreate,
@@ -46,6 +47,15 @@ class ApiTokenService:
             permissions=list(schema_in.permissions),
             expires_at=schema_in.expires_at,
         )
+        await self.repos.audit_log.create(
+            action=AuditAction.API_TOKEN_CREATE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="api_token",
+            resource_id=token.id,
+            ip_address=client_ip_var.get(),
+            details={"name": schema_in.name},
+        )
         data = ApiTokenResponse.model_validate(token)
         return ApiTokenCreatedResponse(**data.model_dump(), token=plaintext)
 
@@ -61,3 +71,11 @@ class ApiTokenService:
         )
         if not revoked:
             raise NotFoundException("API token not found")
+        await self.repos.audit_log.create(
+            action=AuditAction.API_TOKEN_DELETE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="api_token",
+            resource_id=token_id,
+            ip_address=client_ip_var.get(),
+        )

@@ -2,10 +2,11 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from src.core.context import client_ip_var
 from src.core.dependencies import authenticate
 from src.core.exceptions import AlreadyExistsException, PermissionDeniedException
 from src.core.security import Auth
-from src.enums import ErrorCode
+from src.enums import AuditAction, ErrorCode
 from src.models.role import Role
 from src.repositories.repository_manager import RepositoryManager
 from src.repositories.role import RoleRepository
@@ -55,7 +56,17 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
                     f"Role already exists. [name={schema_in.name}]"
                 )
 
-        return RoleOut.model_validate(await super().create(schema_in, validate))
+        role = await super().create(schema_in, validate)
+        await self.repos.audit_log.create(
+            action=AuditAction.ROLE_CREATE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="role",
+            resource_id=role.id,
+            ip_address=client_ip_var.get(),
+            details={"name": schema_in.name},
+        )
+        return RoleOut.model_validate(role)
 
     async def patch_role(self, identifier: int, schema_in: RolePatch) -> RoleOut:
         await self._assert_not_protected_role(identifier)
@@ -68,9 +79,16 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
                         f"Role already exists. [name={schema_in.name}]"
                     )
 
-        return RoleOut.model_validate(
-            await super().patch(identifier, schema_in, validate)
+        updated = await super().patch(identifier, schema_in, validate)
+        await self.repos.audit_log.create(
+            action=AuditAction.ROLE_UPDATE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="role",
+            resource_id=identifier,
+            ip_address=client_ip_var.get(),
         )
+        return RoleOut.model_validate(updated)
 
     async def get_role(self, identifier: int, include_deleted: bool = False) -> RoleOut:
         return RoleOut.model_validate(
@@ -78,7 +96,16 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
         )
 
     async def delete_role(self, identifier: int, force_delete: bool = False) -> None:
-        await self._assert_not_protected_role(identifier)
+        role = await self._assert_not_protected_role(identifier)
+        await self.repos.audit_log.create(
+            action=AuditAction.ROLE_DELETE,
+            organization_id=self.current_user.organization_id,
+            user_id=self.current_user.id,
+            resource_type="role",
+            resource_id=identifier,
+            ip_address=client_ip_var.get(),
+            details={"name": role.name},
+        )
         await super().delete(identifier, force_delete=force_delete)
 
     async def manage_permissions(
@@ -94,5 +121,19 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
 
         if permissions_to_remove := current_permissions - schema_in_permission_ids:
             await self.repo.remove_permissions(role, *permissions_to_remove)
+
+        if permissions_to_add or permissions_to_remove:
+            await self.repos.audit_log.create(
+                action=AuditAction.ROLE_PERMISSION_ASSIGN,
+                organization_id=self.current_user.organization_id,
+                user_id=self.current_user.id,
+                resource_type="role",
+                resource_id=identifier,
+                ip_address=client_ip_var.get(),
+                details={
+                    "added": list(permissions_to_add),
+                    "removed": list(permissions_to_remove),
+                },
+            )
 
         return RoleOut.model_validate(role)

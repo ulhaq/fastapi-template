@@ -23,9 +23,18 @@ from src.core.database import ASYNC_SESSION_LOCAL
 from src.core.exceptions import ClientException
 from src.core.limiter import limiter
 from src.core.logging import LOGGING_CONFIG
-from src.core.middlewares import ErrorHandlingMiddleware
+from src.core.middlewares import AuditContextMiddleware, ErrorHandlingMiddleware
 from src.enums import ErrorCode
-from src.routers import api_token, auth, billing, organization, permission, role, user
+from src.routers import (
+    api_token,
+    audit_log,
+    auth,
+    billing,
+    organization,
+    permission,
+    role,
+    user,
+)
 from src.schemas.common import ErrorResponse, ValidationDetail, ValidationErrorResponse
 from src.services.billing import run_stale_checkout_cleanup_loop
 
@@ -66,6 +75,7 @@ app = FastAPI(
             allow_methods=settings.allow_methods,
             allow_headers=settings.allow_headers,
         ),
+        Middleware(AuditContextMiddleware),
         Middleware(ErrorHandlingMiddleware),
         Middleware(SlowAPIMiddleware),
     ],
@@ -190,6 +200,9 @@ async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
 
 
 app.include_router(api_token.router, tags=["API Tokens"], prefix="/v1")
+app.include_router(
+    audit_log.router, tags=["Audit Log"], prefix="/v1", include_in_schema=False
+)
 app.include_router(auth.router, tags=["Authentication"], prefix="/v1")
 app.include_router(organization.router, tags=["Organizations"], prefix="/v1")
 app.include_router(user.router, tags=["Users"], prefix="/v1")

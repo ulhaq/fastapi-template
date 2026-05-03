@@ -402,6 +402,42 @@ def upgrade() -> None:
         ],
     )
 
+    # ── audit log ──────────────────────────────────────────────────────────────
+
+    op.create_table(
+        "audit_log",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("organization_id", sa.Integer(), nullable=True),
+        sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.Column("action", sa.String(), nullable=False),
+        sa.Column("resource_type", sa.String(), nullable=True),
+        sa.Column("resource_id", sa.Integer(), nullable=True),
+        sa.Column("ip_address", sa.String(length=45), nullable=True),
+        sa.Column("details", sa.JSON(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["organization_id"],
+            ["organization.id"],
+            name="fk_audit_log_organization_id_organization",
+            ondelete="SET NULL",
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["user.id"],
+            name="fk_audit_log_user_id_user",
+            ondelete="SET NULL",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_audit_log_organization_id", "audit_log", ["organization_id"])
+    op.create_index("ix_audit_log_user_id", "audit_log", ["user_id"])
+    op.create_index("ix_audit_log_created_at", "audit_log", ["created_at"])
+    op.create_index(
+        "ix_audit_log_org_action",
+        "audit_log",
+        ["organization_id", "action"],
+    )
+
     # ── seed free plan + price ─────────────────────────────────────────────────
 
     op.bulk_insert(
@@ -438,6 +474,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index("ix_audit_log_org_action", table_name="audit_log")
+    op.drop_index("ix_audit_log_created_at", table_name="audit_log")
+    op.drop_index("ix_audit_log_user_id", table_name="audit_log")
+    op.drop_index("ix_audit_log_organization_id", table_name="audit_log")
+    op.drop_table("audit_log")
+
     op.drop_index("ix_billing_plan_feature_feature", table_name="billing_plan_feature")
     op.drop_index("ix_billing_plan_feature_plan_id", table_name="billing_plan_feature")
     op.drop_table("billing_plan_feature")

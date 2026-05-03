@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
 from src.repositories.api_token import ApiTokenRepository
+from src.repositories.audit_log import AuditLogRepository
 from src.repositories.billing import (
     PlanFeatureRepository,
     PlanPriceRepository,
@@ -29,6 +30,7 @@ class RepositoryManager:
 
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> None:
         self.db = db
+        self._audit_log: AuditLogRepository | None = None
         self._api_token: ApiTokenRepository | None = None
         self._organization: OrganizationRepository | None = None
         self._user: UserRepository | None = None
@@ -43,6 +45,12 @@ class RepositoryManager:
         self._webhook_event: WebhookEventRepository | None = None
         self._email_verification_token: EmailVerificationTokenRepository | None = None
         self._invite_token: InviteTokenRepository | None = None
+
+    @property
+    def audit_log(self) -> AuditLogRepository:
+        if self._audit_log is None:
+            self._audit_log = AuditLogRepository(self.db)
+        return self._audit_log
 
     @property
     def api_token(self) -> ApiTokenRepository:
