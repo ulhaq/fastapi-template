@@ -11,6 +11,7 @@ from httpx import Headers
 from sqlalchemy import StaticPool
 from sqlalchemy import text as _text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from src.billing import (
     BillingProviderABC,
     CheckoutResult,
@@ -326,7 +327,7 @@ def organization2_admin_authenticated() -> Generator[TestClient]:
 
 @pytest.fixture
 async def plan_with_price() -> dict:
-    """Create a plan with one price directly in the DB. Returns {"plan": ..., "price": ...}."""
+    """Create a plan with one price directly in the DB. Returns {"plan": ..., "price": ...}."""  # noqa: E501
     async with TestSessionLocal() as session:
         plan = Plan(
             name="Pro",

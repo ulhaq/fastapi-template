@@ -1,18 +1,20 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.9
-    hooks:
-      - id: ruff
-        name: ruff lint
-        args: [--fix, --config, backend/pyproject.toml]
-        files: ^backend/
-      - id: ruff-format
-        name: ruff format
-        args: [--config, backend/pyproject.toml]
-        files: ^backend/
-
   - repo: local
     hooks:
+      - id: ruff-lint
+        name: ruff lint
+        entry: bash -c 'cd backend && uv run ruff check src tests --fix'
+        language: system
+        files: ^backend/
+        pass_filenames: false
+
+      - id: ruff-format
+        name: ruff format
+        entry: bash -c 'cd backend && uv run ruff format src tests'
+        language: system
+        files: ^backend/
+        pass_filenames: false
+
       - id: mypy
         name: mypy
         entry: bash -c 'cd backend && uv run mypy --config-file pyproject.toml src'

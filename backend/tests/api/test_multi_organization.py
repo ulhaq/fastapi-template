@@ -8,7 +8,6 @@
 
 from fastapi.testclient import TestClient
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -125,7 +124,7 @@ def test_get_organization_users_shows_only_organization_roles(
     admin_authenticated: TestClient,
     admin_in_org2: None,
 ) -> None:
-    # When Organization 1 lists its users, admin's roles should be Organization 1 roles only
+    # Organization 1 user list: admin's roles should be Organization 1 roles only.
     response = admin_authenticated.get("/v1/organizations/1/users")
     assert response.status_code == 200
     admin_user = next(
@@ -282,7 +281,7 @@ def test_login_auto_selects_most_recently_active_organization(
 def test_login_selects_first_organization_when_none_active(
     client: TestClient,
 ) -> None:
-    # admin@example.org only belongs to Organization 1 with last_active_at set from seeding
+    # admin@example.org belongs to Organization 1; last_active_at is set from seeding.
     token = _login(client, "admin@example.org")
     response = client.get("/v1/organizations", headers=_auth_headers(token))
     assert response.status_code == 200

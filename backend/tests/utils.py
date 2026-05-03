@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 
 def assert_sorting_of_items_list(items: list[dict], sort_fields: list[str]) -> None:

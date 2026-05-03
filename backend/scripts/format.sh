@@ -1,6 +1,5 @@
 #!/bin/sh -e
 set -x
 
-ruff check src scripts --fix
-ruff check src --select I --fix
-ruff format src scripts
+ruff check src tests --fix
+ruff format src tests

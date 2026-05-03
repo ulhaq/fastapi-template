@@ -1,10 +1,11 @@
 import time
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
 from src.core.limiter import limiter
-from src.enums import ADMIN_ROLE_NAME, MEMBER_ROLE_NAME, DEFAULT_ROLES, Permission
+from src.enums import ADMIN_ROLE_NAME, DEFAULT_ROLES, MEMBER_ROLE_NAME, Permission
 
 
 def _do_register(client: TestClient, email: str = "new_user@example.org") -> None:

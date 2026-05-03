@@ -1,8 +1,11 @@
 from datetime import UTC, datetime
-import pytest
+from unittest.mock import MagicMock
 
-from sqlalchemy import delete, select
+import pytest
 from fastapi.testclient import TestClient
+from pytest_mock import MockerFixture
+from sqlalchemy import delete, select
+
 from src.billing.types import WebhookPayload
 from src.core.exceptions import BillingProviderException, BillingWebhookException
 from src.models.billing import PlanPrice, Subscription
@@ -10,7 +13,9 @@ from src.models.organization import Organization
 from tests.conftest import TestSessionLocal
 
 
-def test_webhook_valid_payload(client: TestClient, mock_billing_provider) -> None:
+def test_webhook_valid_payload(
+    client: TestClient, mock_billing_provider: MagicMock
+) -> None:
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_001",
         event_type="customer.subscription.updated",
@@ -25,7 +30,9 @@ def test_webhook_valid_payload(client: TestClient, mock_billing_provider) -> Non
     assert response.json() == {"received": True}
 
 
-def test_webhook_invalid_signature(client: TestClient, mock_billing_provider) -> None:
+def test_webhook_invalid_signature(
+    client: TestClient, mock_billing_provider: MagicMock
+) -> None:
     mock_billing_provider.construct_webhook_event.side_effect = BillingWebhookException(
         "Invalid webhook signature"
     )
@@ -38,7 +45,9 @@ def test_webhook_invalid_signature(client: TestClient, mock_billing_provider) ->
     assert response.json()["error_code"] == "billing_webhook_invalid"
 
 
-def test_webhook_idempotency(client: TestClient, mock_billing_provider) -> None:
+def test_webhook_idempotency(
+    client: TestClient, mock_billing_provider: MagicMock
+) -> None:
     payload = WebhookPayload(
         external_event_id="evt_idempotent_001",
         event_type="customer.subscription.updated",
@@ -62,7 +71,7 @@ def test_webhook_idempotency(client: TestClient, mock_billing_provider) -> None:
 def test_webhook_checkout_completed_updates_subscription(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -127,7 +136,7 @@ def test_webhook_checkout_completed_updates_subscription(
 def test_webhook_subscription_deleted(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -172,7 +181,7 @@ def test_webhook_subscription_deleted(
     )
     assert resp.status_code == 200
 
-    # Subscription is restored to the free plan - organization is never left with nothing
+    # Subscription is restored to the free plan; org is never left without one.
     sub = admin_authenticated.get("/v1/billing/subscriptions/current").json()
     assert sub["status"] == "active"
     assert sub["plan_price"]["amount"] == 0
@@ -181,7 +190,7 @@ def test_webhook_subscription_deleted(
 def test_webhook_payment_failed_does_not_downgrade(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     First payment failure must not downgrade - Stripe Smart Retries are still pending.
@@ -256,7 +265,7 @@ def test_webhook_payment_failed_does_not_downgrade(
 def test_webhook_subscription_updated(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -310,7 +319,11 @@ def test_webhook_subscription_updated(
 
 
 def _activate_sub(
-    client, price_id: int, mock_billing_provider, event_id: str, sub_id: str
+    client: TestClient,
+    price_id: int,
+    mock_billing_provider: MagicMock,
+    event_id: str,
+    sub_id: str,
 ) -> None:
     client.post("/v1/billing/subscriptions/checkout", json={"plan_price_id": price_id})
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
@@ -332,15 +345,15 @@ def _activate_sub(
 def test_webhook_subscription_created(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     admin_authenticated.post(
         "/v1/billing/subscriptions/checkout", json={"plan_price_id": price_id}
     )
 
-    # subscription.created fires before checkout.session.completed in Stripe's event order,
-    # so external_subscription_id is not yet set - handler must fall back to customer lookup
+    # subscription.created fires before checkout.session.completed in Stripe's order;
+    # external_subscription_id not yet set — handler must fall back to customer lookup.
     now_ts = int(datetime.now(UTC).timestamp())
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_sub_created",
@@ -374,7 +387,7 @@ def test_webhook_subscription_created(
 def test_webhook_checkout_session_expired(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     checkout.session.expired is a no-op for free-plan users: the subscription
@@ -417,7 +430,7 @@ def test_webhook_checkout_session_expired(
 def test_webhook_payment_action_required_sets_incomplete(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     _activate_sub(
@@ -460,7 +473,7 @@ def test_webhook_payment_action_required_sets_incomplete(
 def test_webhook_marked_uncollectible_downgrades_to_free_plan(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     All Stripe retries exhausted - subscription should be downgraded to free.
@@ -489,7 +502,7 @@ def test_webhook_marked_uncollectible_downgrades_to_free_plan(
 
 def test_webhook_product_created(
     admin_authenticated: TestClient,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_product_created",
@@ -519,7 +532,7 @@ def test_webhook_product_created(
 def test_webhook_product_created_already_exists(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     # plan_with_price already has external_product_id="prod_test123"
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
@@ -549,7 +562,7 @@ def test_webhook_product_created_already_exists(
 def test_webhook_product_updated(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_product_updated",
@@ -578,7 +591,7 @@ def test_webhook_product_updated(
 def test_webhook_price_created(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     plan_id = plan_with_price["plan"]["id"]
 
@@ -613,7 +626,7 @@ def test_webhook_price_created(
 
 def test_webhook_price_created_unknown_product(
     admin_authenticated: TestClient,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_price_created_unknown",
@@ -640,11 +653,12 @@ def test_webhook_price_created_unknown_product(
 @pytest.fixture
 async def free_plan_subscription(plan_with_price: dict) -> dict:
     """
-    Set up organization 1 with an active free-plan subscription and a Stripe customer ID,
-    simulating a user who registered and was assigned the free plan by _setup_new_organization.
+    Set up organization 1 with an active free-plan subscription and Stripe customer ID.
+    Simulates a user assigned the free plan by _setup_new_organization.
     """
     async with TestSessionLocal() as session:
         organization = await session.get(Organization, 1)
+        assert organization is not None
         organization.external_customer_id = "cus_free123"
         free_price = (
             await session.execute(select(PlanPrice).where(PlanPrice.amount == 0))
@@ -667,7 +681,7 @@ async def test_free_plan_user_checkout_upgrades_to_trial(
     admin_authenticated: TestClient,
     plan_with_price: dict,
     free_plan_subscription: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     A user registered on the free plan completes a Stripe checkout session.
@@ -721,7 +735,7 @@ async def test_free_plan_user_checkout_upgrades_to_trial(
 
 @pytest.fixture
 async def trialing_subscription(plan_with_price: dict) -> dict:
-    """Set the existing subscription for organization 1 to trialing state with a Stripe customer."""
+    """Set the existing subscription for organization 1 to trialing state."""
     price_id = plan_with_price["price"]["id"]
     async with TestSessionLocal() as session:
         organization = await session.get(Organization, 1)
@@ -742,8 +756,8 @@ async def trialing_subscription(plan_with_price: dict) -> dict:
 def test_webhook_subscription_trial_will_end_sends_email(
     admin_authenticated: TestClient,
     trialing_subscription: dict,
-    mock_billing_provider,
-    mocker,
+    mock_billing_provider: MagicMock,
+    mocker: MockerFixture,
 ) -> None:
     trial_end_ts = int(datetime(2026, 5, 1, tzinfo=UTC).timestamp())
     mock_send = mocker.patch("src.services.billing.send_email")
@@ -774,7 +788,7 @@ def test_webhook_subscription_trial_will_end_sends_email(
 
 def test_webhook_subscription_trial_will_end_unknown_sub(
     client: TestClient,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_trial_unknown",
@@ -790,7 +804,7 @@ def test_webhook_subscription_trial_will_end_unknown_sub(
 def test_webhook_price_updated(
     admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     plan_id = plan_with_price["plan"]["id"]
 
@@ -820,7 +834,7 @@ def test_webhook_uncollectible_downgrades_to_free_plan(
     admin_authenticated: TestClient,
     plan_with_price: dict,
     trialing_subscription: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     invoice.marked_uncollectible (all retries exhausted) should downgrade to free.
@@ -846,7 +860,7 @@ def test_webhook_uncollectible_falls_back_gracefully_on_provider_error(
     admin_authenticated: TestClient,
     plan_with_price: dict,
     trialing_subscription: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     When the Stripe cancellation call fails during downgrade, the webhook returns
@@ -884,8 +898,8 @@ async def no_free_price() -> None:
 def test_webhook_subscription_paused_trial_end_downgrades_to_free(
     admin_authenticated: TestClient,
     trialing_subscription: dict,
-    mock_billing_provider,
-    mocker,
+    mock_billing_provider: MagicMock,
+    mocker: MockerFixture,
 ) -> None:
     """
     Trial ended without a payment method (pause_collection is null) - subscription
@@ -926,7 +940,7 @@ def test_webhook_subscription_paused_trial_end_downgrades_to_free(
 def test_webhook_subscription_paused_manual_stays_paused(
     admin_authenticated: TestClient,
     trialing_subscription: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     Explicit manual pause (pause_collection is set) - subscription should be
@@ -958,7 +972,7 @@ def test_webhook_subscription_paused_trial_end_no_free_plan_cancels(
     admin_authenticated: TestClient,
     trialing_subscription: dict,
     no_free_price: None,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """
     Trial ended without a payment method and no free plan is configured - subscription
@@ -990,7 +1004,7 @@ def test_webhook_subscription_paused_trial_end_no_free_plan_cancels(
 def test_webhook_payment_method_attached_sets_flag(
     admin_authenticated: TestClient,
     trialing_subscription: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     assert (
         admin_authenticated.get("/v1/billing/subscriptions/current").json()[
@@ -1019,7 +1033,7 @@ def test_webhook_payment_method_attached_sets_flag(
 def test_webhook_payment_method_detached_clears_flag(
     admin_authenticated: TestClient,
     trialing_subscription: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     # First attach a payment method
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(

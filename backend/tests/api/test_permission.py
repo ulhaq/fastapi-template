@@ -1,6 +1,7 @@
 import json
-from fastapi.testclient import TestClient
+
 import pytest
+from fastapi.testclient import TestClient
 
 from tests.utils import (
     assert_filtering_of_items_list,
@@ -104,7 +105,7 @@ def test_filter_permissions(
     total_page: int,
     admin_authenticated: TestClient,
 ) -> None:
-    filter_data = zip(fields, values, operators)
+    filter_data = zip(fields, values, operators, strict=False)
     filters = {}
 
     for field, value, op in filter_data:

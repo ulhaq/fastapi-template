@@ -11,6 +11,7 @@ async def _seed_external_customer(
 ) -> None:
     async with TestSessionLocal() as session:
         org = await session.get(Organization, organization_id)
+        assert org is not None
         org.external_customer_id = external_customer_id
         await session.commit()
 

@@ -1,7 +1,8 @@
 import json
 from datetime import UTC, datetime
-from fastapi.testclient import TestClient
+
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from src.enums import PERMISSION_DESCRIPTIONS, Permission
@@ -151,7 +152,7 @@ def test_filter_roles(
     total_page: int,
     admin_authenticated: TestClient,
 ) -> None:
-    filter_data = zip(fields, values, operators)
+    filter_data = zip(fields, values, operators, strict=False)
     filters = {}
 
     for field, value, op in filter_data:

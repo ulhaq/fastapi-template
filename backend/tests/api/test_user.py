@@ -1,7 +1,10 @@
-import pytest
 from datetime import UTC, datetime
+from unittest.mock import MagicMock
+
+import pytest
 from fastapi.testclient import TestClient
 from httpx import Headers
+from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -21,6 +24,7 @@ async def _seed_external_customer(
 ) -> None:
     async with TestSessionLocal() as session:
         organization = await session.get(Organization, organization_id)
+        assert organization is not None
         organization.external_customer_id = external_customer_id
         await session.commit()
 
@@ -56,7 +60,7 @@ def test_get_authenticated_user(admin_authenticated: TestClient) -> None:
     assert rs["updated_at"]
 
 
-def test_invite_a_user(admin_authenticated: TestClient, mocker) -> None:
+def test_invite_a_user(admin_authenticated: TestClient, mocker: MockerFixture) -> None:
     mocker.patch("src.services.user.send_email")
     response = admin_authenticated.post(
         "/v1/users/invite",
@@ -292,7 +296,7 @@ def test_cannot_remove_last_owner_via_manage_roles(
 
 
 async def test_patch_profile_email_syncs_to_stripe_when_owner(
-    admin_authenticated: TestClient, mock_billing_provider
+    admin_authenticated: TestClient, mock_billing_provider: MagicMock
 ) -> None:
     await _seed_external_customer(organization_id=1, external_customer_id="cus_test123")
 
@@ -308,7 +312,7 @@ async def test_patch_profile_email_syncs_to_stripe_when_owner(
 
 
 async def test_patch_profile_email_does_not_sync_when_not_owner(
-    standard_authenticated: TestClient, mock_billing_provider
+    standard_authenticated: TestClient, mock_billing_provider: MagicMock
 ) -> None:
     await _seed_external_customer(organization_id=1, external_customer_id="cus_test123")
 
@@ -321,7 +325,7 @@ async def test_patch_profile_email_does_not_sync_when_not_owner(
 
 
 async def test_patch_profile_email_no_sync_without_external_customer(
-    admin_authenticated: TestClient, mock_billing_provider
+    admin_authenticated: TestClient, mock_billing_provider: MagicMock
 ) -> None:
     # Clear external_customer_id - simulates a organization whose Stripe customer
     # creation failed at registration. No sync should happen in that case.
@@ -401,13 +405,13 @@ def test_filter_users(
 
     filters = {
         field: {"v": value, "op": op}
-        for field, value, op in zip(fields, values, operators)
+        for field, value, op in zip(fields, values, operators, strict=False)
     }
     response = admin_authenticated.get(
         f"/v1/users?filters={json.dumps(filters)}&page_size=50"
     )
     assert response.status_code == 200
-    filter_data = list(zip(fields, values, operators))
+    filter_data = list(zip(fields, values, operators, strict=False))
     assert_filtering_of_items_list(response.json()["items"], filter_data)
 
 
@@ -487,6 +491,7 @@ async def test_deleted_user_excluded_from_organization_users() -> None:
     # Soft-delete the standard user (id=2) directly
     async with TestSessionLocal() as session:
         user = await session.get(User, 2)
+        assert user is not None
         user.deleted_at = datetime.now(UTC)
         await session.commit()
 

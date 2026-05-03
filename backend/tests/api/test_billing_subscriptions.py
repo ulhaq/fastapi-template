@@ -1,12 +1,13 @@
 from datetime import UTC, datetime
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 from httpx import Headers
 from sqlalchemy import select
+
 from src.billing.types import WebhookPayload
 from src.models.billing import Plan, PlanPrice, Subscription
 from src.models.organization import Organization
-
 from tests.conftest import TestSessionLocal
 
 
@@ -24,7 +25,9 @@ def test_start_checkout_returns_url(
 
 
 def test_start_checkout_calls_provider_with_correct_price(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     admin_authenticated.post(
@@ -78,8 +81,8 @@ def test_get_current_subscription_features_empty_without_plan_features(
     import asyncio
 
     from sqlalchemy import delete
-    from src.models.billing import PlanFeature as PlanFeatureModel
 
+    from src.models.billing import PlanFeature as PlanFeatureModel
     from tests.conftest import TestSessionLocal
 
     async def _remove_features() -> None:
@@ -95,7 +98,9 @@ def test_get_current_subscription_features_empty_without_plan_features(
 
 
 def test_cannot_checkout_when_already_active(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -137,7 +142,9 @@ def test_cannot_checkout_when_already_active(
 
 
 def test_cancel_subscription(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -179,7 +186,9 @@ def test_cancel_subscription(
 
 
 def test_resume_subscription(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -220,7 +229,9 @@ def test_resume_subscription(
 
 
 def test_portal_url_returned(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -260,7 +271,10 @@ def test_portal_url_returned(
 
 
 def _activate_subscription(
-    client, price_id: int, mock_billing_provider, event_id: str = "evt_switch_activate"
+    client: TestClient,
+    price_id: int,
+    mock_billing_provider: MagicMock,
+    event_id: str = "evt_switch_activate",
 ) -> None:
     """Helper: checkout + webhook activation."""
 
@@ -284,7 +298,9 @@ def _activate_subscription(
 
 
 async def test_switch_plan_success(
-    admin_authenticated, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     _activate_subscription(admin_authenticated, price_id, mock_billing_provider)
@@ -323,7 +339,7 @@ async def test_switch_plan_success(
     )
 
 
-def test_switch_plan_to_free_is_rejected(admin_authenticated) -> None:
+def test_switch_plan_to_free_is_rejected(admin_authenticated: TestClient) -> None:
     # Switching to the free plan via switch-plan is blocked; users must cancel instead.
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
@@ -333,7 +349,9 @@ def test_switch_plan_to_free_is_rejected(admin_authenticated) -> None:
 
 
 def test_switch_plan_invalid_price(
-    admin_authenticated, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     _activate_subscription(
@@ -348,7 +366,9 @@ def test_switch_plan_invalid_price(
 
 
 def test_switch_plan_same_price_rejected(
-    admin_authenticated, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     _activate_subscription(
@@ -363,7 +383,7 @@ def test_switch_plan_same_price_rejected(
 
 
 async def test_switch_plan_no_external_subscription_id(
-    admin_authenticated, plan_with_price: dict
+    admin_authenticated: TestClient, plan_with_price: dict
 ) -> None:
     # Simulate an incomplete checkout (pending, never completed) - switching
     # plan while a checkout is in progress should be rejected.
@@ -372,7 +392,7 @@ async def test_switch_plan_no_external_subscription_id(
         free_price = (
             await session.execute(select(PlanPrice).where(PlanPrice.amount == 0))
         ).scalar_one()
-        # Update existing subscription to incomplete (no INSERT to avoid unique constraint)
+        # Update to incomplete (no INSERT, avoid unique constraint)
         sub = (
             await session.execute(
                 select(Subscription).where(Subscription.organization_id == 1)
@@ -390,7 +410,7 @@ async def test_switch_plan_no_external_subscription_id(
     assert response.status_code == 422
 
 
-def test_switch_plan_requires_permission(client) -> None:
+def test_switch_plan_requires_permission(client: TestClient) -> None:
     rs = client.post(
         "/v1/auth/token",
         data={"username": "standard@example.org", "password": "password"},
@@ -405,7 +425,9 @@ def test_switch_plan_requires_permission(client) -> None:
 
 
 def test_switch_from_free_to_paid_is_rejected(
-    admin_authenticated, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     """switch-plan is for paid→paid only; free→paid must go through /checkout."""
     response = admin_authenticated.post(
@@ -417,7 +439,9 @@ def test_switch_from_free_to_paid_is_rejected(
 
 
 def test_start_trial_returns_checkout_url(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     response = admin_authenticated.post(
@@ -430,7 +454,9 @@ def test_start_trial_returns_checkout_url(
 
 
 def test_start_trial_creates_stripe_customer_and_checkout_session(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     admin_authenticated.post(
@@ -445,7 +471,9 @@ def test_start_trial_creates_stripe_customer_and_checkout_session(
 
 
 def test_start_trial_does_not_set_trial_used_flag_before_webhook(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     admin_authenticated.post(
@@ -458,7 +486,9 @@ def test_start_trial_does_not_set_trial_used_flag_before_webhook(
 
 
 def test_start_trial_sets_trial_used_flag_on_subscription_created_webhook(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
     admin_authenticated.post(
@@ -495,7 +525,9 @@ def test_start_trial_sets_trial_used_flag_on_subscription_created_webhook(
 
 
 async def test_start_trial_fails_when_already_trialed(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     async with TestSessionLocal() as session:
         organization = await session.get(Organization, 1)
@@ -512,7 +544,8 @@ async def test_start_trial_fails_when_already_trialed(
 
 
 def test_start_trial_fails_on_free_price(
-    admin_authenticated: TestClient, mock_billing_provider
+    admin_authenticated: TestClient,
+    mock_billing_provider: MagicMock,
 ) -> None:
     # Price ID 1 is the free plan price seeded in conftest
     response = admin_authenticated.post(
@@ -523,7 +556,8 @@ def test_start_trial_fails_on_free_price(
 
 
 def test_start_trial_fails_on_missing_price(
-    admin_authenticated: TestClient, mock_billing_provider
+    admin_authenticated: TestClient,
+    mock_billing_provider: MagicMock,
 ) -> None:
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/trial",
@@ -533,7 +567,9 @@ def test_start_trial_fails_on_missing_price(
 
 
 async def test_start_trial_fails_when_already_trialing(
-    admin_authenticated: TestClient, plan_with_price: dict, mock_billing_provider
+    admin_authenticated: TestClient,
+    plan_with_price: dict,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -575,7 +611,7 @@ def test_subscription_organization_isolation(
     admin_authenticated: TestClient,
     organization2_admin_authenticated: TestClient,
     plan_with_price: dict,
-    mock_billing_provider,
+    mock_billing_provider: MagicMock,
 ) -> None:
     price_id = plan_with_price["price"]["id"]
 
@@ -584,7 +620,7 @@ def test_subscription_organization_isolation(
         admin_authenticated, price_id, mock_billing_provider, "evt_iso"
     )
 
-    # Organization 2 should still see only its own free subscription, not organization 1's paid one
+    # Organization 2 should see only its own free subscription, not organization 1's.
     response = organization2_admin_authenticated.get(
         "/v1/billing/subscriptions/current"
     )

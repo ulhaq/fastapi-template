@@ -5,10 +5,10 @@ from datetime import UTC, datetime, timedelta
 from fastapi.testclient import TestClient
 from httpx import Headers, Response
 from sqlalchemy import delete, select
+
 from src.main import app
 from src.models.api_token import ApiToken
 from src.models.billing import PlanFeature as PlanFeatureModel
-
 from tests.conftest import TestSessionLocal
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -214,7 +214,7 @@ async def test_is_expired_false_for_active_token(
 
 async def test_is_expired_true_for_past_expiry(admin_authenticated: TestClient) -> None:
     past = datetime.now(UTC) - timedelta(hours=1)
-    _, plaintext = await _seed_token(
+    _, _plaintext = await _seed_token(
         user_id=1, organization_id=1, name="expired", expires_at=past
     )
     # Use the plaintext to look up the token via list (seeded tokens appear in list)
@@ -250,12 +250,11 @@ async def test_tokens_in_other_orgs_unaffected_on_removal(
     client: TestClient, admin_authenticated: TestClient
 ) -> None:
     """Removing user from org 1 must not revoke their tokens in org 2."""
-    # Seed a token for user 2 in org 2 (a different org they don't belong to in seed data,
-    # but we seed directly so we can assert the revoke is scoped to org 1 only)
-    _, plaintext_org2 = await _seed_token(
+    # Seed tokens for user 2 in both orgs; assert revoke is scoped to org 1 only.
+    _, _plaintext_org2 = await _seed_token(
         user_id=2, organization_id=2, name="org2 token"
     )
-    _, plaintext_org1 = await _seed_token(
+    _, _plaintext_org1 = await _seed_token(
         user_id=2, organization_id=1, name="org1 token"
     )
 

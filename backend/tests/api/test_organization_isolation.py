@@ -1,22 +1,27 @@
 from fastapi.testclient import TestClient
 
-
 # --- Organization isolation ---
 
 
-def test_cannot_get_other_organization(organization2_admin_authenticated: TestClient) -> None:
+def test_cannot_get_other_organization(
+    organization2_admin_authenticated: TestClient,
+) -> None:
     response = organization2_admin_authenticated.get("/v1/organizations/1")
     assert response.status_code == 403
 
 
-def test_cannot_patch_other_organization(organization2_admin_authenticated: TestClient) -> None:
+def test_cannot_patch_other_organization(
+    organization2_admin_authenticated: TestClient,
+) -> None:
     response = organization2_admin_authenticated.patch(
         "/v1/organizations/1", json={"name": "Hacked"}
     )
     assert response.status_code == 403
 
 
-def test_cannot_delete_other_organization(organization2_admin_authenticated: TestClient) -> None:
+def test_cannot_delete_other_organization(
+    organization2_admin_authenticated: TestClient,
+) -> None:
     response = organization2_admin_authenticated.delete("/v1/organizations/1")
     assert response.status_code == 403
 
@@ -54,7 +59,9 @@ def test_cannot_get_other_organization_role(
 def test_cannot_patch_other_organization_role(
     organization2_admin_authenticated: TestClient,
 ) -> None:
-    response = organization2_admin_authenticated.patch("/v1/roles/1", json={"name": "hacked"})
+    response = organization2_admin_authenticated.patch(
+        "/v1/roles/1", json={"name": "hacked"}
+    )
     assert response.status_code == 404
 
 
