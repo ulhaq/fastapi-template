@@ -5,21 +5,21 @@ repos:
         name: ruff lint
         entry: bash -c 'cd backend && uv run ruff check src tests --fix'
         language: system
-        files: ^backend/
+        files: ^backend/.*\.py$
         pass_filenames: false
 
       - id: ruff-format
         name: ruff format
         entry: bash -c 'cd backend && uv run ruff format src tests'
         language: system
-        files: ^backend/
+        files: ^backend/.*\.py$
         pass_filenames: false
 
       - id: mypy
         name: mypy
         entry: bash -c 'cd backend && uv run mypy --config-file pyproject.toml src'
         language: system
-        files: ^backend/src/.*\.py$
+        files: ^backend/.*\.py$
         pass_filenames: false
 
       - id: prettier
