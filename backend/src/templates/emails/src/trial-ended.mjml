@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Your trial has ended – {{ app_name }}</mj-title>
+    <mj-title>Your trial has ended - {{ app_name }}</mj-title>
     <mj-preview>Your {{ app_name }} trial has ended. Upgrade to restore full access.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>

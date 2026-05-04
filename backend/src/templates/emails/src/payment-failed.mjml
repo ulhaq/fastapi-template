@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Payment failed – {{ app_name }}</mj-title>
+    <mj-title>Payment failed - {{ app_name }}</mj-title>
     <mj-preview>A payment on your {{ app_name }} account failed.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>

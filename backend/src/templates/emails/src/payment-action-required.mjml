@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Payment authentication required – {{ app_name }}</mj-title>
+    <mj-title>Payment authentication required - {{ app_name }}</mj-title>
     <mj-preview>Your payment needs authentication to complete.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>

@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.config import settings
 from src.models.audit_log import AuditLog
 from src.repositories.abc import RepositoryABC
 
@@ -66,3 +67,13 @@ class AuditLogRepository(RepositoryABC[AuditLog]):
         total = int(count_rs.scalar_one())
 
         return items, total
+
+    async def get_all_for_user(self, user_id: int) -> Sequence[AuditLog]:
+        stmt = (
+            select(AuditLog)
+            .where(AuditLog.user_id == user_id)
+            .order_by(AuditLog.created_at.desc())
+            .limit(settings.gdpr_export_audit_log_limit)
+        )
+        rs = await self.db.execute(stmt)
+        return rs.scalars().all()

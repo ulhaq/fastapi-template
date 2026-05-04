@@ -72,6 +72,29 @@ meta:
           <p v-if="errors.password" class="text-xs text-destructive">{{ errors.password }}</p>
         </div>
 
+        <div
+          class="space-y-1 rounded-md p-3 transition-colors"
+          :class="
+            termsError
+              ? 'bg-destructive/5 border border-destructive/30'
+              : 'border border-transparent'
+          "
+        >
+          <div class="flex items-start space-x-2">
+            <Checkbox
+              id="invite-terms"
+              :model-value="termsAccepted"
+              :disabled="isLoading"
+              class="mt-0.5"
+              @update:model-value="onTermsChange"
+            />
+            <Label for="invite-terms" class="text-sm font-normal leading-snug">
+              {{ $t('gdpr.consentLabel') }}
+            </Label>
+          </div>
+          <p v-if="termsError" class="text-xs text-destructive">{{ termsError }}</p>
+        </div>
+
         <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
 
         <Button type="submit" class="w-full" :disabled="isLoading">
@@ -88,6 +111,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -100,6 +124,7 @@ import { useValidation } from '@/composables/useValidation'
 import { useRules } from '@/composables/useRules'
 import { useSubscriptionStore } from '@/stores/subscription'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useI18n } from 'vue-i18n'
 
 type InviteState = 'loading' | 'invalid' | 'wrong-account' | 'existing-user' | 'new-user'
 
@@ -113,6 +138,7 @@ const { resolveError } = useErrorHandler()
 
 const inviteToken = (route.query.token as string) || ''
 
+const { t } = useI18n()
 const state = ref<InviteState>(inviteToken ? 'loading' : 'invalid')
 const inviteEmail = ref('')
 const rules = useRules()
@@ -120,6 +146,8 @@ const { form, errors, validate } = useValidation({
   name: rules.required,
   password: rules.password,
 })
+const termsAccepted = ref(false)
+const termsError = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 
@@ -151,7 +179,12 @@ onMounted(async () => {
   }
 })
 
-async function _finishAccept(inviteTokenValue: string, name?: string, password?: string) {
+async function _finishAccept(
+  inviteTokenValue: string,
+  name?: string,
+  password?: string,
+  termsAcceptedVal?: boolean,
+) {
   isLoading.value = true
   errorMessage.value = ''
   try {
@@ -159,6 +192,7 @@ async function _finishAccept(inviteTokenValue: string, name?: string, password?:
       invite_token: inviteTokenValue,
       ...(name !== undefined && { name }),
       ...(password !== undefined && { password }),
+      ...(termsAcceptedVal !== undefined && { terms_accepted: termsAcceptedVal }),
     })
     authStore.setSession(token)
     await Promise.all([
@@ -178,9 +212,18 @@ async function onAcceptExisting() {
   await _finishAccept(inviteToken)
 }
 
+function onTermsChange(v: boolean | 'indeterminate') {
+  termsAccepted.value = v === true
+  termsError.value = ''
+}
+
 async function onSubmitNew() {
-  if (!validate({ name: form.name, password: form.password })) return
-  await _finishAccept(inviteToken, form.name, form.password)
+  if (!validate()) return
+  if (!termsAccepted.value) {
+    termsError.value = t('gdpr.consentRequired')
+    return
+  }
+  await _finishAccept(inviteToken, form.name, form.password, termsAccepted.value)
 }
 
 async function onLogout() {

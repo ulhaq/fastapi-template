@@ -37,7 +37,12 @@ def _do_complete(
     setup_token = _do_verify(mocker, client, email)
     response = client.post(
         "/v1/auth/complete-registration",
-        json={"setup_token": setup_token, "name": name, "password": password},
+        json={
+            "setup_token": setup_token,
+            "name": name,
+            "password": password,
+            "terms_accepted": True,
+        },
     )
     return response.json()
 
@@ -67,7 +72,12 @@ def test_complete_registration(mocker: MockerFixture, client: TestClient) -> Non
     setup_token = _do_verify(mocker, client)
     response = client.post(
         "/v1/auth/complete-registration",
-        json={"setup_token": setup_token, "name": "New User", "password": "password1"},
+        json={
+            "setup_token": setup_token,
+            "name": "New User",
+            "password": "password1",
+            "terms_accepted": True,
+        },
     )
     assert response.status_code == 201
     rs = response.json()
@@ -154,12 +164,33 @@ def test_cannot_verify_email_token_twice(
     assert response.json()["error_code"] == "token_invalid"
 
 
+def test_cannot_complete_registration_without_accepting_terms(
+    mocker: MockerFixture, client: TestClient
+) -> None:
+    setup_token = _do_verify(mocker, client)
+    response = client.post(
+        "/v1/auth/complete-registration",
+        json={
+            "setup_token": setup_token,
+            "name": "New User",
+            "password": "password1",
+            "terms_accepted": False,
+        },
+    )
+    assert response.status_code == 422
+
+
 def test_cannot_complete_registration_with_invalid_setup_token(
     client: TestClient,
 ) -> None:
     response = client.post(
         "/v1/auth/complete-registration",
-        json={"setup_token": "badtoken", "name": "X", "password": "password1"},
+        json={
+            "setup_token": "badtoken",
+            "name": "X",
+            "password": "password1",
+            "terms_accepted": True,
+        },
     )
     assert response.status_code == 401
     assert response.json()["error_code"] == "signature_invalid"

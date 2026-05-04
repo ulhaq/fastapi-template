@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, and_
+from sqlalchemy import DateTime, String, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.mixins import ResourceModel
@@ -19,6 +20,9 @@ class User(ResourceModel):
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, default=None
+    )
 
     organizations: Mapped[list["Organization"]] = relationship(
         "Organization",

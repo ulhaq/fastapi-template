@@ -1,10 +1,12 @@
-from typing import Annotated, Self
+from datetime import datetime
+from typing import Annotated, Any, Self
 
 from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
+    field_validator,
     model_validator,
 )
 
@@ -24,6 +26,7 @@ class UserBase(BaseModel):
 
 class UserOut(UserBase, Timestamp):
     id: int
+    terms_accepted_at: datetime | None = None
     roles: Annotated[list[RoleOut], AfterValidator(sort_by_id)] = Field(
         default_factory=list
     )
@@ -79,6 +82,14 @@ class CompleteRegistrationIn(BaseModel):
     setup_token: str
     name: NonEmptyStr
     password: Password
+    terms_accepted: bool
+
+    @field_validator("terms_accepted")
+    @classmethod
+    def must_accept_terms(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("You must accept the terms to continue")
+        return v
 
 
 class InviteUserIn(BaseModel):
@@ -90,6 +101,27 @@ class CompleteInviteIn(BaseModel):
     invite_token: str
     name: NonEmptyStr | None = None
     password: Password | None = None
+    terms_accepted: bool | None = None
+
+    @field_validator("terms_accepted")
+    @classmethod
+    def must_accept_terms(cls, v: bool | None) -> bool | None:
+        if v is False:
+            raise ValueError("You must accept the terms to continue")
+        return v
+
+
+class DeleteMeIn(BaseModel):
+    current_password: NonEmptyStr
+
+
+class UserDataExportOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user: dict[str, Any]
+    organizations: list[dict[str, Any]]
+    api_tokens: list[dict[str, Any]]
+    audit_logs: list[dict[str, Any]]
 
 
 class InviteStatusIn(BaseModel):

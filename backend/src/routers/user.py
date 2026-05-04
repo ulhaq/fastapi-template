@@ -14,7 +14,9 @@ from src.routers.query_options import (
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.user import (
     ChangePasswordIn,
+    DeleteMeIn,
     InviteUserIn,
+    UserDataExportOut,
     UserOut,
     UserPatch,
     UserRoleIn,
@@ -36,11 +38,27 @@ async def patch_profile_of_authenticated_user(
     return await service.patch_profile(user_patch)
 
 
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_my_account(
+    bg_tasks: BackgroundTasks,
+    service: Annotated[UserService, Depends()],
+    delete_me_in: DeleteMeIn,
+) -> None:
+    await service.delete_me(delete_me_in, bg_tasks.add_task)
+
+
 @router.put("/me/change-password", status_code=status.HTTP_200_OK)
 async def change_password_of_authenticated_user(
     service: Annotated[UserService, Depends()], change_password_in: ChangePasswordIn
 ) -> UserOut:
     return await service.change_password(change_password_in)
+
+
+@router.get("/me/export", status_code=status.HTTP_200_OK)
+async def export_my_data(
+    service: Annotated[UserService, Depends()],
+) -> UserDataExportOut:
+    return await service.export_me()
 
 
 @router.get("", status_code=status.HTTP_200_OK)

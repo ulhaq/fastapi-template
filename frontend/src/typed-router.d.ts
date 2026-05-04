@@ -24,6 +24,7 @@ declare module 'vue-router/auto-routes' {
     '/forgot-password': RouteRecordInfo<'/forgot-password', '/forgot-password', Record<never, never>, Record<never, never>>,
     '/invite': RouteRecordInfo<'/invite', '/invite', Record<never, never>, Record<never, never>>,
     '/login': RouteRecordInfo<'/login', '/login', Record<never, never>, Record<never, never>>,
+    '/privacy-policy': RouteRecordInfo<'/privacy-policy', '/privacy-policy', Record<never, never>, Record<never, never>>,
     '/register': RouteRecordInfo<'/register', '/register', Record<never, never>, Record<never, never>>,
     '/reset-password': RouteRecordInfo<'/reset-password', '/reset-password', Record<never, never>, Record<never, never>>,
     '/settings': RouteRecordInfo<'/settings', '/settings', Record<never, never>, Record<never, never>>,
@@ -32,9 +33,11 @@ declare module 'vue-router/auto-routes' {
     '/settings/billing': RouteRecordInfo<'/settings/billing', '/settings/billing', Record<never, never>, Record<never, never>>,
     '/settings/general': RouteRecordInfo<'/settings/general', '/settings/general', Record<never, never>, Record<never, never>>,
     '/settings/organizations': RouteRecordInfo<'/settings/organizations', '/settings/organizations', Record<never, never>, Record<never, never>>,
+    '/settings/privacy': RouteRecordInfo<'/settings/privacy', '/settings/privacy', Record<never, never>, Record<never, never>>,
     '/settings/roles': RouteRecordInfo<'/settings/roles', '/settings/roles', Record<never, never>, Record<never, never>>,
     '/settings/security': RouteRecordInfo<'/settings/security', '/settings/security', Record<never, never>, Record<never, never>>,
     '/settings/users': RouteRecordInfo<'/settings/users', '/settings/users', Record<never, never>, Record<never, never>>,
+    '/terms': RouteRecordInfo<'/terms', '/terms', Record<never, never>, Record<never, never>>,
     '/verify-email': RouteRecordInfo<'/verify-email', '/verify-email', Record<never, never>, Record<never, never>>,
   }
 }

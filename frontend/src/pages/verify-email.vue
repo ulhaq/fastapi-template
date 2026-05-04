@@ -58,6 +58,29 @@ meta:
           <p v-if="errors.password" class="text-xs text-destructive">{{ errors.password }}</p>
         </div>
 
+        <div
+          class="space-y-1 rounded-md p-3 transition-colors"
+          :class="
+            termsError
+              ? 'bg-destructive/5 border border-destructive/30'
+              : 'border border-transparent'
+          "
+        >
+          <div class="flex items-start space-x-2">
+            <Checkbox
+              id="terms-accepted"
+              :model-value="termsAccepted"
+              :disabled="isLoading"
+              class="mt-0.5"
+              @update:model-value="onTermsChange"
+            />
+            <Label for="terms-accepted" class="text-sm font-normal leading-snug cursor-pointer">
+              {{ $t('gdpr.consentLabel') }}
+            </Label>
+          </div>
+          <p v-if="termsError" class="text-xs text-destructive pl-6">{{ termsError }}</p>
+        </div>
+
         <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
 
         <Button type="submit" class="w-full" :disabled="isLoading">
@@ -74,6 +97,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -82,6 +106,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useValidation } from '@/composables/useValidation'
 import { useRules } from '@/composables/useRules'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -97,11 +122,14 @@ const verifying = ref(!!token)
 const error = ref(false)
 const setupToken = ref('')
 
+const { t } = useI18n()
 const rules = useRules()
 const { form, errors, validate } = useValidation({
   name: rules.required,
   password: rules.password,
 })
+const termsAccepted = ref(false)
+const termsError = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 
@@ -121,12 +149,26 @@ onMounted(async () => {
   }
 })
 
+function onTermsChange(v: boolean | 'indeterminate') {
+  termsAccepted.value = v === true
+  termsError.value = ''
+}
+
 async function onSubmit() {
   if (!validate()) return
+  if (!termsAccepted.value) {
+    termsError.value = t('gdpr.consentRequired')
+    return
+  }
   isLoading.value = true
   errorMessage.value = ''
   try {
-    await authStore.completeRegistration(setupToken.value, form.name, form.password)
+    await authStore.completeRegistration(
+      setupToken.value,
+      form.name,
+      form.password,
+      termsAccepted.value,
+    )
     router.push('/settings/billing')
   } catch (err: unknown) {
     errorMessage.value = resolveError(err)

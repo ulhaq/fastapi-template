@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Your subscription has been paused – {{ app_name }}</mj-title>
+    <mj-title>Your subscription has been paused - {{ app_name }}</mj-title>
     <mj-preview>Your {{ app_name }} subscription has been paused. Add or update your payment method to resume.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>

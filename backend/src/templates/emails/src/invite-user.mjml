@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>You've been invited to {{ organization_name }} – {{ app_name }}</mj-title>
+    <mj-title>You've been invited to {{ organization_name }} - {{ app_name }}</mj-title>
     <mj-preview>You've been invited to join {{ organization_name }}.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>

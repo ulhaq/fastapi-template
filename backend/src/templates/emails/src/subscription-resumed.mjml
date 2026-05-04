@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Your subscription has been resumed – {{ app_name }}</mj-title>
+    <mj-title>Your subscription has been resumed - {{ app_name }}</mj-title>
     <mj-preview>Your {{ app_name }} subscription is active again. Welcome back!</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>

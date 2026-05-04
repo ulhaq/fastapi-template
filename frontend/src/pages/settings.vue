@@ -89,6 +89,7 @@ import {
   Settings2,
   KeyRound,
   LockKeyhole,
+  ShieldCheck,
 } from 'lucide-vue-next'
 import { usePermission } from '@/composables/usePermission'
 import { usePlanFeature } from '@/composables/usePlanFeature'
@@ -102,6 +103,7 @@ const { hasFeature } = usePlanFeature()
 const accountItems = computed(() => [
   { to: '/settings', label: t('settings.profile'), icon: User, exact: true },
   { to: '/settings/security', label: t('settings.security'), icon: Lock },
+  { to: '/settings/privacy', label: t('gdpr.privacyNav'), icon: ShieldCheck },
   ...(hasPermission('manage:api_token')
     ? [
         {

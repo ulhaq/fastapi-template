@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import logging.config
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager, suppress
 from typing import Any
 
@@ -37,6 +37,7 @@ from src.routers import (
 )
 from src.schemas.common import ErrorResponse, ValidationDetail, ValidationErrorResponse
 from src.services.billing import run_stale_checkout_cleanup_loop
+from src.services.gdpr import run_gdpr_retention_loop
 
 logging.config.dictConfig(LOGGING_CONFIG)
 
@@ -57,10 +58,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     cleanup_task = asyncio.create_task(
         run_stale_checkout_cleanup_loop(ASYNC_SESSION_LOCAL)
     )
+    gdpr_task = asyncio.create_task(run_gdpr_retention_loop(ASYNC_SESSION_LOCAL))
     yield
     cleanup_task.cancel()
+    gdpr_task.cancel()
     with suppress(asyncio.CancelledError):
         await cleanup_task
+    with suppress(asyncio.CancelledError):
+        await gdpr_task
 
 
 app = FastAPI(
@@ -82,6 +87,18 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
+
+
+@app.middleware("http")
+async def add_security_headers(
+    request: Request, call_next: Callable[..., Any]
+) -> Response:
+    response = await call_next(request)
+    if settings.app_env != "local":
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+    return response
 
 
 @app.exception_handler(RateLimitExceeded)

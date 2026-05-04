@@ -48,12 +48,14 @@ export interface CompleteRegistrationIn {
   setup_token: string
   name: string
   password: string
+  terms_accepted: boolean
 }
 
 export interface CompleteInviteIn {
   invite_token: string
   name?: string
   password?: string
+  terms_accepted?: boolean
 }
 
 export interface InviteStatusResponse {

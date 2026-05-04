@@ -118,6 +118,9 @@ class AuditAction(StrEnum):
     API_TOKEN_CREATE = "api_token.create"
     API_TOKEN_DELETE = "api_token.delete"
     ORG_UPDATE = "org.update"
+    USER_CONSENT = "user.consent"
+    USER_EXPORT = "user.export"
+    USER_SELF_DELETE = "user.self_delete"
 
 
 DEFAULT_ROLES: list[tuple[str, str, list["Permission"]]] = [

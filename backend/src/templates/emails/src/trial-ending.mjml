@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Your trial is ending soon – {{ app_name }}</mj-title>
+    <mj-title>Your trial is ending soon - {{ app_name }}</mj-title>
     <mj-preview>Your free trial ends on {{ trial_end_date }}.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>
@@ -19,11 +19,13 @@
 
         <mj-text font-size="16px" color="#555555"> Hi {{ user_name }}, </mj-text>
 
-        {% if has_payment_method %}
-        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Your card will be charged automatically to continue your subscription. </mj-text>
-        {% else %}
-        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Add a payment method before your trial expires to keep full access. </mj-text>
-        {% endif %}
+        <mj-text font-size="16px" color="#555555" padding-bottom="16px">
+          {% if has_payment_method %}
+          Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Your card will be charged automatically to continue your subscription.
+          {% else %}
+          Your free trial of {{ app_name }} will end on <strong>{{ trial_end_date }}</strong>. Add a payment method before your trial expires to keep full access.
+          {% endif %}
+        </mj-text>
 
         <mj-button background-color="#0052cc" color="#ffffff" border-radius="4px" font-size="16px" href="{{ billing_url }}" padding="12px 0"> Manage Billing </mj-button>
 

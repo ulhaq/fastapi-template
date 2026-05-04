@@ -470,6 +470,51 @@ def test_cannot_remove_owner_role_via_manage_roles(
     assert rs["error_code"] == "protected_role_modification"
 
 
+def test_export_my_data(standard_authenticated: TestClient) -> None:
+    response = standard_authenticated.get("/v1/users/me/export")
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["user"]["email"] == "standard@example.org"
+    assert "organizations" in rs
+    assert "api_tokens" in rs
+    assert "audit_logs" in rs
+
+
+def test_cannot_export_data_while_unauthorized(client: TestClient) -> None:
+    response = client.get("/v1/users/me/export")
+    assert response.status_code == 401
+
+
+def test_delete_my_account(standard_authenticated: TestClient) -> None:
+    response = standard_authenticated.request(
+        "DELETE", "/v1/users/me", json={"current_password": "password"}
+    )
+    assert response.status_code == 204
+
+
+def test_cannot_delete_account_with_wrong_password(
+    standard_authenticated: TestClient,
+) -> None:
+    response = standard_authenticated.request(
+        "DELETE", "/v1/users/me", json={"current_password": "wrongpassword"}
+    )
+    assert response.status_code == 403
+
+
+def test_owner_cannot_delete_account(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.request(
+        "DELETE", "/v1/users/me", json={"current_password": "password"}
+    )
+    assert response.status_code == 403
+
+
+def test_cannot_delete_account_while_unauthorized(client: TestClient) -> None:
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": "password"}
+    )
+    assert response.status_code == 401
+
+
 def test_deleted_role_excluded_from_user_roles(admin_authenticated: TestClient) -> None:
     # Standard user (id=2) starts with the "Member" role
     response = admin_authenticated.get("/v1/users/2")

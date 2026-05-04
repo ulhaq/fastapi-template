@@ -21,7 +21,9 @@ from src.repositories.user import UserRepository
 from src.schemas.common import PageQueryParams, PaginatedResponse
 from src.schemas.user import (
     ChangePasswordIn,
+    DeleteMeIn,
     InviteUserIn,
+    UserDataExportOut,
     UserOut,
     UserPatch,
     UserRoleIn,
@@ -385,3 +387,111 @@ class UserService(
             )
 
         return self._user_out(user)
+
+    async def export_me(self) -> UserDataExportOut:
+        user = await self.get(self.current_user.id)
+        await self.repos.audit_log.create(
+            action=AuditAction.USER_EXPORT,
+            organization_id=self.current_user.organization_id,
+            user_id=user.id,
+            ip_address=client_ip_var.get(),
+        )
+
+        memberships = await self.repos.user_organization.get_all_for_user(user.id)
+        api_tokens = await self.repos.api_token.list_all_for_user(user.id)
+        audit_logs = await self.repos.audit_log.get_all_for_user(user.id)
+
+        return UserDataExportOut(
+            user={
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "terms_accepted_at": (
+                    user.terms_accepted_at.isoformat()
+                    if user.terms_accepted_at
+                    else None
+                ),
+                "created_at": user.created_at.isoformat(),
+                "updated_at": user.updated_at.isoformat(),
+            },
+            organizations=[
+                {
+                    "organization_id": m.organization_id,
+                    "last_active_at": m.last_active_at.isoformat()
+                    if m.last_active_at
+                    else None,
+                }
+                for m in memberships
+            ],
+            api_tokens=[
+                {
+                    "id": t.id,
+                    "name": t.name,
+                    "organization_id": t.organization_id,
+                    "last_used_at": t.last_used_at.isoformat()
+                    if t.last_used_at
+                    else None,
+                    "created_at": t.created_at.isoformat(),
+                }
+                for t in api_tokens
+            ],
+            audit_logs=[
+                {
+                    "action": log.action,
+                    "organization_id": log.organization_id,
+                    "resource_type": log.resource_type,
+                    "resource_id": log.resource_id,
+                    "ip_address": log.ip_address,
+                    "created_at": log.created_at.isoformat(),
+                }
+                for log in audit_logs
+            ],
+        )
+
+    async def delete_me(self, schema_in: DeleteMeIn, schedule_task: Callable) -> None:
+        user = authenticate_user(
+            schema_in.current_password,
+            await self.repos.user.get_by_email(self.current_user.email),
+        )
+        if not user:
+            raise PermissionDeniedException("Incorrect password")
+
+        owner_orgs = [
+            r.organization_id
+            for r in user.roles
+            if r.is_protected and r.name == OWNER_ROLE_NAME
+        ]
+        if owner_orgs:
+            raise PermissionDeniedException(
+                "You are the owner of one or more organizations. "
+                "Transfer ownership before deleting your account.",
+                error_code=ErrorCode.LAST_OWNER_REMOVAL,
+            )
+
+        memberships = await self.repos.user_organization.get_all_for_user(user.id)
+        for membership in memberships:
+            await self.repos.api_token.revoke_all_for_user_org(
+                user.id, membership.organization_id
+            )
+            await self.repos.user_organization.force_delete(membership)
+
+        await self.repos.refresh_token.delete_by_user(user)
+        await self.repo.delete(user)
+
+        await self.repos.audit_log.create(
+            action=AuditAction.USER_SELF_DELETE,
+            organization_id=self.current_user.organization_id,
+            user_id=user.id,
+            ip_address=client_ip_var.get(),
+        )
+
+        schedule_task(
+            send_email,
+            address=user.email,
+            user_name=user.name,
+            subject="Your account has been scheduled for deletion",
+            email_template="account-deletion",
+            data={
+                "retention_days": settings.gdpr_retention_days,
+            },
+        )

@@ -51,6 +51,15 @@ class ApiTokenRepository(RepositoryABC[ApiToken]):
         rs = await self.db.execute(stmt)
         return list(rs.scalars().all())
 
+    async def list_all_for_user(self, user_id: int) -> list[ApiToken]:
+        stmt = (
+            select(ApiToken)
+            .where(ApiToken.user_id == user_id, ApiToken.revoked_at.is_(None))
+            .order_by(ApiToken.created_at.desc())
+        )
+        rs = await self.db.execute(stmt)
+        return list(rs.scalars().all())
+
     async def get_by_id(
         self, token_id: int, user_id: int, organization_id: int
     ) -> ApiToken | None:

@@ -120,6 +120,7 @@ class AuthService(BaseService):
             )
 
         hashed_pw = hash_secret(schema_in.password)
+        now = datetime.now(UTC)
 
         # Restore soft-deleted user (orphaned when their org was deleted) rather than
         # creating a duplicate row that would violate the email unique constraint.
@@ -127,13 +128,14 @@ class AuthService(BaseService):
         if deleted_user:
             user = await self.repos.user.restore(deleted_user)
             user = await self.repos.user.update(
-                user, name=schema_in.name, password=hashed_pw
+                user, name=schema_in.name, password=hashed_pw, terms_accepted_at=now
             )
         else:
             user = await self.repos.user.create(
                 name=schema_in.name,
                 email=email,
                 password=hashed_pw,
+                terms_accepted_at=now,
             )
 
         organization = await self.repos.organization.create(
@@ -155,6 +157,13 @@ class AuthService(BaseService):
             organization_id=organization.id,
             user_id=user.id,
             ip_address=client_ip_var.get(),
+        )
+        await self.repos.audit_log.create(
+            action=AuditAction.USER_CONSENT,
+            organization_id=organization.id,
+            user_id=user.id,
+            ip_address=client_ip_var.get(),
+            details={"terms_accepted_at": now.isoformat()},
         )
 
         schedule_task(
@@ -274,6 +283,9 @@ class AuthService(BaseService):
                     "Name and password are required for new accounts."
                 )
 
+            invite_now = datetime.now(UTC)
+            terms_at = invite_now if schema_in.terms_accepted else None
+
             # Restore soft-deleted user rather than creating a duplicate that
             # would violate the email unique constraint.
             deleted_user = await self.repos.user.get_by_email(
@@ -283,13 +295,26 @@ class AuthService(BaseService):
             if deleted_user:
                 user = await self.repos.user.restore(deleted_user)
                 user = await self.repos.user.update(
-                    user, name=schema_in.name, password=hashed_pw
+                    user,
+                    name=schema_in.name,
+                    password=hashed_pw,
+                    terms_accepted_at=terms_at,
                 )
             else:
                 user = await self.repos.user.create(
                     name=schema_in.name,
                     email=email,
                     password=hashed_pw,
+                    terms_accepted_at=terms_at,
+                )
+
+            if terms_at:
+                await self.repos.audit_log.create(
+                    action=AuditAction.USER_CONSENT,
+                    organization_id=organization_id,
+                    user_id=user.id,
+                    ip_address=client_ip_var.get(),
+                    details={"terms_accepted_at": terms_at.isoformat()},
                 )
 
             await self.repos.user_organization.create(

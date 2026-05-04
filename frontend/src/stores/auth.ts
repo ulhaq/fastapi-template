@@ -66,11 +66,13 @@ export const useAuthStore = defineStore('auth', () => {
     setupToken: string,
     name: string,
     password: string,
+    termsAccepted: boolean,
   ): Promise<void> {
     const { data: token } = await authApi.completeRegistration({
       setup_token: setupToken,
       name,
       password,
+      terms_accepted: termsAccepted,
     })
     setSession(token)
     await Promise.all([

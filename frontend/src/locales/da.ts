@@ -394,6 +394,30 @@ export default {
     unavailableMessage: 'Denne funktion er ikke tilgængelig på din nuværende plan.',
     upgradeCta: 'Opgrader din plan',
   },
+  gdpr: {
+    title: 'Privatliv & Data',
+    description: 'Administrer dine data og privatlivspræferencer',
+    privacyNav: 'Privatliv & Data',
+    consentLabel: 'Jeg accepterer Servicevilkårene og Privatlivspolitikken',
+    consentRequired: 'Du skal acceptere vilkårene for at fortsætte',
+    exportTitle: 'Eksporter dine data',
+    exportDescription: 'Download en kopi af alle personoplysninger tilknyttet din konto.',
+    exportButton: 'Eksporter Data',
+    exportSuccess: 'Din dataeksport downloades',
+    exportFailed: 'Kunne ikke eksportere data. Prøv igen.',
+    deleteTitle: 'Slet din konto',
+    deleteDescription:
+      'Slet din konto og alle tilknyttede data permanent. Denne handling kan ikke fortrydes.',
+    deleteButton: 'Slet konto',
+    deleteConfirmTitle: 'Slet din konto?',
+    deleteConfirmDescription:
+      'Din konto vil blive permanent slettet efter en 30-dages henstandsperiode. Dette kan ikke fortrydes.',
+    deleteConfirm: 'Slet konto',
+    deletePasswordLabel: 'Bekræft din adgangskode',
+    deletePasswordPlaceholder: 'Indtast din nuværende adgangskode',
+    deleteSuccess: 'Din konto er planlagt til sletning',
+    deleteFailed: 'Kunne ikke slette konto. Tjek venligst din adgangskode og prøv igen.',
+  },
   errors: {
     common: 'Noget gik galt. Prøv igen.',
     api: {

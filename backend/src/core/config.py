@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     billing_automatic_tax: bool = False
     billing_trial_period_days: int = 14
 
+    gdpr_retention_days: int = 30
+    gdpr_token_purge_days: int = 7
+    gdpr_export_audit_log_limit: int = 500
+
     log_exc_info: bool = True
     sqlalchemy_echo: bool = False
 
