@@ -15,11 +15,18 @@ from src.schemas.billing import (
     StartTrialIn,
     SubscriptionOut,
     SwitchPlanIn,
+    UsageOut,
 )
-from src.services.billing import PlanService, SubscriptionService, WebhookService
+from src.services.billing import (
+    PlanService,
+    SubscriptionService,
+    UsageService,
+    WebhookService,
+)
 
 plan_router = APIRouter(prefix="/billing/plans")
 subscription_router = APIRouter(prefix="/billing/subscriptions")
+usage_router = APIRouter(prefix="/billing/usage")
 webhook_router = APIRouter(prefix="/billing")
 
 
@@ -112,6 +119,19 @@ async def get_customer_portal(
     _: Annotated[Auth, Depends(require_permission(Permission.MANAGE_SUBSCRIPTION))],
 ) -> CustomerPortalOut:
     return await service.get_customer_portal_url()
+
+
+# ---------------------------------------------------------------------------
+# Usage endpoints
+# ---------------------------------------------------------------------------
+
+
+@usage_router.get("", status_code=status.HTTP_200_OK)
+async def get_current_usage(
+    service: Annotated[UsageService, Depends()],
+    _: Annotated[Auth, Depends(authenticate)],
+) -> UsageOut:
+    return await service.get_current_usage()
 
 
 # ---------------------------------------------------------------------------

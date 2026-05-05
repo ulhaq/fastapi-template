@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
@@ -37,6 +37,13 @@ class PlanPriceOut(BaseModel):
     updated_at: datetime
 
 
+class PlanQuotaOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    metric: str
+    limit_value: int | None
+
+
 class PlanOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,6 +52,7 @@ class PlanOut(BaseModel):
     description: str | None
     is_active: bool
     prices: list[PlanPriceOut]
+    plan_quotas: list[PlanQuotaOut]
     created_at: datetime
     updated_at: datetime
 
@@ -68,6 +76,17 @@ class SubscriptionOut(BaseModel):
     features: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+
+
+class UsageItemOut(BaseModel):
+    metric: str
+    count: int
+    limit: int | None
+
+
+class UsageOut(BaseModel):
+    period_start: date
+    usage: list[UsageItemOut]
 
 
 class CheckoutOut(BaseModel):

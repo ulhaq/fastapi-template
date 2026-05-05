@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -14,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.models.mixins import ResourceModel
+from src.models.mixins import ResourceModel, ResourceModelBase
 
 if TYPE_CHECKING:
     from src.models.organization import Organization
@@ -34,6 +35,9 @@ class Plan(ResourceModel):
         back_populates="plan", passive_deletes=True, lazy="selectin"
     )
     plan_features: Mapped[list["PlanFeature"]] = relationship(
+        back_populates="plan", passive_deletes=True, lazy="selectin"
+    )
+    plan_quotas: Mapped[list["PlanQuota"]] = relationship(
         back_populates="plan", passive_deletes=True, lazy="selectin"
     )
 
@@ -127,6 +131,48 @@ class Subscription(ResourceModel):
 
     organization: Mapped["Organization"] = relationship()
     plan_price: Mapped["PlanPrice | None"] = relationship(lazy="selectin")
+
+
+class PlanQuota(ResourceModel):
+    __tablename__ = "billing_plan_quota"
+    __table_args__ = (
+        UniqueConstraint("plan_id", "metric", name="uq_billing_plan_quota"),
+    )
+
+    plan_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("billing_plan.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    metric: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    limit_value: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    plan: Mapped["Plan"] = relationship(back_populates="plan_quotas")
+
+
+class UsageRecord(ResourceModelBase):
+    __tablename__ = "billing_usage_record"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "metric",
+            "period_start",
+            name="uq_billing_usage_record",
+        ),
+    )
+
+    organization_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("organization.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    metric: Mapped[str] = mapped_column(String, nullable=False)
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    organization: Mapped["Organization"] = relationship()
 
 
 class WebhookEvent(ResourceModel):

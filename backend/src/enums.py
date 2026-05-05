@@ -80,6 +80,10 @@ class ErrorCode(Enum):
         "plan_feature_unavailable",
         "Your current plan does not include this feature",
     )
+    QUOTA_EXCEEDED = (
+        "quota_exceeded",
+        "You have reached your plan's usage limit for this period",
+    )
 
     def __init__(self, code: str, description: str):
         self.code = code
@@ -180,3 +184,7 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
 
 class PlanFeature(StrEnum):
     API_ACCESS = "api_access"
+
+
+class UsageMetric(StrEnum):
+    API_REQUESTS = "api_requests"

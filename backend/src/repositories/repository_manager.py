@@ -11,8 +11,10 @@ from src.repositories.audit_log import AuditLogRepository
 from src.repositories.billing import (
     PlanFeatureRepository,
     PlanPriceRepository,
+    PlanQuotaRepository,
     PlanRepository,
     SubscriptionRepository,
+    UsageRecordRepository,
     WebhookEventRepository,
 )
 from src.repositories.email_verification_token import EmailVerificationTokenRepository
@@ -41,6 +43,8 @@ class RepositoryManager:
         self._plan: PlanRepository | None = None
         self._plan_price: PlanPriceRepository | None = None
         self._plan_feature: PlanFeatureRepository | None = None
+        self._plan_quota: PlanQuotaRepository | None = None
+        self._usage_record: UsageRecordRepository | None = None
         self._subscription: SubscriptionRepository | None = None
         self._webhook_event: WebhookEventRepository | None = None
         self._email_verification_token: EmailVerificationTokenRepository | None = None
@@ -111,6 +115,18 @@ class RepositoryManager:
         if self._plan_feature is None:
             self._plan_feature = PlanFeatureRepository(self.db)
         return self._plan_feature
+
+    @property
+    def plan_quota(self) -> PlanQuotaRepository:
+        if self._plan_quota is None:
+            self._plan_quota = PlanQuotaRepository(self.db)
+        return self._plan_quota
+
+    @property
+    def usage_record(self) -> UsageRecordRepository:
+        if self._usage_record is None:
+            self._usage_record = UsageRecordRepository(self.db)
+        return self._usage_record
 
     @property
     def subscription(self) -> SubscriptionRepository:

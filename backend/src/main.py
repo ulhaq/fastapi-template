@@ -229,6 +229,7 @@ app.include_router(billing.plan_router, tags=["Billing Plans"], prefix="/v1")
 app.include_router(
     billing.subscription_router, tags=["Billing Subscriptions"], prefix="/v1"
 )
+app.include_router(billing.usage_router, tags=["Billing Usage"], prefix="/v1")
 app.include_router(billing.webhook_router, tags=["Billing Webhooks"], prefix="/v1")
 
 

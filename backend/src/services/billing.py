@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import Depends
@@ -27,6 +27,8 @@ from src.schemas.billing import (
     StartTrialIn,
     SubscriptionOut,
     SwitchPlanIn,
+    UsageItemOut,
+    UsageOut,
 )
 from src.services.base import BaseService
 from src.services.utils import send_email
@@ -1067,6 +1069,35 @@ class WebhookService(BaseService):
 
         if "active" in obj:
             await self.repos.plan_price.update(price, is_active=obj["active"])
+
+
+class UsageService(BaseService):
+    def __init__(
+        self,
+        repos: Annotated[RepositoryManager, Depends()],
+        current_user: Annotated[Auth, Depends(authenticate)],
+    ) -> None:
+        self.current_user = current_user
+        super().__init__(repos)
+
+    async def get_current_usage(self) -> UsageOut:
+        period_start = date.today().replace(day=1)
+        quotas = await self.repos.plan_quota.get_quotas_for_organization(
+            self.current_user.organization_id
+        )
+        records = await self.repos.usage_record.get_for_organization(
+            self.current_user.organization_id, period_start
+        )
+        count_by_metric = {r.metric: r.count for r in records}
+        usage_items = [
+            UsageItemOut(
+                metric=q.metric,
+                count=count_by_metric.get(q.metric, 0),
+                limit=q.limit_value,
+            )
+            for q in quotas
+        ]
+        return UsageOut(period_start=period_start, usage=usage_items)
 
 
 class BillingMaintenanceService(BaseService):

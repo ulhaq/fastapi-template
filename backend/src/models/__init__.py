@@ -1,5 +1,12 @@
 from src.models.audit_log import AuditLog
-from src.models.billing import Plan, PlanPrice, Subscription, WebhookEvent
+from src.models.billing import (
+    Plan,
+    PlanPrice,
+    PlanQuota,
+    Subscription,
+    UsageRecord,
+    WebhookEvent,
+)
 from src.models.email_verification_token import EmailVerificationToken
 from src.models.invite_token import InviteToken
 from src.models.organization import Organization
@@ -19,9 +26,11 @@ __all__ = [
     "Permission",
     "Plan",
     "PlanPrice",
+    "PlanQuota",
     "RefreshToken",
     "Role",
     "Subscription",
+    "UsageRecord",
     "User",
     "UserOrganization",
     "WebhookEvent",

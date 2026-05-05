@@ -138,3 +138,20 @@ class BillingWebhookException(ClientException):
         super().__init__(
             status.HTTP_400_BAD_REQUEST, detail, error_code=error_code, headers=headers
         )
+
+
+class QuotaExceededException(ClientException):
+    def __init__(
+        self,
+        detail: Any = "You have reached your plan's usage limit for this period",
+        /,
+        *,
+        error_code: ErrorCode = ErrorCode.QUOTA_EXCEEDED,
+        headers: dict | None = None,
+    ) -> None:
+        super().__init__(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            detail,
+            error_code=error_code,
+            headers=headers,
+        )

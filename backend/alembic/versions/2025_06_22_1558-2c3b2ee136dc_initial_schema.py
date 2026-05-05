@@ -387,6 +387,50 @@ def upgrade() -> None:
         "ix_billing_plan_feature_feature", "billing_plan_feature", ["feature"]
     )
 
+    op.create_table(
+        "billing_plan_quota",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "plan_id",
+            sa.Integer(),
+            sa.ForeignKey("billing_plan.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("metric", sa.String(), nullable=False),
+        sa.Column("limit_value", sa.Integer(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.UniqueConstraint("plan_id", "metric", name="uq_billing_plan_quota"),
+    )
+    op.create_index("ix_billing_plan_quota_plan_id", "billing_plan_quota", ["plan_id"])
+    op.create_index("ix_billing_plan_quota_metric", "billing_plan_quota", ["metric"])
+
+    op.create_table(
+        "billing_usage_record",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "organization_id",
+            sa.Integer(),
+            sa.ForeignKey("organization.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("metric", sa.String(), nullable=False),
+        sa.Column("period_start", sa.Date(), nullable=False),
+        sa.Column("count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.UniqueConstraint(
+            "organization_id", "metric", "period_start",
+            name="uq_billing_usage_record",
+        ),
+    )
+    op.create_index(
+        "ix_billing_usage_record_organization_id",
+        "billing_usage_record",
+        ["organization_id"],
+    )
+
     # ── seed all permissions ───────────────────────────────────────────────────
 
     now = datetime.now(UTC)
@@ -480,6 +524,15 @@ def downgrade() -> None:
     op.drop_index("ix_audit_log_user_id", table_name="audit_log")
     op.drop_index("ix_audit_log_organization_id", table_name="audit_log")
     op.drop_table("audit_log")
+
+    op.drop_index(
+        "ix_billing_usage_record_organization_id", table_name="billing_usage_record"
+    )
+    op.drop_table("billing_usage_record")
+
+    op.drop_index("ix_billing_plan_quota_metric", table_name="billing_plan_quota")
+    op.drop_index("ix_billing_plan_quota_plan_id", table_name="billing_plan_quota")
+    op.drop_table("billing_plan_quota")
 
     op.drop_index("ix_billing_plan_feature_feature", table_name="billing_plan_feature")
     op.drop_index("ix_billing_plan_feature_plan_id", table_name="billing_plan_feature")

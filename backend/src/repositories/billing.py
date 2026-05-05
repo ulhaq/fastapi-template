@@ -1,13 +1,25 @@
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import exists, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.billing import Plan, PlanFeature, PlanPrice, Subscription, WebhookEvent
-from src.repositories.base import OrganizationScopedRepository, SoftDeleteRepository
+from src.models.billing import (
+    Plan,
+    PlanFeature,
+    PlanPrice,
+    PlanQuota,
+    Subscription,
+    UsageRecord,
+    WebhookEvent,
+)
+from src.repositories.base import (
+    OrganizationScopedRepository,
+    SoftDeleteRepository,
+    SQLResourceRepository,
+)
 
 _CHECKOUT_LOCK_NS = 0x62696C6C  # "bill" in ASCII - namespaces checkout advisory locks
 
@@ -246,6 +258,99 @@ class SubscriptionRepository(OrganizationScopedRepository[Subscription]):
                 )
         except IntegrityError:
             return await self.get_active_for_organization_locked(organization_id)
+
+
+class PlanQuotaRepository(SoftDeleteRepository[PlanQuota]):
+    def __init__(self, db: AsyncSession) -> None:
+        super().__init__(PlanQuota, db)
+
+    async def get_for_organization(
+        self, organization_id: int, metric: str
+    ) -> PlanQuota | None:
+        stmt = (
+            select(PlanQuota)
+            .join(Plan, Plan.id == PlanQuota.plan_id)
+            .join(PlanPrice, PlanPrice.plan_id == Plan.id)
+            .join(Subscription, Subscription.plan_price_id == PlanPrice.id)
+            .where(
+                Subscription.organization_id == organization_id,
+                Subscription.status.in_(["active", "trialing", "past_due", "paused"]),
+                Subscription.deleted_at.is_(None),
+                PlanQuota.metric == metric,
+                PlanQuota.deleted_at.is_(None),
+            )
+            .limit(1)
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
+    async def get_quotas_for_organization(
+        self, organization_id: int
+    ) -> Sequence[PlanQuota]:
+        stmt = (
+            select(PlanQuota)
+            .join(Plan, Plan.id == PlanQuota.plan_id)
+            .join(PlanPrice, PlanPrice.plan_id == Plan.id)
+            .join(Subscription, Subscription.plan_price_id == PlanPrice.id)
+            .where(
+                Subscription.organization_id == organization_id,
+                Subscription.status.in_(["active", "trialing", "past_due", "paused"]),
+                Subscription.deleted_at.is_(None),
+                PlanQuota.deleted_at.is_(None),
+            )
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+
+class UsageRecordRepository(SQLResourceRepository[UsageRecord]):
+    def __init__(self, db: AsyncSession) -> None:
+        super().__init__(UsageRecord, db)
+
+    async def get_count(
+        self, organization_id: int, metric: str, period_start: date
+    ) -> int:
+        stmt = select(UsageRecord.count).where(
+            UsageRecord.organization_id == organization_id,
+            UsageRecord.metric == metric,
+            UsageRecord.period_start == period_start,
+        )
+        rs = await self.db.execute(stmt)
+        return rs.scalar_one_or_none() or 0
+
+    async def increment(
+        self, organization_id: int, metric: str, period_start: date
+    ) -> int:
+        now = datetime.now(UTC)
+        stmt = (
+            pg_insert(UsageRecord)
+            .values(
+                organization_id=organization_id,
+                metric=metric,
+                period_start=period_start,
+                count=1,
+                created_at=now,
+                updated_at=now,
+            )
+            .on_conflict_do_update(
+                index_elements=["organization_id", "metric", "period_start"],
+                set_={"count": UsageRecord.count + 1, "updated_at": now},
+            )
+            .returning(UsageRecord.count)
+        )
+        rs = await self.db.execute(stmt)
+        await self.db.flush()
+        return rs.scalar_one()
+
+    async def get_for_organization(
+        self, organization_id: int, period_start: date
+    ) -> Sequence[UsageRecord]:
+        stmt = select(UsageRecord).where(
+            UsageRecord.organization_id == organization_id,
+            UsageRecord.period_start == period_start,
+        )
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
 
 
 class WebhookEventRepository(SoftDeleteRepository[WebhookEvent]):
