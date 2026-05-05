@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.config import settings
 from src.models.audit_log import AuditLog
@@ -45,7 +46,11 @@ class AuditLogRepository(RepositoryABC[AuditLog]):
         page_number: int,
         action_filter: str | None = None,
     ) -> tuple[Sequence[AuditLog], int]:
-        stmt = select(AuditLog).where(AuditLog.organization_id == organization_id)
+        stmt = (
+            select(AuditLog)
+            .where(AuditLog.organization_id == organization_id)
+            .options(selectinload(AuditLog.user))
+        )
         if action_filter:
             stmt = stmt.where(AuditLog.action == action_filter)
         stmt = (

@@ -216,11 +216,9 @@ async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
     )
 
 
-app.include_router(api_token.router, tags=["API Tokens"], prefix="/v1")
-app.include_router(
-    audit_log.router, tags=["Audit Log"], prefix="/v1", include_in_schema=False
-)
 app.include_router(auth.router, tags=["Authentication"], prefix="/v1")
+app.include_router(api_token.router, tags=["API Tokens"], prefix="/v1")
+app.include_router(audit_log.router, tags=["Audit Log"], prefix="/v1")
 app.include_router(organization.router, tags=["Organizations"], prefix="/v1")
 app.include_router(user.router, tags=["Users"], prefix="/v1")
 app.include_router(role.router, tags=["Roles"], prefix="/v1")

@@ -90,6 +90,7 @@ import {
   KeyRound,
   LockKeyhole,
   ShieldCheck,
+  ClipboardList,
 } from 'lucide-vue-next'
 import { usePermission } from '@/composables/usePermission'
 import { usePlanFeature } from '@/composables/usePlanFeature'
@@ -128,6 +129,9 @@ const workspaceItems = computed(() => [
     : []),
   ...(hasPermission('manage:subscription')
     ? [{ to: '/settings/billing', label: t('nav.subscription'), icon: Receipt }]
+    : []),
+  ...(hasPermission('read:audit_log')
+    ? [{ to: '/settings/audit-log', label: t('nav.auditLog'), icon: ClipboardList }]
     : []),
 ])
 

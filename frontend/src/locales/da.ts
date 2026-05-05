@@ -15,6 +15,7 @@ export default {
     pages: 'Sider',
     failedToSwitchOrganization: 'Kunne ikke skifte organisation',
     subscription: 'Abonnement',
+    auditLog: 'Aktivitetslog',
   },
   common: {
     cancel: 'Annuller',
@@ -393,6 +394,27 @@ export default {
   planFeature: {
     unavailableMessage: 'Denne funktion er ikke tilgængelig på din nuværende plan.',
     upgradeCta: 'Opgrader din plan',
+  },
+  auditLog: {
+    title: 'Aktivitetslog',
+    description: 'En oversigt over handlinger foretaget i din organisation',
+    noLogsFound: 'Ingen aktivitetslogge fundet',
+    noLogsDescription: 'Handlinger i din organisation vil vises her.',
+    filterByAction: 'Filtrer efter handling',
+    allActions: 'Alle handlinger',
+    columns: {
+      action: 'Handling',
+      resource: 'Ressource',
+      ipAddress: 'IP-adresse',
+      user: 'Bruger',
+      details: 'Detaljer',
+      created: 'Oprettet',
+    },
+    noIpAddress: '-',
+    noResource: '-',
+    noDetails: '-',
+    noUser: 'System',
+    viewDetails: 'Se detaljer',
   },
   gdpr: {
     title: 'Privatliv & Data',

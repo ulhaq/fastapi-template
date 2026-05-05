@@ -15,6 +15,7 @@ export default {
     pages: 'Pages',
     failedToSwitchOrganization: 'Failed to switch organization',
     subscription: 'Subscription',
+    auditLog: 'Audit Log',
   },
   common: {
     cancel: 'Cancel',
@@ -387,6 +388,27 @@ export default {
   planFeature: {
     unavailableMessage: 'This feature is not available on your current plan.',
     upgradeCta: 'Upgrade your plan',
+  },
+  auditLog: {
+    title: 'Audit Log',
+    description: 'A record of actions taken within your organization',
+    noLogsFound: 'No audit logs found',
+    noLogsDescription: 'Actions in your organization will appear here.',
+    filterByAction: 'Filter by action',
+    allActions: 'All actions',
+    columns: {
+      action: 'Action',
+      resource: 'Resource',
+      ipAddress: 'IP Address',
+      user: 'User',
+      details: 'Details',
+      created: 'Created',
+    },
+    noIpAddress: '-',
+    noResource: '-',
+    noDetails: '-',
+    noUser: 'System',
+    viewDetails: 'View details',
   },
   gdpr: {
     title: 'Privacy & Data',
