@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime
 
 import pytest
@@ -79,8 +78,8 @@ def test_get_all_roles(admin_authenticated: TestClient) -> None:
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 3, 3),
-        pytest.param(2, 10, 0, 3),
+        (1, 10, 3, 3),
+        (2, 10, 0, 3),
     ],
 )
 def test_paginate_roles(
@@ -102,20 +101,20 @@ def test_paginate_roles(
 @pytest.mark.parametrize(
     "sort",
     [
-        pytest.param("id"),
-        pytest.param("-id"),
-        pytest.param("name"),
-        pytest.param("-name"),
-        pytest.param("description"),
-        pytest.param("-description"),
-        pytest.param("name,description"),
-        pytest.param("-name,-description"),
-        pytest.param("-name,description"),
-        pytest.param("name,-description"),
-        pytest.param("created_at"),
-        pytest.param("-created_at"),
-        pytest.param("updated_at"),
-        pytest.param("-updated_at"),
+        ("id"),
+        ("-id"),
+        ("name"),
+        ("-name"),
+        ("description"),
+        ("-description"),
+        ("name,description"),
+        ("-name,-description"),
+        ("-name,description"),
+        ("name,-description"),
+        ("created_at"),
+        ("-created_at"),
+        ("updated_at"),
+        ("-updated_at"),
     ],
 )
 def test_sort_roles(sort: str, admin_authenticated: TestClient) -> None:
@@ -127,17 +126,23 @@ def test_sort_roles(sort: str, admin_authenticated: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "fields,values,operators,total_page",
+    "fields, values, operators, total",
     [
-        pytest.param(["id"], [[1]], ["eq"], 1),
-        pytest.param(["id"], [[0, 1]], ["between"], 1),
-        pytest.param(["id"], [[1, 2]], ["between"], 2),
-        pytest.param(["id"], [[2, 3]], ["between"], 2),
-        pytest.param(["id", "name"], [[1], ["a"]], ["eq", "co"], 2),
-        pytest.param(["name"], [["Owner"]], ["eq"], 1),
-        pytest.param(["name"], [["n"]], ["co"], 2),
-        pytest.param(["description"], [["access"]], ["ico"], 3),
-        pytest.param(
+        # Single field, single value
+        (["id"], [[1]], ["eq"], 1),
+        (["name"], [["Owner"]], ["eq"], 1),
+        (["name"], [["member"]], ["ico"], 1),
+        (["name"], [["n"]], ["co"], 2),  # Owner, Admin contain 'n'
+        (["description"], [["access"]], ["ico"], 3),
+        (["id"], [[2]], ["gte"], 2),  # Admin, Member
+        # Single field, multiple values
+        (["id"], [[0, 1]], ["between"], 1),
+        (["id"], [[1, 2]], ["between"], 2),
+        (["id"], [[2, 3]], ["between"], 2),
+        (["id"], [[1, 2, 3]], ["in"], 3),
+        (["name"], [["Owner", "Admin"]], ["in"], 2),
+        # Other meaningful
+        (
             ["created_at"],
             [["2025-04-22T14:04:38.586226", "2050-09-22T14:04:38.586226"]],
             ["between"],
@@ -149,22 +154,89 @@ def test_filter_roles(
     fields: list[str],
     values: list[list],
     operators: list[str],
-    total_page: int,
+    total: int,
     admin_authenticated: TestClient,
 ) -> None:
-    filter_data = zip(fields, values, operators, strict=False)
-    filters = {}
-
-    for field, value, op in filter_data:
-        filters[field] = {"v": [*value], "op": op}
-
-    response = admin_authenticated.get(f"/v1/roles?filters={json.dumps(filters)}")
+    params = "&".join(
+        f"{field}__{op}={','.join(str(v) for v in value)}"
+        for field, value, op in zip(fields, values, operators, strict=False)
+    )
+    response = admin_authenticated.get(f"/v1/roles?{params}&page_size=50")
     assert response.status_code == 200
     rs = response.json()
 
-    assert len(rs["items"]) == total_page
+    assert len(rs["items"]) == total
 
+    filter_data = list(zip(fields, values, operators, strict=False))
     assert_filtering_of_items_list(rs["items"], filter_data)
+
+
+@pytest.mark.parametrize(
+    "params, total",
+    [
+        # AND: name contains "n" (Owner, Admin)
+        # AND description contains "access" (all 3) > 2
+        ("name__co=n&description__ico=access", 2),
+        # AND: id >= 1 (all 3) AND name contains "er" (Owner, Member) > 2
+        ("id__gte=1&name__co=er", 2),
+        # AND: name="Owner" AND description contains "full" > 1
+        ("name__eq=Owner&description__ico=full", 1),
+        # AND: id between 1 and 2 AND name ico "admin" > 1
+        ("id__between=1,2&name__ico=admin", 1),
+    ],
+)
+def test_filter_roles_multi_field(
+    params: str,
+    total: int,
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get(f"/v1/roles?{params}&page_size=50")
+    assert response.status_code == 200
+    assert response.json()["total"] == total
+
+
+@pytest.mark.parametrize(
+    "q, expected_count",
+    [
+        ("owner", 1),
+        ("OWNER", 1),
+        ("full access", 1),
+        ("access", 3),
+        ("xyznonexistent", 0),
+    ],
+)
+def test_search_roles(
+    q: str,
+    expected_count: int,
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get(f"/v1/roles?q={q}&page_size=50")
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["total"] == expected_count
+    assert len(rs["items"]) == expected_count
+
+
+def test_search_roles_returns_empty_for_blank_query(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get("/v1/roles?q=&page_size=50")
+    assert response.status_code == 200
+    assert response.json()["total"] == 3
+
+
+def test_cannot_filter_roles_by_invalid_operator(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get("/v1/roles?name__notanop=owner")
+    assert response.status_code == 422
+    assert "notanop" in response.json()["msg"]
+
+
+def test_cannot_sort_roles_by_invalid_field(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/roles?sort=email")
+    assert response.status_code == 422
+    assert "email" in response.json()["msg"]
 
 
 def test_create_a_role(admin_authenticated: TestClient) -> None:

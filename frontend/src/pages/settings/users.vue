@@ -165,7 +165,7 @@ const {
   goToPage,
   setPageSize,
   setSort,
-  setFilters,
+  setSearch,
   refresh,
 } = useDataTable<UserOut>({ fetcher: usersApi.list })
 
@@ -175,20 +175,13 @@ let searchTimeout: ReturnType<typeof setTimeout>
 function handleSearch() {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    const v = searchQuery.value ? [searchQuery.value] : []
-    setFilters([
-      { field: 'name', value: v, op: 'ico' },
-      { field: 'email', value: v, op: 'ico' },
-    ])
+    setSearch(searchQuery.value || undefined)
   }, 300)
 }
 
 function clearSearch() {
   searchQuery.value = ''
-  setFilters([
-    { field: 'name', value: [] },
-    { field: 'email', value: [] },
-  ])
+  setSearch(undefined)
 }
 
 const showForm = ref(false)

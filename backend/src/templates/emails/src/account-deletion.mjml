@@ -1,7 +1,7 @@
 <mjml>
   <mj-head>
-    <mj-title>Account deletion scheduled - {{ app_name }}</mj-title>
-    <mj-preview>Your account has been scheduled for deletion.</mj-preview>
+    <mj-title>Account deleted - {{ app_name }}</mj-title>
+    <mj-preview>Your account has been deleted.</mj-preview>
     <mj-style inline="inline"> a { text-decoration: none; } </mj-style>
   </mj-head>
   <mj-body background-color="#f7f7f7">
@@ -15,13 +15,13 @@
     <!-- Main Content -->
     <mj-section background-color="#ffffff" border-radius="6px" padding="32px">
       <mj-column>
-        <mj-text font-size="18px" font-weight="bold" color="#333333" padding-bottom="8px"> Account deletion scheduled </mj-text>
+        <mj-text font-size="18px" font-weight="bold" color="#333333" padding-bottom="8px"> Your account has been deleted </mj-text>
 
         <mj-text font-size="16px" color="#555555" padding-bottom="12px"> Hi {{ user_name }}, </mj-text>
 
-        <mj-text font-size="16px" color="#555555" padding-bottom="12px"> We have received your request to delete your account. Your account and all associated data will be permanently removed after a <strong>{{ retention_days }}-day</strong> grace period. </mj-text>
+        <mj-text font-size="16px" color="#555555" padding-bottom="12px"> Your account has been deleted and you can no longer sign in. Your data will be permanently purged after <strong>{{ retention_days }} days</strong> in accordance with our data retention policy. </mj-text>
 
-        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> If this was a mistake, please contact our support team as soon as possible. </mj-text>
+        <mj-text font-size="16px" color="#555555" padding-bottom="16px"> If you did not request this, please contact our support team immediately. </mj-text>
 
         <mj-text font-size="16px" color="#555555">
           Regards,<br />

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,8 @@ class RoleRepositoryABC(SoftDeleteRepositoryABC[Role], ABC):
 
 
 class RoleRepository(OrganizationScopedRepository[Role], RoleRepositoryABC):
+    search_fields: ClassVar[list[str]] = ["name", "description"]
+
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Role, db)
 

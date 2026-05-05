@@ -6,12 +6,13 @@ from src.core.dependencies import require_permission
 from src.core.security import Auth
 from src.enums import Permission
 from src.routers.query_options import (
-    FiltersQuery,
     PageNumberQuery,
     PageSizeQuery,
-    SortQuery,
+    SearchQuery,
+    filters_query,
+    sort_query,
 )
-from src.schemas.common import PageQueryParams, PaginatedResponse
+from src.schemas.common import FilterItem, PageQueryParams, PaginatedResponse
 from src.schemas.role import RoleIn, RoleOut, RolePatch, RolePermissionIn
 from src.services.role import RoleService
 
@@ -23,8 +24,9 @@ async def get_all_roles(
     *,
     service: Annotated[RoleService, Depends()],
     _: Annotated[Auth, Depends(require_permission(Permission.READ_ROLE))],
-    sort: SortQuery,
-    filters: FiltersQuery,
+    sort: Annotated[list[str], Depends(sort_query(["description"]))],
+    filters: Annotated[list[FilterItem], Depends(filters_query(["description"]))],
+    q: SearchQuery,
     page_size: PageSizeQuery = 10,
     page_number: PageNumberQuery = 1,
 ) -> PaginatedResponse[RoleOut]:
@@ -35,6 +37,7 @@ async def get_all_roles(
             filters=filters,
             page_size=page_size,
             page_number=page_number,
+            search=q,
         ),
     )
 

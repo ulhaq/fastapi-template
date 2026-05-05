@@ -55,6 +55,7 @@ class ResourceService[
             filters=page_query_params.filters,
             page_size=page_query_params.page_size,
             page_number=page_query_params.page_number,
+            search=page_query_params.search,
             include_deleted=include_deleted,
         )
         return PaginatedResponse(

@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
@@ -76,15 +77,18 @@ class PaginatedResponse[SchemaOutType: BaseModel](BaseModel):
     total: int
 
 
-class Filters(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    v: Annotated[list, Field()]
-    op: ComparisonOperator = Field(default=ComparisonOperator.EQUALS)
+@dataclass
+class FilterItem:
+    field: str
+    op: ComparisonOperator
+    values: list[str]
 
 
 class PageQueryParams(BaseModel):
-    sort: Annotated[list[str], Field()]
-    filters: Annotated[dict[str, dict], Field()]
-    page_size: Annotated[int, Field()]
-    page_number: Annotated[int, Field()]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    sort: list[str]
+    filters: list[FilterItem]
+    page_size: int
+    page_number: int
+    search: str | None = None

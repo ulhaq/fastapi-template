@@ -1,22 +1,34 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Any, Literal, overload
+from typing import Any, ClassVar, Literal, overload
 
-from sqlalchemy import BinaryExpression, Select, exists, func, or_, select
+from sqlalchemy import (
+    BinaryExpression,
+    Select,
+    String,
+    and_,
+    cast,
+    exists,
+    func,
+    or_,
+    select,
+)
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from src.core.exceptions import NotFoundException
-from src.enums import ComparisonOperator
 from src.models.mixins import ResourceModel, ResourceModelBase
 from src.repositories import utils
 from src.repositories.abc import ResourceRepositoryABC, SoftDeleteRepositoryABC
+from src.schemas.common import FilterItem
 
 
 class SQLResourceRepository[ModelType: ResourceModelBase](
     ResourceRepositoryABC[ModelType]
 ):
+    search_fields: ClassVar[list[str]] = []
+
     async def get_one(
         self, identifier: int, include_deleted: bool = False
     ) -> ModelType:
@@ -115,18 +127,22 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
     async def paginate(
         self,
         sort: list[str],
-        filters: dict[str, dict],
+        filters: list[FilterItem],
         page_size: int,
         page_number: int,
+        search: str | None = None,
         include_deleted: bool = False,
     ) -> tuple[Sequence[ModelType], int]:
         order_expressions = self._get_order_expressions(sort)
         filter_expressions = self._get_filter_expressions(filters)
+        search_expressions = self._get_search_expressions(search)
 
         stmt = select(self.model)
 
         if filter_expressions:
-            stmt = stmt.filter(or_(*filter_expressions))
+            stmt = stmt.filter(*filter_expressions)
+        if search_expressions:
+            stmt = stmt.filter(or_(*search_expressions))
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -139,25 +155,36 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
         rs = await self.db.execute(stmt)
         items = rs.unique().scalars().all()
 
-        total = await self.get_total(
-            *filter_expressions, include_deleted=include_deleted
-        )
+        combined = [
+            *([and_(*filter_expressions)] if filter_expressions else []),
+            *([or_(*search_expressions)] if search_expressions else []),
+        ]
+        total = await self.get_total(*combined, include_deleted=include_deleted)
 
         return items, total
 
     async def get_total(
-        self, *filter_expressions: BinaryExpression, include_deleted: bool = False
+        self, *filter_expressions: ColumnElement[bool], include_deleted: bool = False
     ) -> int:
         stmt = select(func.count()).select_from(self.model)
 
         if filter_expressions:
-            stmt = stmt.filter(or_(*filter_expressions))
+            stmt = stmt.filter(*filter_expressions)
 
         stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
         total = rs.scalar_one()
         return int(total)
+
+    def _get_search_expressions(self, search: str | None) -> list[BinaryExpression]:
+        if not search or not self.search_fields:
+            return []
+        return [
+            cast(getattr(self.model, field), String).ilike(f"%{search}%")
+            for field in self.search_fields
+            if hasattr(self.model, field)
+        ]
 
     async def add_relationship(
         self,
@@ -258,42 +285,34 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
         return ordering
 
     def _get_filter_expressions(
-        self, filter_dict: dict[str, dict]
+        self, filters: list[FilterItem]
     ) -> list[BinaryExpression]:
-        filters = []
-        for field_name, filter_data in filter_dict.items():
-            values = filter_data["v"]
-            if not values:
+        expressions = []
+        for f in filters:
+            if not f.values:
                 continue
 
-            try:
-                operator = ComparisonOperator(filter_data["op"])
-            except ValueError as exc:
-                raise ValueError(
-                    f"Unsupported filter operator: {filter_data['op']}"
-                ) from exc
-
-            field = getattr(self.model, field_name, None)
+            field = getattr(self.model, f.field, None)
             if not field or not hasattr(field, "type"):
-                raise ValueError(f"Invalid filtering field: {field_name}")
+                raise ValueError(f"Invalid filtering field: {f.field}")
 
             field_type = field.type.python_type
-            if operator not in utils.FILTER_OPERATORS_BY_FIELD_TYPE.get(field_type, []):
+            if f.op not in utils.FILTER_OPERATORS_BY_FIELD_TYPE.get(field_type, []):
                 raise ValueError(
-                    f"Operator '{operator.value}' not supported "
+                    f"Operator '{f.op.value}' not supported "
                     f"for '{field_type.__name__}' type"
                 )
 
-            values = utils.cast_values_to_type(values, field_type, field_name, operator)
+            values = utils.cast_values_to_type(f.values, field_type, f.field, f.op)
 
-            filter_expression = utils.get_filter_expression(operator, values, field)
-            if filter_expression is not None:
-                if isinstance(filter_expression, list):
-                    filters.extend(filter_expression)
+            expr = utils.get_filter_expression(f.op, values, field)
+            if expr is not None:
+                if isinstance(expr, list):
+                    expressions.extend(expr)
                 else:
-                    filters.append(filter_expression)
+                    expressions.append(expr)
 
-        return filters
+        return expressions
 
     def _include_deleted(self, stmt: Select, include_deleted: bool = False) -> Select:
         deleted_at = getattr(self.model, "deleted_at", None)
@@ -408,19 +427,23 @@ class OrganizationScopedRepository[ModelType: ResourceModel](
     async def paginate(
         self,
         sort: list[str],
-        filters: dict[str, dict],
+        filters: list[FilterItem],
         page_size: int,
         page_number: int,
+        search: str | None = None,
         include_deleted: bool = False,
     ) -> tuple[Sequence[ModelType], int]:
         order_expressions = self._get_order_expressions(sort)
         filter_expressions = self._get_filter_expressions(filters)
+        search_expressions = self._get_search_expressions(search)
 
         stmt = select(self.model)
         stmt = self._apply_organization_scope(stmt)
 
         if filter_expressions:
-            stmt = stmt.filter(or_(*filter_expressions))
+            stmt = stmt.filter(*filter_expressions)
+        if search_expressions:
+            stmt = stmt.filter(or_(*search_expressions))
 
         stmt = self._include_deleted(stmt, include_deleted)
 
@@ -433,21 +456,23 @@ class OrganizationScopedRepository[ModelType: ResourceModel](
         rs = await self.db.execute(stmt)
         items = rs.unique().scalars().all()
 
-        total = await self.get_total(
-            *filter_expressions, include_deleted=include_deleted
-        )
+        combined = [
+            *([and_(*filter_expressions)] if filter_expressions else []),
+            *([or_(*search_expressions)] if search_expressions else []),
+        ]
+        total = await self.get_total(*combined, include_deleted=include_deleted)
 
         return items, total
 
     async def get_total(
-        self, *filter_expressions: BinaryExpression, include_deleted: bool = False
+        self, *filter_expressions: ColumnElement[bool], include_deleted: bool = False
     ) -> int:
         stmt = select(func.count()).select_from(self.model)
 
         stmt = self._apply_organization_scope(stmt)
 
         if filter_expressions:
-            stmt = stmt.filter(or_(*filter_expressions))
+            stmt = stmt.filter(*filter_expressions)
 
         stmt = self._include_deleted(stmt, include_deleted)
 

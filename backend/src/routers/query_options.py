@@ -2,41 +2,27 @@ from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, Query, Request
-from fastapi.encoders import jsonable_encoder
-from pydantic import TypeAdapter
 
 from src.core.exceptions import ValidationException
 from src.enums import ComparisonOperator, ErrorCode
-from src.schemas.common import Filters
+from src.schemas.common import FilterItem
 
 COMMON_SORTING_FIELDS = ["id", "name", "created_at", "updated_at"]
-
-SORTING_FIELDS_BY_PATH: dict[str, list[str]] = {
-    "/v1/roles": ["description"],
-    "/v1/permissions": ["description"],
-}
-
 COMMON_FILTERING_FIELDS = ["id", "name", "created_at", "updated_at"]
 
-FILTERING_FIELDS_BY_PATH: dict[str, list[str]] = {
-    "/v1/users": ["email"],
-    "/v1/roles": ["description"],
-    "/v1/permissions": ["description"],
-}
+_VALID_OPERATORS = {op.value for op in ComparisonOperator}
 
 
-def sort_query() -> Callable[..., list[str]]:
+def sort_query(extra_fields: list[str] | None = None) -> Callable[..., list[str]]:
+    valid_fields = COMMON_SORTING_FIELDS + (extra_fields or [])
+
     def dependency(
-        request: Request,
         sort: str = Query(
             default="id",
             description="Comma-separated list of fields to sort by.\n\n"
             "Use a leading `-` before a field name to indicate descending sort order.",
         ),
     ) -> list[str]:
-        path = request.url.path
-        valid_fields = SORTING_FIELDS_BY_PATH.get(path, []) + COMMON_SORTING_FIELDS
-
         if not sort:
             return []
 
@@ -59,50 +45,50 @@ def sort_query() -> Callable[..., list[str]]:
     return dependency
 
 
-def filters_query() -> Callable[..., dict[str, dict]]:
-    def dependency(
-        request: Request,
-        filters: str | None = Query(
-            default=None,
-            description=(
-                "Filter expression as a JSON string.\n\n"
-                "Format:\n"
-                '`{"field": {"v": [...], "op": "eq"}}`\n\n'
-                "where:\n"
-                "- `field` is the field name\n"
-                "- `v` is a list of values\n"
-                "- `op` is the operator\n\n"
-                "Available operators are: "
-                + ", ".join(f"`{op.value}`" for op in ComparisonOperator)
-            ),
-        ),
-    ) -> dict[str, dict]:
-        if not filters:
-            return {}
+def filters_query(
+    extra_fields: list[str] | None = None,
+) -> Callable[..., list[FilterItem]]:
+    valid_fields = set(COMMON_FILTERING_FIELDS + (extra_fields or []))
 
-        parsed_filters = {}
-        if filters:
-            parsed_filters = TypeAdapter(dict[str, Filters]).validate_json(filters)
+    def dependency(request: Request) -> list[FilterItem]:
+        result: list[FilterItem] = []
 
-        path = request.url.path
-        valid_fields = FILTERING_FIELDS_BY_PATH.get(path, []) + COMMON_FILTERING_FIELDS
-        invalid_fields = [
-            field for field in parsed_filters if field not in valid_fields
-        ]
-
-        if invalid_fields:
-            raise ValidationException(
-                f"Invalid filtering field(s): {', '.join(invalid_fields)}. "
-                f"Allowed: {', '.join(valid_fields)}",
-                error_code=ErrorCode.PARAMETER_INVALID,
+        for key, raw_value in request.query_params.items():
+            if "__" not in key:
+                continue
+            field, op_str = key.rsplit("__", 1)
+            if field not in valid_fields:
+                continue
+            if op_str not in _VALID_OPERATORS:
+                raise ValidationException(
+                    f"Invalid operator '{op_str}' for field '{field}'. "
+                    f"Allowed: {', '.join(sorted(_VALID_OPERATORS))}",
+                    error_code=ErrorCode.PARAMETER_INVALID,
+                )
+            values = [v.strip() for v in raw_value.split(",")]
+            result.append(
+                FilterItem(field=field, op=ComparisonOperator(op_str), values=values)
             )
 
-        return jsonable_encoder(parsed_filters)
+        return result
+
+    return dependency
+
+
+def search_query() -> Callable[..., str | None]:
+    def dependency(
+        q: str | None = Query(
+            default=None,
+            description="Search term. Case-insensitive match across searchable fields.",
+        ),
+    ) -> str | None:
+        return q or None
 
     return dependency
 
 
 SortQuery = Annotated[list[str], Depends(sort_query())]
-FiltersQuery = Annotated[dict[str, dict], Depends(filters_query())]
+FiltersQuery = Annotated[list[FilterItem], Depends(filters_query())]
+SearchQuery = Annotated[str | None, Depends(search_query())]
 PageSizeQuery = Annotated[int, Query(ge=10, le=100)]
 PageNumberQuery = Annotated[int, Query(ge=1)]

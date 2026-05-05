@@ -1,14 +1,11 @@
 import { ref, reactive, computed } from 'vue'
 import { i18n } from '@/plugins/i18n'
-import type { PaginatedResponse } from '@/types'
+import type { PaginatedResponse, FilterOp } from '@/types'
+
+type FetcherParams = Record<string, string | number | undefined>
 
 interface UseDataTableOptions<T> {
-  fetcher: (params: {
-    page_number: number
-    page_size: number
-    sort?: string
-    filters?: string
-  }) => Promise<{ data: PaginatedResponse<T> }>
+  fetcher: (params: FetcherParams) => Promise<{ data: PaginatedResponse<T> }>
   defaultPageSize?: number
   immediate?: boolean
 }
@@ -23,7 +20,8 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
 
   const pagination = reactive({ page: 1, pageSize: defaultPageSize })
   const currentSort = ref<string | undefined>(undefined)
-  const currentFilters = ref<Record<string, { v: (string | number | boolean)[]; op: string }>>({})
+  const currentFilters = ref<Record<string, { v: (string | number | boolean)[]; op: FilterOp }>>({})
+  const currentSearch = ref<string | undefined>(undefined)
 
   const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)))
 
@@ -31,22 +29,20 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
     isLoading.value = true
     error.value = null
     try {
-      const filtersStr =
-        Object.keys(currentFilters.value).length > 0
-          ? JSON.stringify(currentFilters.value)
-          : undefined
+      const filterParams: FetcherParams = {}
+      for (const [field, { v, op }] of Object.entries(currentFilters.value)) {
+        filterParams[`${field}__${op}`] = v.join(',')
+      }
+
       const { data } = await fetcher({
         page_number: pagination.page,
         page_size: pagination.pageSize,
         sort: currentSort.value,
-        filters: filtersStr,
+        q: currentSearch.value,
+        ...filterParams,
       })
-      if (data.items !== undefined) {
-        items.value = data.items
-        total.value = data.total
-      } else {
-        items.value = data
-      }
+      items.value = data.items
+      total.value = data.total
     } catch {
       error.value = i18n.global.t('common.failedToLoadData')
     } finally {
@@ -70,8 +66,9 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
     pagination.page = 1
     fetchData()
   }
+
   function setFilters(
-    entries: { field: string; value: (string | number | boolean)[]; op?: string }[],
+    entries: { field: string; value: (string | number | boolean)[]; op?: FilterOp }[],
   ) {
     for (const { field, value, op = 'ico' } of entries) {
       if (value.length === 0) {
@@ -80,6 +77,12 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
         currentFilters.value[field] = { v: value, op }
       }
     }
+    pagination.page = 1
+    fetchData()
+  }
+
+  function setSearch(term: string | undefined) {
+    currentSearch.value = term || undefined
     pagination.page = 1
     fetchData()
   }
@@ -104,6 +107,7 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
     setPageSize,
     setSort,
     setFilters,
+    setSearch,
     refresh,
   }
 }

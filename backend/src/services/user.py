@@ -97,6 +97,7 @@ class UserService(
             page_size=page_query_params.page_size,
             page_number=page_query_params.page_number,
             include_deleted=include_deleted,
+            search=page_query_params.search,
         )
         return PaginatedResponse(
             items=[self._user_out(item) for item in items],
@@ -469,6 +470,19 @@ class UserService(
             )
 
         memberships = await self.repos.user_organization.get_all_for_user(user.id)
+
+        roles_by_org: dict[int, list[int]] = {}
+        for role in user.roles:
+            roles_by_org.setdefault(role.organization_id, []).append(role.id)
+
+        membership_snapshot = [
+            {
+                "organization_id": m.organization_id,
+                "role_ids": roles_by_org.get(m.organization_id, []),
+            }
+            for m in memberships
+        ]
+
         for membership in memberships:
             await self.repos.api_token.revoke_all_for_user_org(
                 user.id, membership.organization_id
@@ -483,13 +497,14 @@ class UserService(
             organization_id=self.current_user.organization_id,
             user_id=user.id,
             ip_address=client_ip_var.get(),
+            details={"memberships": membership_snapshot},
         )
 
         schedule_task(
             send_email,
             address=user.email,
             user_name=user.name,
-            subject="Your account has been scheduled for deletion",
+            subject="Your account has been deleted",
             email_template="account-deletion",
             data={
                 "retention_days": settings.gdpr_retention_days,

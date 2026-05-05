@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from src.models.mixins import ResourceModel
+from src.schemas.common import FilterItem
 
 
 class RepositoryABC[ModelType](ABC):
@@ -59,9 +60,10 @@ class ResourceRepositoryABC[ModelType](RepositoryABC[ModelType], ABC):
     async def paginate(
         self,
         sort: list[str],
-        filters: dict[str, dict],
+        filters: list[FilterItem],
         page_size: int,
         page_number: int,
+        search: str | None = None,
         include_deleted: bool = False,
     ) -> tuple[Sequence[ModelType], int]: ...
 

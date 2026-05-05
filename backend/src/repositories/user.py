@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import Select, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,6 +55,8 @@ class UserRepositoryABC(SoftDeleteRepositoryABC[User], ABC):
 
 
 class UserRepository(OrganizationScopedRepository[User], UserRepositoryABC):
+    search_fields: ClassVar[list[str]] = ["name", "email"]
+
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(User, db)
 

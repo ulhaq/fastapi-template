@@ -5,7 +5,8 @@ interface ListParams {
   page_number?: number
   page_size?: number
   sort?: string
-  filters?: string
+  q?: string
+  [key: string]: string | number | undefined
 }
 
 export const permissionsApi = {

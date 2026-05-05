@@ -361,8 +361,8 @@ def test_get_all_users(admin_authenticated: TestClient) -> None:
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 3, 3),
-        pytest.param(2, 10, 0, 3),
+        (1, 10, 3, 3),
+        (2, 10, 0, 3),
     ],
 )
 def test_paginate_users(
@@ -389,30 +389,112 @@ def test_sort_users(sort: str, admin_authenticated: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "fields,values,operators",
+    "fields, values, operators, total",
     [
-        (["name"], [["Alice Owner"]], ["eq"]),
-        (["name"], [["alice"]], ["ico"]),
+        # Single field, single value
+        (["name"], [["Alice Owner"]], ["eq"], 1),
+        (["name"], [["alice owner"]], ["eq"], 0),  # case-sensitive: no match
+        (["email"], [["admin@example.org"]], ["eq"], 1),
+        (["name"], [["alice"]], ["ico"], 1),
+        (["email"], [["example"]], ["ico"], 3),  # all users share the domain
+        (["id"], [[2]], ["gte"], 2),  # Bob, Carol
+        # Single field, multiple values
+        (["id"], [[1, 2]], ["in"], 2),
+        (["name"], [["Alice Owner", "Bob Member"]], ["in"], 2),
+        (["id"], [[1, 2]], ["between"], 2),
+        (["id"], [[1, 3]], ["between"], 3),
     ],
 )
 def test_filter_users(
     fields: list,
     values: list,
     operators: list,
+    total: int,
     admin_authenticated: TestClient,
 ) -> None:
-    import json
-
-    filters = {
-        field: {"v": value, "op": op}
+    params = "&".join(
+        f"{field}__{op}={','.join(str(v) for v in value)}"
         for field, value, op in zip(fields, values, operators, strict=False)
-    }
-    response = admin_authenticated.get(
-        f"/v1/users?filters={json.dumps(filters)}&page_size=50"
     )
+    response = admin_authenticated.get(f"/v1/users?{params}&page_size=50")
     assert response.status_code == 200
+    rs = response.json()
+
+    assert len(rs["items"]) == total
+
     filter_data = list(zip(fields, values, operators, strict=False))
-    assert_filtering_of_items_list(response.json()["items"], filter_data)
+    assert_filtering_of_items_list(rs["items"], filter_data)
+
+
+@pytest.mark.parametrize(
+    "params, total",
+    [
+        # AND: name ico "alice" AND email contains "admin" > 1 (Alice)
+        ("name__ico=alice&email__ico=admin", 1),
+        # AND: id >= 2 (Bob, Carol) AND email ico "standard" (Bob) > 1
+        ("id__gte=2&email__ico=standard", 1),
+        # AND: id between 1 and 2 AND name ico "bob" > 1
+        ("id__between=1,2&name__ico=bob", 1),
+    ],
+)
+def test_filter_users_multi_field(
+    params: str,
+    total: int,
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get(f"/v1/users?{params}&page_size=50")
+    assert response.status_code == 200
+    assert response.json()["total"] == total
+
+
+@pytest.mark.parametrize(
+    "q, expected_count, matched_field, matched_value",
+    [
+        ("alice", 1, "name", "Alice Owner"),
+        ("ALICE", 1, "name", "Alice Owner"),
+        ("example.org", 3, None, None),
+        ("standard@", 1, "email", "standard@example.org"),
+        ("xyznonexistent", 0, None, None),
+    ],
+)
+def test_search_users(
+    q: str,
+    expected_count: int,
+    matched_field: str | None,
+    matched_value: str | None,
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get(f"/v1/users?q={q}&page_size=50")
+    assert response.status_code == 200
+    rs = response.json()
+    assert rs["total"] == expected_count
+    assert len(rs["items"]) == expected_count
+    if matched_field and matched_value:
+        assert all(
+            q.casefold() in item[matched_field].casefold() for item in rs["items"]
+        )
+
+
+def test_search_users_returns_empty_for_blank_query(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get("/v1/users?q=&page_size=50")
+    assert response.status_code == 200
+    assert response.json()["total"] == 3
+
+
+def test_cannot_filter_users_by_invalid_operator(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get("/v1/users?name__notanop=alice")
+    assert response.status_code == 422
+    assert "notanop" in response.json()["msg"]
+
+
+def test_cannot_sort_users_by_invalid_field(admin_authenticated: TestClient) -> None:
+    response = admin_authenticated.get("/v1/users?sort=description")
+    assert response.status_code == 422
+    assert "description" in response.json()["msg"]
 
 
 def test_cannot_get_users_while_unauthorized(client: TestClient) -> None:

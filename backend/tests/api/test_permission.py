@@ -1,5 +1,3 @@
-import json
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -33,9 +31,9 @@ def test_get_all_permissions(admin_authenticated: TestClient) -> None:
 @pytest.mark.parametrize(
     "page_number, page_size, page_total, total",
     [
-        pytest.param(1, 10, 10, 14),
-        pytest.param(2, 10, 4, 14),
-        pytest.param(3, 10, 0, 14),
+        (1, 10, 10, 14),
+        (2, 10, 4, 14),
+        (3, 10, 0, 14),
     ],
 )
 def test_paginate_permissions(
@@ -57,20 +55,20 @@ def test_paginate_permissions(
 @pytest.mark.parametrize(
     "sort",
     [
-        pytest.param("id"),
-        pytest.param("-id"),
-        pytest.param("name"),
-        pytest.param("-name"),
-        pytest.param("description"),
-        pytest.param("-description"),
-        pytest.param("name,description"),
-        pytest.param("-name,-description"),
-        pytest.param("-name,description"),
-        pytest.param("name,-description"),
-        pytest.param("created_at"),
-        pytest.param("-created_at"),
-        pytest.param("updated_at"),
-        pytest.param("-updated_at"),
+        ("id"),
+        ("-id"),
+        ("name"),
+        ("-name"),
+        ("description"),
+        ("-description"),
+        ("name,description"),
+        ("-name,-description"),
+        ("-name,description"),
+        ("name,-description"),
+        ("created_at"),
+        ("-created_at"),
+        ("updated_at"),
+        ("-updated_at"),
     ],
 )
 def test_sort_permissions(sort: str, admin_authenticated: TestClient) -> None:
@@ -82,19 +80,31 @@ def test_sort_permissions(sort: str, admin_authenticated: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "fields,values,operators,total_page",
+    "fields, values, operators, total",
     [
-        pytest.param(["id"], [[1]], ["eq"], 1),
-        pytest.param(["id"], [[0, 1]], ["between"], 1),
-        pytest.param(["id"], [[1, 2]], ["between"], 2),
-        pytest.param(["id"], [[2, 3]], ["between"], 2),
-        pytest.param(["name"], [["read:user"]], ["eq"], 1),
-        pytest.param(["description"], [["allows"]], ["ico"], 10),
-        pytest.param(
+        # Single field, single value
+        (["id"], [[1]], ["eq"], 1),
+        (["name"], [["read:user"]], ["eq"], 1),
+        (
+            ["name"],
+            [["read:"]],
+            ["co"],
+            4,
+        ),  # read:user, read:role, read:permission, read:audit_log
+        (["id"], [[15]], ["gt"], 0),
+        (["id"], [[10]], ["gte"], 5),  # ids 10-14
+        # Single field, multiple values
+        (["id"], [[0, 1]], ["between"], 1),
+        (["id"], [[1, 2]], ["between"], 2),
+        (["id"], [[2, 3]], ["between"], 2),
+        (["id"], [[1, 5, 10]], ["in"], 3),
+        (["name"], [["read:user", "read:role"]], ["in"], 2),
+        (["description"], [["allows"]], ["ico"], 14),
+        (
             ["created_at"],
             [["2025-04-22T14:04:38.586226", "2050-09-22T14:04:38.586226"]],
             ["between"],
-            10,
+            14,
         ),
     ],
 )
@@ -102,22 +112,43 @@ def test_filter_permissions(
     fields: list[str],
     values: list[list],
     operators: list[str],
-    total_page: int,
+    total: int,
     admin_authenticated: TestClient,
 ) -> None:
-    filter_data = zip(fields, values, operators, strict=False)
-    filters = {}
-
-    for field, value, op in filter_data:
-        filters[field] = {"v": [*value], "op": op}
-
-    response = admin_authenticated.get(f"/v1/permissions?filters={json.dumps(filters)}")
+    params = "&".join(
+        f"{field}__{op}={','.join(str(v) for v in value)}"
+        for field, value, op in zip(fields, values, operators, strict=False)
+    )
+    response = admin_authenticated.get(f"/v1/permissions?{params}&page_size=50")
     assert response.status_code == 200
     rs = response.json()
 
-    assert len(rs["items"]) == total_page
+    assert len(rs["items"]) == total
 
+    filter_data = list(zip(fields, values, operators, strict=False))
     assert_filtering_of_items_list(rs["items"], filter_data)
+
+
+@pytest.mark.parametrize(
+    "params, total",
+    [
+        # AND: id <= 5 (5 permissions)
+        # AND name contains "read" (read:user=4, read:role=5) > 2
+        ("id__lte=5&name__ico=read", 2),
+        # AND: name contains "manage" (5) AND id >= 9 (manage:user_role=9 onwards) > 4
+        ("name__ico=manage&id__gte=9", 4),
+        # AND: id between 1 and 4 AND name ico "read" > 1 (read:user=4)
+        ("id__between=1,4&name__ico=read", 1),
+    ],
+)
+def test_filter_permissions_multi_field(
+    params: str,
+    total: int,
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.get(f"/v1/permissions?{params}&page_size=50")
+    assert response.status_code == 200
+    assert response.json()["total"] == total
 
 
 def test_retrieve_a_permission(admin_authenticated: TestClient) -> None:
