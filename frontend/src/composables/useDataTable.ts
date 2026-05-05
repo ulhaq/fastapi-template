@@ -70,12 +70,15 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
     pagination.page = 1
     fetchData()
   }
-
-  function setFilter(field: string, value: (string | number | boolean)[], op = 'ico') {
-    if (value.length === 0) {
-      delete currentFilters.value[field]
-    } else {
-      currentFilters.value[field] = { v: value, op }
+  function setFilters(
+    entries: { field: string; value: (string | number | boolean)[]; op?: string }[],
+  ) {
+    for (const { field, value, op = 'ico' } of entries) {
+      if (value.length === 0) {
+        delete currentFilters.value[field]
+      } else {
+        currentFilters.value[field] = { v: value, op }
+      }
     }
     pagination.page = 1
     fetchData()
@@ -100,7 +103,7 @@ export function useDataTable<T>(options: UseDataTableOptions<T>) {
     goToPage,
     setPageSize,
     setSort,
-    setFilter,
+    setFilters,
     refresh,
   }
 }

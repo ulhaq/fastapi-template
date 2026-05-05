@@ -19,6 +19,7 @@ SORTING_FIELDS_BY_PATH: dict[str, list[str]] = {
 COMMON_FILTERING_FIELDS = ["id", "name", "created_at", "updated_at"]
 
 FILTERING_FIELDS_BY_PATH: dict[str, list[str]] = {
+    "/v1/users": ["email"],
     "/v1/roles": ["description"],
     "/v1/permissions": ["description"],
 }
