@@ -15,28 +15,6 @@ from src.billing.types import (
 from src.core.config import settings
 from src.core.exceptions import BillingProviderException, BillingWebhookException
 
-# Stripe event type > normalized internal key
-_EVENT_TYPE_MAP: dict[str, str] = {
-    "checkout.session.completed": "checkout.session.completed",
-    "checkout.session.expired": "checkout.session.expired",
-    "customer.subscription.created": "customer.subscription.created",
-    "customer.subscription.updated": "customer.subscription.updated",
-    "customer.subscription.deleted": "customer.subscription.deleted",
-    "customer.subscription.trial_will_end": "customer.subscription.trial_will_end",
-    "customer.subscription.paused": "customer.subscription.paused",
-    "customer.subscription.resumed": "customer.subscription.resumed",
-    "invoice.payment_failed": "invoice.payment_failed",
-    "invoice.payment_succeeded": "invoice.payment_succeeded",
-    "invoice.payment_action_required": "invoice.payment_action_required",
-    "invoice.marked_uncollectible": "invoice.marked_uncollectible",
-    "payment_method.attached": "payment_method.attached",
-    "payment_method.detached": "payment_method.detached",
-    "product.created": "product.created",
-    "product.updated": "product.updated",
-    "price.created": "price.created",
-    "price.updated": "price.updated",
-}
-
 
 def _ts_to_dt(ts: int | None) -> datetime | None:
     if ts is None:
@@ -363,14 +341,10 @@ class StripeProvider(BillingProviderABC):
         except stripe.StripeError as exc:
             raise BillingProviderException(str(exc)) from exc
 
-        raw = event.to_dict()
-        stripe_event_type: str = event.type
-        normalized = _EVENT_TYPE_MAP.get(stripe_event_type, stripe_event_type)
-
         return WebhookPayload(
             external_event_id=event.id,
-            event_type=normalized,
-            raw=raw,
+            event_type=event.type,
+            raw=event.to_dict(),
         )
 
     @staticmethod

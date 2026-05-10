@@ -1128,7 +1128,6 @@ async def run_stale_checkout_cleanup_loop(session_factory: Any) -> None:
     Intended to be launched as an asyncio task from the application lifespan.
     """
     while True:
-        await asyncio.sleep(24 * 60 * 60)
         try:
             async with session_factory() as session:
                 async with session.begin():
@@ -1140,3 +1139,4 @@ async def run_stale_checkout_cleanup_loop(session_factory: Any) -> None:
                     )
         except Exception as exc:
             log.error("Stale checkout cleanup loop error: %s", exc, exc_info=True)
+        await asyncio.sleep(24 * 60 * 60)

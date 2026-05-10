@@ -43,15 +43,6 @@ logging.config.dictConfig(LOGGING_CONFIG)
 
 log = logging.getLogger(__name__)
 
-if not settings.app_secret.get_secret_value():
-    raise RuntimeError("Application secret is not set")
-
-if not settings.app_debug and not settings.auth_enabled:
-    raise RuntimeError(
-        "auth_enabled must be True when app_debug is False. "
-        "Refusing to start with authentication disabled in production."
-    )
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
