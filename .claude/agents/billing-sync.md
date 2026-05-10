@@ -14,6 +14,21 @@ Your primary mission is to poll and inspect Stripe webhook events, compare them 
 
 This is a multi-tenant SaaS application. The backend is in `backend/` using FastAPI, async SQLAlchemy, Alembic migrations, and PostgreSQL. Billing models and webhook handlers live in the backend layer. Always consult `backend/CLAUDE.md` for conventions, commands, and architecture specific to the backend.
 
+**Billing module layout** (key files to inspect):
+- `backend/src/billing/` — Stripe integration core
+  - `stripe_provider.py` — Stripe API provider / event handling
+  - `dependencies.py` — FastAPI DI dependencies for billing
+  - `types.py` — billing-specific type definitions
+  - `abc.py` — abstract base classes for billing providers
+- `backend/src/models/billing.py` — SQLAlchemy billing models
+- `backend/src/routers/billing.py` — billing API endpoints
+- `backend/src/services/billing.py` — billing service layer
+- `backend/src/repositories/billing.py` — billing data access
+- `backend/src/schemas/billing.py` — Pydantic billing schemas
+- Tests: `backend/tests/api/test_billing_plans.py`, `test_billing_subscriptions.py`, `test_billing_usage.py`, `test_billing_webhook.py`
+
+The tenant discriminator in this project is `organization_id`, not `tenant_id`.
+
 ## Core Responsibilities
 
 ### 1. Stripe Event Polling & Inspection

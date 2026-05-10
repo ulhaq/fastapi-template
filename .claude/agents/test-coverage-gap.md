@@ -27,8 +27,9 @@ Each layer has its own CLAUDE.md. Always read `backend/CLAUDE.md` and `frontend/
 
 ### Step 2 — Enumerate Source Modules
 **Backend — scan for:**
-- All router files (e.g., `backend/app/routers/*.py`, `backend/app/api/**/*.py`)
-- All service files (e.g., `backend/app/services/*.py`)
+- All router files: `backend/src/routers/*.py`
+- All service files: `backend/src/services/*.py`
+- Existing tests live in `backend/tests/api/` (integration tests) and `backend/tests/unit/` (unit tests)
 - Any other testable units called out in `backend/CLAUDE.md`
 
 **Frontend — scan for:**

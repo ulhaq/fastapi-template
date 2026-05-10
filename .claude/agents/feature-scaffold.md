@@ -26,7 +26,7 @@ Before writing any code:
 2. Read `frontend/CLAUDE.md` — note store patterns, routing file conventions, component organization, locale file structure.
 3. Identify the feature name in snake_case (backend) and camelCase/PascalCase (frontend).
 4. Confirm field definitions — if not provided, ask the user for the entity fields before proceeding.
-5. Identify multi-tenancy pattern — check how `tenant_id` is handled in existing models and services.
+5. Identify multi-tenancy pattern — this project uses `organization_id` (not `tenant_id`) as the tenant discriminator. Check how it is applied in existing models and repositories.
 
 ## Artifacts to Generate
 
@@ -34,40 +34,40 @@ Before writing any code:
 
 **1. Alembic Migration**
 - File: `backend/alembic/versions/<timestamp>_create_<feature>_table.py`
-- Follow the project's migration file conventions (check existing migrations for style)
+- Follow the project's migration file conventions (check existing migrations for style — see `backend/alembic/versions/`)
 - Include `upgrade()` and `downgrade()` functions
-- Add appropriate indexes (at minimum on `tenant_id` and any FK columns)
+- Add appropriate indexes (at minimum on `organization_id` and any FK columns)
 - **Important**: Per project preferences, add to existing staged migrations if one exists rather than creating a new file
 
 **2. SQLAlchemy Model**
-- File: `backend/app/models/<feature>.py`
+- File: `backend/src/models/<feature>.py`
 - Use the project's model base class and column conventions
 - Include all fields, relationships, `__tablename__`, and `__repr__`
-- Multi-tenant: include `tenant_id` FK following the project pattern
+- Multi-tenant: include `organization_id` FK following the project pattern (not `tenant_id` — this project uses `organization_id`)
 
 **3. Repository**
-- File: `backend/app/repositories/<feature>_repository.py`
-- Async methods: `get_by_id`, `get_all_by_tenant`, `create`, `update`, `delete`
+- File: `backend/src/repositories/<feature>_repository.py`
+- Async methods: `get_by_id`, `get_all_by_organization`, `create`, `update`, `delete`
 - Use async SQLAlchemy session injection pattern from the project
 - Handle not-found cases consistently with the project's error handling
 
 **4. Service**
-- File: `backend/app/services/<feature>_service.py`
+- File: `backend/src/services/<feature>_service.py`
 - Business logic layer wrapping the repository
 - Methods mirror repository but include validation, authorization checks, and business rules
 - Inject repository via constructor or dependency injection per project pattern
 
 **5. Pydantic Schemas**
-- File: `backend/app/schemas/<feature>.py`
+- File: `backend/src/schemas/<feature>.py`
 - Include: `<Feature>Base`, `<Feature>Create`, `<Feature>Update`, `<Feature>Read`, and `<Feature>ListResponse`
 - Use Pydantic v2 conventions `model_config = ConfigDict(from_attributes=True)`
-- Exclude `tenant_id` from user-facing create/update schemas
+- Exclude `organization_id` from user-facing create/update schemas
 
 **6. Router**
-- File: `backend/app/routers/<feature>.py`
+- File: `backend/src/routers/<feature>.py`
 - RESTful endpoints: `GET /`, `POST /`, `GET /{id}`, `PATCH /{id}`, `DELETE /{id}`
 - Use `APIRouter` with appropriate prefix and tags
-- Inject current user/tenant from auth dependency following project pattern
+- Inject current user/organization from auth dependency following project pattern
 - Show how to register this router in the main app (comment or instruction)
 
 ### Frontend `frontend/`
@@ -81,31 +81,33 @@ Before writing any code:
 - Handle errors consistently with other stores
 
 **8. Vue Page**
-- File: `frontend/src/pages/<feature>/index.vue` (or follow the project's file-based routing convention)
+- File: `frontend/src/pages/<feature>.vue` or `frontend/src/pages/<feature>/index.vue` — follow the flat-file convention used by the project (e.g., `settings/users.vue`, `settings/roles.vue`)
+- Declare route meta with YAML frontmatter: `layout: dashboard`, `requiresAuth: true`, `permission: <resource>:read`
 - List view with table/card display using shadcn-vue components
 - Integrates with the Pinia store
-- Uses `DashboardLayout` wrapper per project convention
+- Uses `DashboardLayout` via the route meta `layout: dashboard` (not an explicit wrapper import)
 - Include loading states and empty states
 
 **9. Vue Components**
-- `frontend/src/components/<Feature>/<Feature>Form.vue` — create/edit form with validation
-- `frontend/src/components/<Feature>/<Feature>Table.vue` (or `<Feature>List.vue` — display component
+- `frontend/src/components/<feature>/<Feature>Form.vue` — create/edit form with validation (folder is lowercase, filename is PascalCase)
+- `frontend/src/components/<feature>/<Feature>Table.vue` — display component
 - Use shadcn-vue form components, inputs, and button variants consistent with the project
 - Emit events rather than calling store directly from child components
 
 **10. Locale Keys**
-- Add to `frontend/src/locales/en.json` (and other locale files if they exist)
-- Keys under a `<feature>` namespace:
-  ```json
-  "<feature>": {
-    "title": "...",
-    "singular": "...",
-    "plural": "...",
-    "fields": { ...per field... },
-    "actions": { "create": "...", "edit": "...", "delete": "...", "save": "..." },
-    "messages": { "created": "...", "updated": "...", "deleted": "...", "notFound": "..." },
-    "empty": "..."
-  }
+- Add to `frontend/src/locales/en.ts` AND `frontend/src/locales/da.ts` — these are TypeScript modules, not JSON files
+- Both files must be updated together; use English text as a placeholder in `da.ts` with `// TODO: translate`
+- Keys under a `<feature>` namespace inside the default export object:
+  ```ts
+  <feature>: {
+    title: '...',
+    singular: '...',
+    plural: '...',
+    fields: { ...per field... },
+    actions: { create: '...', edit: '...', delete: '...', save: '...' },
+    messages: { created: '...', updated: '...', deleted: '...', notFound: '...' },
+    empty: '...',
+  },
   ```
 
 ## Output Format
@@ -120,7 +122,7 @@ For each artifact:
 - **No placeholder comments** like `# TODO: implement` — write real logic
 - **Type annotations everywhere** in Python; strict TypeScript types on frontend
 - **Consistent naming**: follow the exact casing and naming conventions found in existing project files
-- **Multi-tenancy**: every query must be scoped to `tenant_id`; never leak cross-tenant data
+- **Multi-tenancy**: every query must be scoped to `organization_id`; never leak cross-tenant data
 - **Error handling**: use the project's existing error/exception patterns
 - **Imports**: use the project's import style (absolute vs relative, aliased paths like `@/`
 
@@ -138,12 +140,12 @@ If anything in `backend/CLAUDE.md` or `frontend/CLAUDE.md` conflicts with these 
 **Update your agent memory** as you discover patterns, conventions, and architectural decisions while scaffolding features. This builds up institutional knowledge across conversations.
 
 Examples of what to record:
-- Model base class name and location
-- How tenant isolation is enforced in queries
-- Router registration pattern (where routers are imported and mounted)
-- Pinia store style (Options vs Composition API)
-- API client instance location and usage pattern
-- File-based routing conventions and layout wrapper names
+- Model base class name and location (check `backend/src/models/mixins.py` and existing models)
+- How `organization_id` isolation is enforced in queries (check `backend/src/repositories/base.py`)
+- Router registration pattern (where routers are imported and mounted in `backend/src/main.py`)
+- Pinia store style used in `frontend/src/stores/` (Composition API with `defineStore`)
+- API client instance location (`frontend/src/api/client.ts`)
+- File-based routing conventions: flat files like `pages/settings/users.vue`, YAML frontmatter for meta
 - Any deviation from standard patterns found in existing features
 
 # Persistent Agent Memory

@@ -44,7 +44,10 @@ For each changed backend file, derive the corresponding test file path:
 | `backend/src/repositories/foo_repository.py` | `backend/tests/api/test_foo.py` |
 | `backend/src/models/foo.py` | `backend/tests/api/test_foo.py` |
 | `backend/src/schemas/foo.py` | `backend/tests/api/test_foo.py` |
+| `backend/src/billing/*.py` | `backend/tests/api/test_billing_*.py` |
 | `backend/src/core/*.py` | run full suite |
+
+Tests are split into `backend/tests/api/` (integration, uses test client) and `backend/tests/unit/` (unit tests). Check both directories when looking for coverage.
 
 Verify each derived test file exists before adding it to the run list:
 ```bash
