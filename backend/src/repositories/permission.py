@@ -16,3 +16,8 @@ class PermissionRepository(SoftDeleteRepository[Permission], PermissionRepositor
 
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Permission, db)
+
+    async def get_by_name(
+        self, name: str, include_deleted: bool = False
+    ) -> Permission | None:
+        return await self._get_by_field("name", name, include_deleted)

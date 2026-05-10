@@ -8,7 +8,6 @@ from sqlalchemy import (
     String,
     and_,
     cast,
-    exists,
     func,
     or_,
     select,
@@ -29,13 +28,8 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
 ):
     search_fields: ClassVar[list[str]] = []
 
-    async def get_one(
-        self, identifier: int, include_deleted: bool = False
-    ) -> ModelType:
+    async def get_one(self, identifier: int) -> ModelType:
         stmt = select(self.model).filter(self.model.id == identifier)
-
-        stmt = self._include_deleted(stmt, include_deleted)
-
         rs = await self.db.execute(stmt)
         try:
             return rs.unique().scalar_one()
@@ -44,60 +38,29 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
                 f"{self.model.__name__} not found. [{identifier=}]"
             ) from exc
 
-    async def get(
-        self, identifier: int, include_deleted: bool = False
-    ) -> ModelType | None:
+    async def get(self, identifier: int) -> ModelType | None:
         stmt = select(self.model).filter(self.model.id == identifier)
-
-        stmt = self._include_deleted(stmt, include_deleted)
-
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
-    async def get_one_by_name(
-        self, name: str, include_deleted: bool = False
-    ) -> ModelType | None:
-        stmt = select(self.model).filter(self.model.name == name)  # type: ignore[attr-defined]
-
-        stmt = self._include_deleted(stmt, include_deleted)
-
-        rs = await self.db.execute(stmt)
-        return rs.unique().scalar_one_or_none()
-
-    async def get_all(self, include_deleted: bool = False) -> Sequence[ModelType]:
+    async def get_all(self) -> Sequence[ModelType]:
         stmt = select(self.model)
-
-        stmt = self._include_deleted(stmt, include_deleted)
-
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
-    async def filter_by(
-        self, include_deleted: bool = False, **kwargs: Any
-    ) -> Sequence[ModelType]:
+    async def filter_by(self, **kwargs: Any) -> Sequence[ModelType]:
         stmt = select(self.model).filter_by(**kwargs)
-
-        stmt = self._include_deleted(stmt, include_deleted)
-
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
-    async def filter_by_ids(
-        self, identifiers: list[int], include_deleted: bool = False
-    ) -> Sequence[ModelType]:
+    async def filter_by_ids(self, identifiers: list[int]) -> Sequence[ModelType]:
         stmt = select(self.model).filter(self.model.id.in_(identifiers))
-
-        stmt = self._include_deleted(stmt, include_deleted)
-
         rs = await self.db.execute(stmt)
         return rs.unique().scalars().all()
 
-    async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
-        stmt = select(exists().filter(self.model.id == identifier))
-
-        stmt = self._include_deleted(stmt, include_deleted)
-
-        rs = await self.db.execute(stmt)
+    async def exists(self, identifier: int) -> bool:
+        stmt = select(self.model).filter(self.model.id == identifier)
+        rs = await self.db.execute(select(stmt.exists()))
         return rs.scalar_one()
 
     async def create(self, **kwargs: Any) -> ModelType:
@@ -131,7 +94,6 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
         page_size: int,
         page_number: int,
         search: str | None = None,
-        include_deleted: bool = False,
     ) -> tuple[Sequence[ModelType], int]:
         order_expressions = self._get_order_expressions(sort)
         filter_expressions = self._get_filter_expressions(filters)
@@ -143,8 +105,6 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
             stmt = stmt.filter(*filter_expressions)
         if search_expressions:
             stmt = stmt.filter(or_(*search_expressions))
-
-        stmt = self._include_deleted(stmt, include_deleted)
 
         stmt = (
             stmt.order_by(*order_expressions)
@@ -159,19 +119,15 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
             *([and_(*filter_expressions)] if filter_expressions else []),
             *([or_(*search_expressions)] if search_expressions else []),
         ]
-        total = await self.get_total(*combined, include_deleted=include_deleted)
+        total = await self.get_total(*combined)
 
         return items, total
 
-    async def get_total(
-        self, *filter_expressions: ColumnElement[bool], include_deleted: bool = False
-    ) -> int:
+    async def get_total(self, *filter_expressions: ColumnElement[bool]) -> int:
         stmt = select(func.count()).select_from(self.model)
 
         if filter_expressions:
             stmt = stmt.filter(*filter_expressions)
-
-        stmt = self._include_deleted(stmt, include_deleted)
 
         rs = await self.db.execute(stmt)
         total = rs.scalar_one()
@@ -324,6 +280,116 @@ class SQLResourceRepository[ModelType: ResourceModelBase](
 class SoftDeleteRepository[ModelType: ResourceModel](
     SQLResourceRepository[ModelType], SoftDeleteRepositoryABC[ModelType]
 ):
+    async def get_one(
+        self, identifier: int, include_deleted: bool = False
+    ) -> ModelType:
+        stmt = select(self.model).filter(self.model.id == identifier)
+        stmt = self._include_deleted(stmt, include_deleted)
+        rs = await self.db.execute(stmt)
+        try:
+            return rs.unique().scalar_one()
+        except NoResultFound as exc:
+            raise NotFoundException(
+                f"{self.model.__name__} not found. [{identifier=}]"
+            ) from exc
+
+    async def get(
+        self, identifier: int, include_deleted: bool = False
+    ) -> ModelType | None:
+        stmt = select(self.model).filter(self.model.id == identifier)
+        stmt = self._include_deleted(stmt, include_deleted)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
+    async def _get_by_field(
+        self, field: str, value: Any, include_deleted: bool = False
+    ) -> ModelType | None:
+        stmt = select(self.model).filter(getattr(self.model, field) == value)
+        stmt = self._include_deleted(stmt, include_deleted)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalar_one_or_none()
+
+    async def get_all(self, include_deleted: bool = False) -> Sequence[ModelType]:
+        stmt = select(self.model)
+        stmt = self._include_deleted(stmt, include_deleted)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def filter_by(
+        self, include_deleted: bool = False, **kwargs: Any
+    ) -> Sequence[ModelType]:
+        stmt = select(self.model).filter_by(**kwargs)
+        stmt = self._include_deleted(stmt, include_deleted)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def filter_by_ids(
+        self, identifiers: list[int], include_deleted: bool = False
+    ) -> Sequence[ModelType]:
+        stmt = select(self.model).filter(self.model.id.in_(identifiers))
+        stmt = self._include_deleted(stmt, include_deleted)
+        rs = await self.db.execute(stmt)
+        return rs.unique().scalars().all()
+
+    async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
+        stmt = select(self.model).filter(self.model.id == identifier)
+        stmt = self._include_deleted(stmt, include_deleted)
+        rs = await self.db.execute(select(stmt.exists()))
+        return rs.scalar_one()
+
+    async def paginate(
+        self,
+        sort: list[str],
+        filters: list[FilterItem],
+        page_size: int,
+        page_number: int,
+        search: str | None = None,
+        include_deleted: bool = False,
+    ) -> tuple[Sequence[ModelType], int]:
+        order_expressions = self._get_order_expressions(sort)
+        filter_expressions = self._get_filter_expressions(filters)
+        search_expressions = self._get_search_expressions(search)
+
+        stmt = select(self.model)
+
+        if filter_expressions:
+            stmt = stmt.filter(*filter_expressions)
+        if search_expressions:
+            stmt = stmt.filter(or_(*search_expressions))
+
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        stmt = (
+            stmt.order_by(*order_expressions)
+            .offset((page_number - 1) * page_size)
+            .limit(page_size)
+        )
+
+        rs = await self.db.execute(stmt)
+        items = rs.unique().scalars().all()
+
+        combined = [
+            *([and_(*filter_expressions)] if filter_expressions else []),
+            *([or_(*search_expressions)] if search_expressions else []),
+        ]
+        total = await self.get_total(*combined, include_deleted=include_deleted)
+
+        return items, total
+
+    async def get_total(
+        self, *filter_expressions: ColumnElement[bool], include_deleted: bool = False
+    ) -> int:
+        stmt = select(func.count()).select_from(self.model)
+
+        if filter_expressions:
+            stmt = stmt.filter(*filter_expressions)
+
+        stmt = self._include_deleted(stmt, include_deleted)
+
+        rs = await self.db.execute(stmt)
+        total = rs.scalar_one()
+        return int(total)
+
     async def delete(self, model: ModelType) -> None:
         model.deleted_at = datetime.now(UTC)
         await self.save()
@@ -373,13 +439,12 @@ class OrganizationScopedRepository[ModelType: ResourceModel](
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
-    async def get_one_by_name(
-        self, name: str, include_deleted: bool = False
+    async def _get_by_field(
+        self, field: str, value: Any, include_deleted: bool = False
     ) -> ModelType | None:
-        stmt = select(self.model).filter(self.model.name == name)  # type: ignore[attr-defined]
+        stmt = select(self.model).filter(getattr(self.model, field) == value)
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
-
         rs = await self.db.execute(stmt)
         return rs.unique().scalar_one_or_none()
 
@@ -412,11 +477,10 @@ class OrganizationScopedRepository[ModelType: ResourceModel](
         return rs.unique().scalars().all()
 
     async def exists(self, identifier: int, include_deleted: bool = False) -> bool:
-        stmt = select(exists().where(self.model.id == identifier))
+        stmt = select(self.model).filter(self.model.id == identifier)
         stmt = self._apply_organization_scope(stmt)
         stmt = self._include_deleted(stmt, include_deleted)
-
-        rs = await self.db.execute(stmt)
+        rs = await self.db.execute(select(stmt.exists()))
         return rs.scalar_one()
 
     async def create(self, **kwargs: Any) -> ModelType:

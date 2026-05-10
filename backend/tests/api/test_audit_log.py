@@ -140,7 +140,7 @@ def test_audit_log_org_isolation(
     admin_authenticated: TestClient,
     organization2_admin_authenticated: TestClient,
 ) -> None:
-    # Org 1 admin creates a role — generates a ROLE_CREATE log entry for org 1
+    # Org 1 admin creates a role - generates a ROLE_CREATE log entry for org 1
     admin_authenticated.post(
         "/v1/roles", json={"name": "OrgIsolatedRole", "description": "x"}
     )

@@ -51,7 +51,7 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
 
     async def create_role(self, schema_in: RoleIn) -> RoleOut:
         async def validate() -> None:
-            if await self.repo.get_one_by_name(schema_in.name):
+            if await self.repo.get_by_name(schema_in.name):
                 raise AlreadyExistsException(
                     f"Role already exists. [name={schema_in.name}]"
                 )
@@ -73,7 +73,7 @@ class RoleService(ResourceService[RoleRepository, Role, RoleIn | RolePatch, Role
 
         async def validate() -> None:
             if schema_in.name:
-                existing_role = await self.repo.get_one_by_name(schema_in.name)
+                existing_role = await self.repo.get_by_name(schema_in.name)
                 if existing_role and existing_role.id != identifier:
                     raise AlreadyExistsException(
                         f"Role already exists. [name={schema_in.name}]"

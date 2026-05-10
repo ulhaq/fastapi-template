@@ -353,7 +353,7 @@ def test_webhook_subscription_created(
     )
 
     # subscription.created fires before checkout.session.completed in Stripe's order;
-    # external_subscription_id not yet set — handler must fall back to customer lookup.
+    # external_subscription_id not yet set - handler must fall back to customer lookup.
     now_ts = int(datetime.now(UTC).timestamp())
     mock_billing_provider.construct_webhook_event.return_value = WebhookPayload(
         external_event_id="evt_sub_created",

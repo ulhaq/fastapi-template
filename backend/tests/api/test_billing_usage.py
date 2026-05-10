@@ -11,7 +11,7 @@ from src.models.billing import PlanQuota, UsageRecord
 from tests.conftest import TestSessionLocal
 
 # ---------------------------------------------------------------------------
-# Test-only route — exercises require_quota in a real request cycle
+# Test-only route - exercises require_quota in a real request cycle
 # ---------------------------------------------------------------------------
 
 _test_router = APIRouter()
@@ -119,8 +119,8 @@ async def test_get_usage_is_org_isolated(
     await _add_usage(organization_id=1, metric=UsageMetric.API_REQUESTS, count=10)
     await _add_usage(organization_id=2, metric=UsageMetric.API_REQUESTS, count=77)
 
-    org1_item = admin_authenticated.get("/v1/billing/usage").json()["usage"][0]
-    org2_item = organization2_admin_authenticated.get("/v1/billing/usage").json()[
+    org1_item = admin_authenticated.get("/v1/billing/usage").json()["usage"][0]  # type: ignore[union-attr]
+    org2_item = organization2_admin_authenticated.get("/v1/billing/usage").json()[  # type: ignore[union-attr]
         "usage"
     ][0]
 
@@ -217,10 +217,10 @@ async def test_quota_is_org_isolated(
     # Only org 2 is at limit
     await _add_usage(organization_id=2, metric=UsageMetric.API_REQUESTS, count=5)
 
-    # Org 1 is under limit — allowed
-    assert admin_authenticated.get("/v1/test-quota-gate").status_code == 200
+    # Org 1 is under limit - allowed
+    assert admin_authenticated.get("/v1/test-quota-gate").status_code == 200  # type: ignore[union-attr]
 
-    # Org 2 is at limit — blocked
+    # Org 2 is at limit - blocked
     assert (
-        organization2_admin_authenticated.get("/v1/test-quota-gate").status_code == 429
+        organization2_admin_authenticated.get("/v1/test-quota-gate").status_code == 429  # type: ignore[union-attr]
     )

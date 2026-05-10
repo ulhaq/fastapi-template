@@ -98,7 +98,7 @@ class OrganizationService(
         ]
 
     async def create_organization(self, schema_in: OrganizationBase) -> OrganizationOut:
-        existing = await self.repo.get_one_by_name(schema_in.name, include_deleted=True)
+        existing = await self.repo.get_by_name(schema_in.name, include_deleted=True)
         if existing is not None and existing.deleted_at is None:
             raise AlreadyExistsException(
                 f"Organization already exists. [name={schema_in.name}]"
@@ -130,7 +130,7 @@ class OrganizationService(
 
         async def validate() -> None:
             if schema_in.name:
-                existing_org = await self.repo.get_one_by_name(schema_in.name)
+                existing_org = await self.repo.get_by_name(schema_in.name)
                 if existing_org and existing_org.id != identifier:
                     raise AlreadyExistsException(
                         f"Organization already exists. [name={schema_in.name}]"
@@ -245,7 +245,7 @@ class OrganizationService(
             raise NotFoundException("Target user is not a member of this organization")
 
         self.repos.role.set_organization_scope(organization_id)
-        owner_role = await self.repos.role.get_one_by_name(OWNER_ROLE_NAME)
+        owner_role = await self.repos.role.get_by_name(OWNER_ROLE_NAME)
         if not owner_role:
             raise NotFoundException("Owner role not found")
 

@@ -429,7 +429,7 @@ def test_switch_from_free_to_paid_is_rejected(
     plan_with_price: dict,
     mock_billing_provider: MagicMock,
 ) -> None:
-    """switch-plan is for paid→paid only; free→paid must go through /checkout."""
+    """switch-plan is for paid>paid only; free>paid must go through /checkout."""
     response = admin_authenticated.post(
         "/v1/billing/subscriptions/current/switch-plan",
         json={"plan_price_id": plan_with_price["price"]["id"]},

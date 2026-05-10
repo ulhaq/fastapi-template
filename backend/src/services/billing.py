@@ -1113,7 +1113,7 @@ class BillingMaintenanceService(BaseService):
         the checkout.session.expired webhook permanently failed and the row was
         never cleaned up by the normal event flow.
 
-        Safe to call repeatedly - rows are only updated once (incomplete → canceled).
+        Safe to call repeatedly - rows are only updated once (incomplete > canceled).
         Intended to be called from a scheduled job, e.g. daily with max_age_hours=48.
         """
         threshold = datetime.now(UTC) - timedelta(hours=max_age_hours)

@@ -23,6 +23,11 @@ class RoleRepository(OrganizationScopedRepository[Role], RoleRepositoryABC):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Role, db)
 
+    async def get_by_name(
+        self, name: str, include_deleted: bool = False
+    ) -> Role | None:
+        return await self._get_by_field("name", name, include_deleted)
+
     async def add_permissions(self, role: Role, *permission_ids: int) -> None:
         await self.add_relationship(role, Permission, "permissions", *permission_ids)
 
