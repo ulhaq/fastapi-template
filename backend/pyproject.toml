@@ -20,6 +20,7 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "slowapi>=0.1.9",
     "stripe>=15.0.0",
+    "disposable-email-domains>=0.0.181",
 ]
 
 [dependency-groups]

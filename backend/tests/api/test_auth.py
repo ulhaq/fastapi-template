@@ -402,6 +402,55 @@ def test_cannot_get_access_token_with_wrong_credentials(client: TestClient) -> N
     assert rs["msg"] == "Not authenticated"
 
 
+def test_cannot_register_with_disposable_email(client: TestClient) -> None:
+    response = client.post(
+        "/v1/auth/register",
+        json={"email": "user@mailinator.com"},
+    )
+    assert response.status_code == 422
+    rs = response.json()
+    assert rs["error_code"] == "validation_error"
+    assert rs["msg"] == "The request failed due to validation errors"
+    assert (
+        rs["errors"][0]["msg"]
+        == "Value error, Disposable email addresses are not allowed"
+    )
+
+
+def test_cannot_invite_user_with_disposable_email(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.post(
+        "/v1/users/invite",
+        json={"email": "user@mailinator.com", "role_ids": []},
+    )
+    assert response.status_code == 422
+    rs = response.json()
+    assert rs["error_code"] == "validation_error"
+    assert rs["msg"] == "The request failed due to validation errors"
+    assert (
+        rs["errors"][0]["msg"]
+        == "Value error, Disposable email addresses are not allowed"
+    )
+
+
+def test_cannot_reset_password_request_with_disposable_email(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/v1/auth/reset-password/request",
+        json={"email": "user@mailinator.com"},
+    )
+    assert response.status_code == 422
+    rs = response.json()
+    assert rs["error_code"] == "validation_error"
+    assert rs["msg"] == "The request failed due to validation errors"
+    assert (
+        rs["errors"][0]["msg"]
+        == "Value error, Disposable email addresses are not allowed"
+    )
+
+
 def test_get_access_token_sets_httponly_refresh_token_cookie(
     client: TestClient,
 ) -> None:

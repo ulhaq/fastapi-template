@@ -248,6 +248,36 @@ def test_cannot_patch_a_user_with_duplicate_email(
     assert "already exists" in rs["msg"]
 
 
+def test_cannot_patch_user_profile_with_disposable_email(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.patch(
+        "/v1/users/me", json={"email": "user@mailinator.com"}
+    )
+    assert response.status_code == 422
+    rs = response.json()
+    assert rs["error_code"] == "validation_error"
+    assert rs["msg"] == "The request failed due to validation errors"
+    assert rs["errors"][0]["msg"] == (
+        "Value error, Disposable email addresses are not allowed"
+    )
+
+
+def test_cannot_patch_a_user_with_disposable_email(
+    admin_authenticated: TestClient,
+) -> None:
+    response = admin_authenticated.patch(
+        "/v1/users/2", json={"email": "user@mailinator.com"}
+    )
+    assert response.status_code == 422
+    rs = response.json()
+    assert rs["error_code"] == "validation_error"
+    assert rs["msg"] == "The request failed due to validation errors"
+    assert rs["errors"][0]["msg"] == (
+        "Value error, Disposable email addresses are not allowed"
+    )
+
+
 def test_cannot_patch_a_user_while_unauthorized(
     standard_authenticated: TestClient,
 ) -> None:

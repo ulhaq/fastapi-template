@@ -1,5 +1,8 @@
 import { useI18n } from 'vue-i18n'
 import { PASSWORD_MIN_LENGTH } from '@/constants'
+import disposableDomains from 'disposable-email-domains'
+
+const disposableSet = new Set<string>(disposableDomains)
 
 export type Rule = (value: string) => true | string
 
@@ -12,6 +15,10 @@ export function useRules() {
     email: [
       (v: string) => !!v.trim() || t('common.emailRequired'),
       (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || t('common.emailInvalid'),
+      (v: string) => {
+        const domain = v.split('@')[1]?.toLowerCase()
+        return !domain || !disposableSet.has(domain) || t('common.emailDisposable')
+      },
     ] as Rule[],
 
     password: [
