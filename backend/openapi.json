@@ -357,6 +357,57 @@
         }
       }
     },
+    "/v1/auth/invite-status": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get Invite Status",
+        "operationId": "get_invite_status_v1_auth_invite_status_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteStatusIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteStatusOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/complete-invite": {
       "post": {
         "tags": [
@@ -464,6 +515,269 @@
         ]
       }
     },
+    "/v1/api-tokens": {
+      "get": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "List Api Tokens",
+        "operationId": "list_api_tokens_v1_api_tokens_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Api Tokens V1 Api Tokens Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Create Api Token",
+        "operationId": "create_api_token_v1_api_tokens_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiTokenCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenCreatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/api-tokens/{token_id}": {
+      "delete": {
+        "tags": [
+          "API Tokens"
+        ],
+        "summary": "Revoke Api Token",
+        "operationId": "revoke_api_token_v1_api_tokens__token_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Token Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/audit-logs": {
+      "get": {
+        "tags": [
+          "Audit Log"
+        ],
+        "summary": "List Audit Logs",
+        "operationId": "list_audit_logs_v1_audit_logs_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 10,
+              "default": 25,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "page_number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page Number"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditAction"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by action type",
+              "title": "Action"
+            },
+            "description": "Filter by action type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_AuditLogOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/organizations": {
       "get": {
         "tags": [
@@ -478,7 +792,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/OrganizationOut"
+                    "$ref": "#/components/schemas/MyOrganizationOut"
                   },
                   "type": "array",
                   "title": "Response Get All Organizations V1 Organizations Get"
@@ -758,13 +1072,13 @@
         }
       }
     },
-    "/v1/organizations/{organization_id}/users/{user_id}": {
+    "/v1/organizations/{organization_id}/transfer-ownership": {
       "post": {
         "tags": [
           "Organizations"
         ],
-        "summary": "Add User To Organization",
-        "operationId": "add_user_to_organization_v1_organizations__organization_id__users__user_id__post",
+        "summary": "Transfer Organization Ownership",
+        "operationId": "transfer_organization_ownership_v1_organizations__organization_id__transfer_ownership_post",
         "security": [
           {
             "OAuth2PasswordBearer": []
@@ -779,17 +1093,18 @@
               "type": "integer",
               "title": "Organization Id"
             }
-          },
-          {
-            "name": "user_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "User Id"
-            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferOwnershipIn"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -806,73 +1121,6 @@
           },
           "400": {
             "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Organizations"
-        ],
-        "summary": "Remove User From Organization",
-        "operationId": "remove_user_from_organization_v1_organizations__organization_id__users__user_id__delete",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "organization_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Organization Id"
-            }
-          },
-          {
-            "name": "user_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "User Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -942,7 +1190,7 @@
             "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order."
           },
           {
-            "name": "filters",
+            "name": "q",
             "in": "query",
             "required": false,
             "schema": {
@@ -954,10 +1202,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
-              "title": "Filters"
+              "description": "Search term. Case-insensitive match across searchable fields.",
+              "title": "Q"
             },
-            "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
+            "description": "Search term. Case-insensitive match across searchable fields."
           }
         ],
         "responses": {
@@ -1018,6 +1266,63 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete My Account",
+        "operationId": "delete_my_account_v1_users_me_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -1170,6 +1475,52 @@
         ]
       }
     },
+    "/v1/users/me/export": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Export My Data",
+        "operationId": "export_my_data_v1_users_me_export_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDataExportOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/v1/users": {
       "get": {
         "tags": [
@@ -1219,7 +1570,7 @@
             "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order."
           },
           {
-            "name": "filters",
+            "name": "q",
             "in": "query",
             "required": false,
             "schema": {
@@ -1231,10 +1582,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
-              "title": "Filters"
+              "description": "Search term. Case-insensitive match across searchable fields.",
+              "title": "Q"
             },
-            "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
+            "description": "Search term. Case-insensitive match across searchable fields."
           }
         ],
         "responses": {
@@ -1331,6 +1682,71 @@
       }
     },
     "/v1/users/{identifier}": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Patch A User",
+        "operationId": "patch_a_user_v1_users__identifier__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": [
           "Users"
@@ -1400,8 +1816,8 @@
         "tags": [
           "Users"
         ],
-        "summary": "Delete A User",
-        "operationId": "delete_a_user_v1_users__identifier__delete",
+        "summary": "Remove User From Organization",
+        "operationId": "remove_user_from_organization_v1_users__identifier__delete",
         "security": [
           {
             "OAuth2PasswordBearer": []
@@ -1571,7 +1987,7 @@
             "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order."
           },
           {
-            "name": "filters",
+            "name": "q",
             "in": "query",
             "required": false,
             "schema": {
@@ -1583,10 +1999,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
-              "title": "Filters"
+              "description": "Search term. Case-insensitive match across searchable fields.",
+              "title": "Q"
             },
-            "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
+            "description": "Search term. Case-insensitive match across searchable fields."
           }
         ],
         "responses": {
@@ -1993,7 +2409,7 @@
             "description": "Comma-separated list of fields to sort by.\n\nUse a leading `-` before a field name to indicate descending sort order."
           },
           {
-            "name": "filters",
+            "name": "q",
             "in": "query",
             "required": false,
             "schema": {
@@ -2005,10 +2421,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`",
-              "title": "Filters"
+              "description": "Search term. Case-insensitive match across searchable fields.",
+              "title": "Q"
             },
-            "description": "Filter expression as a JSON string.\n\nFormat:\n`{\"field\": {\"v\": [...], \"op\": \"eq\"}}`\n\nwhere:\n- `field` is the field name\n- `v` is a list of values\n- `op` is the operator\n\nAvailable operators are: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `co`, `ico`, `nco`, `inco`, `in`, `nin`, `between`"
+            "description": "Search term. Case-insensitive match across searchable fields."
           }
         ],
         "responses": {
@@ -2164,12 +2580,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/billing/plans/{plan_id}": {
@@ -2179,11 +2590,6 @@
         ],
         "summary": "Retrieve A Plan",
         "operationId": "retrieve_a_plan_v1_billing_plans__plan_id__get",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "plan_id",
@@ -2492,15 +2898,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/SubscriptionOut"
-                    },
-                    {
-                      "$ref": "#/components/schemas/CheckoutOut"
-                    }
-                  ],
-                  "title": "Response Switch Plan V1 Billing Subscriptions Current Switch Plan Post"
+                  "$ref": "#/components/schemas/SubscriptionOut"
                 }
               }
             }
@@ -2579,6 +2977,52 @@
         ]
       }
     },
+    "/v1/billing/usage": {
+      "get": {
+        "tags": [
+          "Billing Usage"
+        ],
+        "summary": "Get Current Usage",
+        "operationId": "get_current_usage_v1_billing_usage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/v1/billing/webhook": {
       "post": {
         "tags": [
@@ -2615,6 +3059,365 @@
   },
   "components": {
     "schemas": {
+      "ApiTokenCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Permissions"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "title": "ApiTokenCreate"
+      },
+      "ApiTokenCreatedResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "is_expired": {
+            "type": "boolean",
+            "title": "Is Expired",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "token_prefix",
+          "permissions",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "revoked_at",
+          "token",
+          "is_expired"
+        ],
+        "title": "ApiTokenCreatedResponse"
+      },
+      "ApiTokenResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "is_expired": {
+            "type": "boolean",
+            "title": "Is Expired",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "token_prefix",
+          "permissions",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "revoked_at",
+          "is_expired"
+        ],
+        "title": "ApiTokenResponse"
+      },
+      "AuditAction": {
+        "type": "string",
+        "enum": [
+          "auth.login",
+          "auth.register",
+          "auth.password_reset",
+          "user.invite",
+          "user.update",
+          "user.delete",
+          "user.role_assign",
+          "role.create",
+          "role.update",
+          "role.delete",
+          "role.permission_assign",
+          "api_token.create",
+          "api_token.delete",
+          "org.update",
+          "user.consent",
+          "user.export",
+          "user.self_delete"
+        ],
+        "title": "AuditAction"
+      },
+      "AuditLogOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditLogUserOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "resource_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Type"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "organization_id",
+          "user_id",
+          "user",
+          "action",
+          "resource_type",
+          "resource_id",
+          "ip_address",
+          "details",
+          "created_at"
+        ],
+        "title": "AuditLogOut"
+      },
+      "AuditLogUserOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "title": "AuditLogUserOut"
+      },
       "Body_get_access_token_v1_auth_token_post": {
         "properties": {
           "grant_type": {
@@ -2717,16 +3520,11 @@
           "checkout_url": {
             "type": "string",
             "title": "Checkout Url"
-          },
-          "external_session_id": {
-            "type": "string",
-            "title": "External Session Id"
           }
         },
         "type": "object",
         "required": [
-          "checkout_url",
-          "external_session_id"
+          "checkout_url"
         ],
         "title": "CheckoutOut"
       },
@@ -2737,21 +3535,44 @@
             "title": "Invite Token"
           },
           "name": {
-            "type": "string",
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Name"
           },
           "password": {
-            "type": "string",
-            "minLength": 8,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Password"
+          },
+          "terms_accepted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Accepted"
           }
         },
         "type": "object",
         "required": [
-          "invite_token",
-          "name",
-          "password"
+          "invite_token"
         ],
         "title": "CompleteInviteIn"
       },
@@ -2770,13 +3591,18 @@
             "type": "string",
             "minLength": 8,
             "title": "Password"
+          },
+          "terms_accepted": {
+            "type": "boolean",
+            "title": "Terms Accepted"
           }
         },
         "type": "object",
         "required": [
           "setup_token",
           "name",
-          "password"
+          "password",
+          "terms_accepted"
         ],
         "title": "CompleteRegistrationIn"
       },
@@ -2792,6 +3618,20 @@
           "portal_url"
         ],
         "title": "CustomerPortalOut"
+      },
+      "DeleteMeIn": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Current Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password"
+        ],
+        "title": "DeleteMeIn"
       },
       "EmailIn": {
         "properties": {
@@ -2820,6 +3660,37 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "InviteStatusIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "InviteStatusIn"
+      },
+      "InviteStatusOut": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "user_exists": {
+            "type": "boolean",
+            "title": "User Exists"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "user_exists"
+        ],
+        "title": "InviteStatusOut"
+      },
       "InviteUserIn": {
         "properties": {
           "email": {
@@ -2840,6 +3711,50 @@
           "email"
         ],
         "title": "InviteUserIn"
+      },
+      "MyOrganizationOut": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "is_owner": {
+            "type": "boolean",
+            "title": "Is Owner",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "updated_at",
+          "name",
+          "id"
+        ],
+        "title": "MyOrganizationOut"
       },
       "NameDescriptionOut": {
         "properties": {
@@ -2942,6 +3857,37 @@
         },
         "type": "object",
         "title": "OrganizationPatch"
+      },
+      "PaginatedResponse_AuditLogOut_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page_number": {
+            "type": "integer",
+            "title": "Page Number"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page_number",
+          "page_size",
+          "total"
+        ],
+        "title": "PaginatedResponse[AuditLogOut]"
       },
       "PaginatedResponse_PermissionOut_": {
         "properties": {
@@ -3105,17 +4051,6 @@
             ],
             "title": "Description"
           },
-          "external_product_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "External Product Id"
-          },
           "is_active": {
             "type": "boolean",
             "title": "Is Active"
@@ -3126,6 +4061,13 @@
             },
             "type": "array",
             "title": "Prices"
+          },
+          "plan_quotas": {
+            "items": {
+              "$ref": "#/components/schemas/PlanQuotaOut"
+            },
+            "type": "array",
+            "title": "Plan Quotas"
           },
           "created_at": {
             "type": "string",
@@ -3143,9 +4085,9 @@
           "id",
           "name",
           "description",
-          "external_product_id",
           "is_active",
           "prices",
+          "plan_quotas",
           "created_at",
           "updated_at"
         ],
@@ -3176,17 +4118,6 @@
           "interval_count": {
             "type": "integer",
             "title": "Interval Count"
-          },
-          "external_price_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "External Price Id"
           },
           "is_active": {
             "type": "boolean",
@@ -3223,13 +4154,37 @@
           "currency",
           "interval",
           "interval_count",
-          "external_price_id",
           "is_active",
           "created_at",
           "updated_at",
           "trial_period_days"
         ],
         "title": "PlanPriceOut"
+      },
+      "PlanQuotaOut": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "limit_value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metric",
+          "limit_value"
+        ],
+        "title": "PlanQuotaOut"
       },
       "RegisterOut": {
         "properties": {
@@ -3440,17 +4395,6 @@
             ],
             "title": "Plan Price Id"
           },
-          "external_subscription_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "External Subscription Id"
-          },
           "status": {
             "type": "string",
             "title": "Status"
@@ -3539,6 +4483,13 @@
             "title": "Trial Used",
             "default": false
           },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Features"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -3555,7 +4506,6 @@
           "id",
           "organization_id",
           "plan_price_id",
-          "external_subscription_id",
           "status",
           "current_period_start",
           "current_period_end",
@@ -3618,6 +4568,112 @@
         ],
         "title": "Token"
       },
+      "TransferOwnershipIn": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "TransferOwnershipIn"
+      },
+      "UsageItemOut": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metric",
+          "count",
+          "limit"
+        ],
+        "title": "UsageItemOut"
+      },
+      "UsageOut": {
+        "properties": {
+          "period_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Period Start"
+          },
+          "usage": {
+            "items": {
+              "$ref": "#/components/schemas/UsageItemOut"
+            },
+            "type": "array",
+            "title": "Usage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period_start",
+          "usage"
+        ],
+        "title": "UsageOut"
+      },
+      "UserDataExportOut": {
+        "properties": {
+          "user": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "User"
+          },
+          "organizations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Organizations"
+          },
+          "api_tokens": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Api Tokens"
+          },
+          "audit_logs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Audit Logs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "organizations",
+          "api_tokens",
+          "audit_logs"
+        ],
+        "title": "UserDataExportOut"
+      },
       "UserOut": {
         "properties": {
           "created_at": {
@@ -3649,6 +4705,18 @@
           "id": {
             "type": "integer",
             "title": "Id"
+          },
+          "terms_accepted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Accepted At"
           },
           "roles": {
             "items": {
@@ -3734,6 +4802,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
