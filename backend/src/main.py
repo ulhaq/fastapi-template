@@ -207,6 +207,11 @@ async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
     )
 
 
+@app.get("/health", tags=["Health"], include_in_schema=False)
+async def health_check() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 app.include_router(auth.router, tags=["Authentication"], prefix="/v1")
 app.include_router(api_token.router, tags=["API Tokens"], prefix="/v1")
 app.include_router(audit_log.router, tags=["Audit Log"], prefix="/v1")
