@@ -87,7 +87,7 @@ meta:
           <span v-else class="text-sm text-muted-foreground">{{ $t('auditLog.noDetails') }}</span>
         </TableCell>
         <TableCell class="text-muted-foreground text-xs">
-          {{ formatDate(item.created_at) }}
+          {{ formatDateTime(item.created_at) }}
         </TableCell>
       </template>
     </DataTable>
@@ -113,9 +113,11 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import { auditLogsApi } from '@/api/auditLogs'
 import { useDataTable } from '@/composables/useDataTable'
+import { useFormatDate } from '@/composables/useFormatDate'
 import type { AuditLogOut } from '@/types/auditLog'
 
 const { t } = useI18n()
+const { formatDateTime } = useFormatDate()
 
 const auditActions = [
   'auth.login',
@@ -164,15 +166,5 @@ function formatDetailValue(val: unknown): string {
   if (val === null || val === undefined) return '-'
   if (typeof val === 'object') return JSON.stringify(val)
   return String(val)
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 </script>

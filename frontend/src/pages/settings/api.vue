@@ -78,25 +78,25 @@ meta:
                   </div>
                 </TableCell>
                 <TableCell class="text-xs text-muted-foreground">
-                  {{ formatDate(token.created_at) }}
+                  {{ formatDateTime(token.created_at) }}
                 </TableCell>
                 <TableCell class="text-xs text-muted-foreground">
                   <span v-if="token.is_expired" class="inline-flex items-center gap-1.5">
-                    {{ formatDate(token.expires_at!) }}
+                    {{ formatDateTime(token.expires_at!) }}
                     <Badge variant="destructive" class="text-[10px] px-1 py-0">{{
                       $t('settings.tokenExpired')
                     }}</Badge>
                   </span>
                   <span v-else>{{
                     token.expires_at
-                      ? formatDate(token.expires_at)
+                      ? formatDateTime(token.expires_at)
                       : $t('settings.tokenNeverExpires')
                   }}</span>
                 </TableCell>
                 <TableCell class="text-xs text-muted-foreground">
                   {{
                     token.last_used_at
-                      ? formatDate(token.last_used_at)
+                      ? formatDateTime(token.last_used_at)
                       : $t('settings.tokenNeverUsed')
                   }}
                 </TableCell>
@@ -305,10 +305,12 @@ import { useApiTokensStore } from '@/stores/apiTokens'
 import { useProfileStore } from '@/stores/profile'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useFormatDate } from '@/composables/useFormatDate'
 import { PlanFeature, BADGE_MAX } from '@/constants'
 import type { ApiTokenResponse } from '@/types'
 
 const { t } = useI18n()
+const { formatDateTime } = useFormatDate()
 const { toast } = useToast()
 const { isPlanFeatureError } = useErrorHandler()
 const store = useApiTokensStore()
@@ -346,16 +348,6 @@ function resolveExpiresAt(): string | null {
   const d = new Date()
   d.setDate(d.getDate() + days[form.expiryPreset])
   return d.toISOString()
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 function togglePermission(perm: string) {

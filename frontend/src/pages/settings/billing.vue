@@ -500,10 +500,12 @@ import { useSubscriptionStore } from '@/stores/subscription'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useFormatDate } from '@/composables/useFormatDate'
 import type { SubscriptionOut, PlanOut, PlanPriceOut } from '@/types'
 
 const subscriptionStore = useSubscriptionStore()
 const { t, locale } = useI18n()
+const { formatDate, formatDateTime } = useFormatDate()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const { resolveError } = useErrorHandler()
@@ -588,9 +590,10 @@ onUnmounted(() => {
 function formatPrice(price: PlanPriceOut): string {
   const amount = price.amount / 100
   try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: price.currency }).format(
-      amount,
-    )
+    return new Intl.NumberFormat(locale.value, {
+      style: 'currency',
+      currency: price.currency,
+    }).format(amount)
   } catch {
     return `${price.currency.toUpperCase()} ${amount.toFixed(2)}`
   }
@@ -600,24 +603,6 @@ function planName(price: PlanPriceOut | null): string {
   if (!price) return ''
   const plan = availablePlans.value.find((p) => p.prices.some((pr) => pr.id === price.id))
   return plan?.name ?? ''
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(locale.value, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(locale.value, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 function monthlyEquivalent(price: PlanPriceOut): number {

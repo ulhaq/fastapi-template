@@ -115,6 +115,7 @@ import { useDataTable } from '@/composables/useDataTable'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useFormatDate } from '@/composables/useFormatDate'
 import { useProfileStore } from '@/stores/profile'
 import { useSessionStore } from '@/stores/session'
 import { usePermission } from '@/composables/usePermission'
@@ -122,6 +123,7 @@ import { PAGE_SIZE } from '@/constants'
 import type { OrganizationOut, PaginatedResponse } from '@/types'
 
 const { t } = useI18n()
+const { formatDate } = useFormatDate()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const { handleError } = useErrorHandler()
@@ -211,13 +213,5 @@ async function handleDelete(organization: OrganizationOut) {
   } catch (err) {
     handleError(err)
   }
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
 }
 </script>

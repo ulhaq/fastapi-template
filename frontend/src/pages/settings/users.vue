@@ -142,10 +142,12 @@ import { useDataTable } from '@/composables/useDataTable'
 import { usePermission } from '@/composables/usePermission'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
+import { useFormatDate } from '@/composables/useFormatDate'
 import { BADGE_MAX } from '@/constants'
 import type { UserOut } from '@/types'
 
 const { t } = useI18n()
+const { formatDate } = useFormatDate()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const { hasAnyPermission } = usePermission()
@@ -226,13 +228,5 @@ function initials(name: string) {
     .slice(0, 2)
     .join('')
     .toUpperCase()
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
 }
 </script>

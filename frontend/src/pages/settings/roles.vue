@@ -152,10 +152,12 @@ import { rolesApi } from '@/api/roles'
 import { useDataTable } from '@/composables/useDataTable'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
+import { useFormatDate } from '@/composables/useFormatDate'
 import { BADGE_MAX } from '@/constants'
 import type { RoleOut } from '@/types'
 
 const { t } = useI18n()
+const { formatDate } = useFormatDate()
 const { toast } = useToast()
 const { confirm } = useConfirm()
 const { hasPermission, hasAnyPermission } = usePermission()
@@ -203,13 +205,5 @@ async function handleDelete(role: RoleOut) {
   } catch {
     toast({ title: t('roles.deleteFailed'), variant: 'destructive' })
   }
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
 }
 </script>
