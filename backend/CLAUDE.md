@@ -58,25 +58,25 @@ Prefer adding to an existing staged migration file over creating a new one.
 
 ```bash
 # Format code
-./scripts/format.sh
+uv run poe format
 
 # Lint (mypy + ruff)
-./scripts/lint.sh
+uv run poe lint
 
 # Run all tests
-uv run pytest ./tests
+uv run poe test
 
 # Run a single test
 uv run pytest ./tests/api/test_auth.py::test_register_an_account -v
+
+# Start dev server
+uv run poe dev
 
 # Database setup (runs migrations + seeds data)
 python -m src.init_db
 
 # Drop all tables
 python -m src.init_db drop
-
-# Start dev server
-uv run fastapi dev src/main.py --host 0.0.0.0 --port 8000
 
 # Database migrations
 alembic revision --autogenerate -m "description"   # Create migration
