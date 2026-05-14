@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         env_file="./.env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    app_name: str = ""
+    app_name: str = "FastAPI"
     app_url: str = "http://localhost"
     app_env: Literal["local", "development", "staging", "production"] = "local"
     app_secret: SecretStr = SecretStr("")
@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     complete_registration_expiry: int = 30 * 60
     invite_expiry: int = 7 * 24 * 60 * 60
 
-    raw_allow_origins: str = Field(default="*", validation_alias="allow_origins")
+    raw_allow_origins: str = Field(
+        default="http://localhost:5173", validation_alias="allow_origins"
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
