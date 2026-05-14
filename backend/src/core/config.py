@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     email_from_name: str = ""
 
     template_path: str = "./src/templates"
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "http://localhost:5173"
     frontend_password_reset_path: str = "reset-password?token="
     frontend_invite_path: str = "invite?token="
 
@@ -72,9 +72,9 @@ class Settings(BaseSettings):
 
     stripe_secret_key: SecretStr = SecretStr("")
     stripe_webhook_secret: SecretStr = SecretStr("")
-    billing_success_url: str = "http://localhost:3000/billing/success"
-    billing_cancel_url: str = "http://localhost:3000/billing/cancel"
-    billing_portal_return_url: str = "http://localhost:3000/billing"
+    billing_success_url: str = "http://localhost:5173/billing/success"
+    billing_cancel_url: str = "http://localhost:5173/billing/cancel"
+    billing_portal_return_url: str = "http://localhost:5173/billing"
     billing_automatic_tax: bool = False
     billing_trial_period_days: int = 14
 
